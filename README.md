@@ -3,7 +3,7 @@
 🎮 **Kahoot-like multiplayer educational game system** with Supabase integration
 
 ## 🚀 Live Demo
-- **Production**: Deploying to Vercel...
+- **Production**: https://nyirad.vercel.app
 - **GitHub**: https://github.com/nkinki/ok
 
 ## ✨ Features
