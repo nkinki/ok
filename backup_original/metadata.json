@@ -1,0 +1,5 @@
+{
+  "name": "OkosGyakorló",
+  "description": "Egy intelligens oktatási alkalmazás, amely képekből (tankönyvek, munkafüzetek) automatikusan interaktív feladatokat készít a diákok számára a Gemini AI segítségével.",
+  "requestFramePermissions": []
+}

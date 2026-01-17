@@ -1,0 +1,97 @@
+[
+  {
+    "id": "manual-001",
+    "fileName": "IMG_20250513_103527.jpg",
+    "imageUrl": "images/IMG_20250513_103527.jpg",
+    "data": {
+      "title": "Szerkeszd meg: Bal oldali szöveg ide",
+      "instruction": "Szerkeszd meg: Jobb oldali feladat szöveg ide",
+      "type": "QUIZ",
+      "content": {
+        "questions": [
+          {
+            "id": "q1",
+            "question": "Írd be a kérdést a képről",
+            "options": [
+              "Válasz A - szerkeszd meg",
+              "Válasz B - szerkeszd meg", 
+              "Válasz C - szerkeszd meg",
+              "Válasz D - szerkeszd meg"
+            ],
+            "correctIndex": 2,
+            "multiSelect": false,
+            "correctIndices": [2]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "manual-002", 
+    "fileName": "IMG_20250513_103537.jpg",
+    "imageUrl": "images/IMG_20250513_103537.jpg",
+    "data": {
+      "title": "Szerkeszd meg: Bal oldali szöveg ide",
+      "instruction": "Szerkeszd meg: Jobb oldali feladat szöveg ide",
+      "type": "CATEGORIZATION",
+      "content": {
+        "categories": [
+          {"id": "cat-0", "name": "Kategória 1"},
+          {"id": "cat-1", "name": "Kategória 2"},
+          {"id": "cat-2", "name": "Kategória 3"}
+        ],
+        "items": [
+          {"id": "item-0", "text": "Elem 1 - szerkeszd meg", "categoryId": "cat-0"},
+          {"id": "item-1", "text": "Elem 2 - szerkeszd meg", "categoryId": "cat-1"},
+          {"id": "item-2", "text": "Elem 3 - szerkeszd meg", "categoryId": "cat-2"},
+          {"id": "item-3", "text": "Elem 4 - szerkeszd meg", "categoryId": "cat-0"}
+        ]
+      }
+    }
+  },
+  {
+    "id": "manual-003",
+    "fileName": "IMG_20250513_103538.jpg", 
+    "imageUrl": "images/IMG_20250513_103538.jpg",
+    "data": {
+      "title": "Szerkeszd meg: Bal oldali szöveg ide",
+      "instruction": "Szerkeszd meg: Jobb oldali feladat szöveg ide", 
+      "type": "CATEGORIZATION",
+      "content": {
+        "categories": [
+          {"id": "cat-0", "name": "Kategória 1"},
+          {"id": "cat-1", "name": "Kategória 2"},
+          {"id": "cat-2", "name": "Kategória 3"}
+        ],
+        "items": [
+          {"id": "item-0", "text": "Elem 1 - szerkeszd meg", "categoryId": "cat-0"},
+          {"id": "item-1", "text": "Elem 2 - szerkeszd meg", "categoryId": "cat-1"},
+          {"id": "item-2", "text": "Elem 3 - szerkeszd meg", "categoryId": "cat-2"},
+          {"id": "item-3", "text": "Elem 4 - szerkeszd meg", "categoryId": "cat-0"}
+        ]
+      }
+    }
+  },
+  {
+    "id": "manual-004",
+    "fileName": "IMG_20250513_103540.jpg",
+    "imageUrl": "images/IMG_20250513_103540.jpg", 
+    "data": {
+      "title": "Szerkeszd meg: Bal oldali szöveg ide",
+      "instruction": "Szerkeszd meg: Jobb oldali feladat szöveg ide",
+      "type": "CATEGORIZATION", 
+      "content": {
+        "categories": [
+          {"id": "cat-0", "name": "Kategória 1"},
+          {"id": "cat-1", "name": "Kategória 2"}
+        ],
+        "items": [
+          {"id": "item-0", "text": "Elem 1 - szerkeszd meg", "categoryId": "cat-0"},
+          {"id": "item-1", "text": "Elem 2 - szerkeszd meg", "categoryId": "cat-1"},
+          {"id": "item-2", "text": "Elem 3 - szerkeszd meg", "categoryId": "cat-0"},
+          {"id": "item-3", "text": "Elem 4 - szerkeszd meg", "categoryId": "cat-1"}
+        ]
+      }
+    }
+  }
+]
