@@ -25,6 +25,7 @@ dist-ssr
 # Large exercise JSON files (exclude from deployment)
 json/
 okosgyakorló.zip
+okok*.json
 
 # Editor directories and files
 .vscode/*
