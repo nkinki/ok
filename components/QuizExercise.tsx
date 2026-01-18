@@ -159,7 +159,7 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
         <div className="space-y-2">
           {currentQuestion.options.map((option, idx) => {
             let stateStyles = "border-gray-200 hover:border-brand-300 hover:bg-brand-50";
-            let icon = null;
+            let icon: JSX.Element | null = null;
             let statusText = "";
             
             // Logic to determine if this specific option is selected by user
