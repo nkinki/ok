@@ -322,7 +322,7 @@ function ExerciseApp({ onHostGame }: { onHostGame: (room: GameRoom) => void }) {
           setExerciseData(data);
           
           if (currentLibraryIndex !== null) {
-              setLibrary(prev => {
+              setLibrary((prev: any[]) => {
                   const next = [...prev];
                   if (next[currentLibraryIndex]) {
                       next[currentLibraryIndex] = { ...next[currentLibraryIndex], data: data };
@@ -339,8 +339,8 @@ function ExerciseApp({ onHostGame }: { onHostGame: (room: GameRoom) => void }) {
   };
 
   const handleBulkComplete = (results: BulkResultItem[]) => {
-      setLibrary(prev => {
-          const newItems = results.filter(r => !prev.some(p => p.id === r.id));
+      setLibrary((prev: any[]) => {
+          const newItems = results.filter((r: any) => !prev.some((p: any) => p.id === r.id));
           return [...prev, ...newItems];
       });
       setViewMode('LIBRARY');
@@ -348,9 +348,9 @@ function ExerciseApp({ onHostGame }: { onHostGame: (room: GameRoom) => void }) {
   };
 
   const handleBulkImport = (importedData: BulkResultItem[]) => {
-      setLibrary(prev => {
-          const uniqueImported = importedData.filter(newItem => 
-              !prev.some(existing => existing.id === newItem.id)
+      setLibrary((prev: any[]) => {
+          const uniqueImported = importedData.filter((newItem: any) => 
+              !prev.some((existing: any) => existing.id === newItem.id)
           );
           return [...prev, ...uniqueImported];
       });
@@ -358,7 +358,7 @@ function ExerciseApp({ onHostGame }: { onHostGame: (room: GameRoom) => void }) {
   };
 
   const handleOpenFromLibrary = (item: BulkResultItem) => {
-      const index = library.findIndex(i => i.id === item.id);
+      const index = library.findIndex((i: any) => i.id === item.id);
       setCurrentLibraryIndex(index);
       setImageSrc(item.imageUrl);
       setExerciseData(item.data);
