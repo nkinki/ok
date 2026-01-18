@@ -1,20 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ExerciseSelectionModal from './ExerciseSelectionModal'
 import GameResults from './GameResults'
-
-interface FixedRoom {
-  id: string
-  roomCode: string
-  title: string
-  description: string
-  grade: number
-  playerCount: number
-  availableSlots: number
-  maxPlayers: number
-  gameState: string
-  isActive: boolean
-  customCode?: string
-}
+import { FixedRoom } from '../types/game'
 
 interface SelectedExercise {
   id: string

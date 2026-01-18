@@ -14,6 +14,21 @@ export interface GameRoom {
   finishedAt?: Date
 }
 
+export interface FixedRoom {
+  id: string
+  roomCode: string
+  title: string
+  description: string
+  grade: number
+  playerCount: number
+  availableSlots: number
+  maxPlayers: number
+  gameState: string
+  isActive: boolean
+  status?: 'waiting' | 'active' | 'finished' | 'cancelled'
+  customCode?: string
+}
+
 export interface GameQuestion {
   id: string
   roomId: string

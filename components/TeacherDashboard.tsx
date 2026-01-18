@@ -6,7 +6,7 @@ import CreateRoomModal from './CreateRoomModal'
 import RoomActionsDropdown from './RoomActionsDropdown'
 import RoomDetailsModal from './RoomDetailsModal'
 import FixedRoomsPanel from './FixedRoomsPanel'
-import { GameRoom } from '../types/game'
+import { GameRoom, FixedRoom } from '../types/game'
 
 interface TeacherDashboardProps {
   onHostGame?: (room: GameRoom) => void
@@ -59,6 +59,30 @@ export default function TeacherDashboard({ onHostGame }: TeacherDashboardProps) 
       // Fallback for development
       console.log('Starting game for room:', room.roomCode)
       alert(`Verseny indítása: ${room.title}\nKód: ${room.roomCode}\n\nGame Host felület betöltése...`)
+    }
+  }
+
+  const handleStartFixedRoom = (room: FixedRoom) => {
+    // Convert FixedRoom to GameRoom format for compatibility
+    const gameRoom: GameRoom = {
+      id: room.id,
+      roomCode: room.roomCode,
+      title: room.title,
+      description: room.description,
+      teacherId: teacher?.id || 'teacher',
+      maxPlayers: room.maxPlayers,
+      questionsCount: 10, // Default value
+      timePerQuestion: 30, // Default value
+      status: room.status || (room.isActive ? 'active' : 'waiting'),
+      createdAt: new Date()
+    }
+    
+    if (onHostGame) {
+      onHostGame(gameRoom)
+    } else {
+      // Fallback for development
+      console.log('Starting fixed room:', room.roomCode)
+      alert(`Fix szoba indítása: ${room.title}\nKód: ${room.roomCode}\n\nGame Host felület betöltése...`)
     }
   }
 
@@ -237,7 +261,7 @@ export default function TeacherDashboard({ onHostGame }: TeacherDashboardProps) 
 
         {/* Fixed Rooms Panel */}
         <div className="mb-8">
-          <FixedRoomsPanel onStartGame={handleStartGame} />
+          <FixedRoomsPanel onStartGame={handleStartFixedRoom} />
         </div>
 
         {/* Recent Games */}
