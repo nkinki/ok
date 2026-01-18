@@ -29,7 +29,13 @@ export default function GoogleLoginButton() {
     console.log('Production Google OAuth not yet implemented')
   }
 
-  const isDevelopment = process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost'
+  const isDevelopment = process.env.NODE_ENV === 'development' || 
+                     (typeof window !== 'undefined' && (
+                       window.location.hostname === 'localhost' || 
+                       window.location.hostname.includes('127.0.0.1') ||
+                       window.location.hostname.includes('vercel.app') ||
+                       window.location.hostname.includes('szentmihaly.hu')
+                     ))
 
   if (isDevelopment) {
     return (
