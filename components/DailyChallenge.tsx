@@ -154,7 +154,16 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
               {/* Left Side: Original Image */}
               <div className="lg:w-1/2 h-1/3 lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
                    {currentItem.imageUrl ? (
-                        <ImageViewer src={currentItem.imageUrl} alt="Feladat forrása" />
+                        <ImageViewer 
+                          src={currentItem.imageUrl} 
+                          alt="Feladat forrása" 
+                          onImageUpdate={(newSrc) => {
+                            // Update the current item's image URL
+                            const updatedItem = { ...currentItem, imageUrl: newSrc };
+                            // You might want to save this back to the library
+                            console.log('Image updated:', newSrc);
+                          }}
+                        />
                    ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-500">Nincs elérhető kép</div>
                    )}

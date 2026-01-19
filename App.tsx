@@ -122,7 +122,7 @@ function AppContent() {
 
 // Exercise App Component (the original App logic)
 function ExerciseApp({ onHostGame }: { onHostGame: (room: GameRoom) => void }) {
-  const [viewMode, setViewMode] = useState<ViewMode>('DASHBOARD');
+  const [viewMode, setViewMode] = useState<ViewMode>('DAILY');
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [exerciseData, setExerciseData] = useState<ExerciseData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -488,7 +488,11 @@ function ExerciseApp({ onHostGame }: { onHostGame: (room: GameRoom) => void }) {
                     </div>
                 )}
                 
-                <ImageViewer src={imageSrc} alt="Eredeti feladat" />
+                <ImageViewer 
+                  src={imageSrc} 
+                  alt="Eredeti feladat" 
+                  onImageUpdate={(newSrc) => setImageSrc(newSrc)}
+                />
             </div>
             <div className="lg:w-1/2 h-2/3 lg:h-full bg-slate-50 overflow-y-auto p-4 relative">
                 <div className="max-w-none mx-auto">
