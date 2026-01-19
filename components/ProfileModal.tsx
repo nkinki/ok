@@ -115,7 +115,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </label>
             <input
               type="text"
-              value={teacher?.username || ''}
+              value={teacher?.email || ''}
               disabled
               className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-500"
             />

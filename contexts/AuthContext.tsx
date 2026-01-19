@@ -99,6 +99,93 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
+  const loginWithCode = async (code: string) => {
+    dispatch({ type: 'LOGIN_START' })
+    
+    try {
+      // Predefined teacher accounts with codes
+      const teacherAccounts = {
+        'infoxxx': { 
+          id: 'teacher_info', 
+          email: 'informatika@szenmihalyatisk.hu', 
+          name: 'Informatika Tanár',
+          subject: 'Informatika'
+        },
+        'torixxx': { 
+          id: 'teacher_tori', 
+          email: 'tortenelem@szenmihalyatisk.hu', 
+          name: 'Történelem Tanár',
+          subject: 'Történelem'
+        },
+        'matekxxx': { 
+          id: 'teacher_matek', 
+          email: 'matematika@szenmihalyatisk.hu', 
+          name: 'Matematika Tanár',
+          subject: 'Matematika'
+        },
+        'magyxxx': { 
+          id: 'teacher_magy', 
+          email: 'magyar@szenmihalyatisk.hu', 
+          name: 'Magyar Tanár',
+          subject: 'Magyar nyelv'
+        },
+        'angolxxx': { 
+          id: 'teacher_angol', 
+          email: 'angol@szenmihalyatisk.hu', 
+          name: 'Angol Tanár',
+          subject: 'Angol nyelv'
+        },
+        'termxxx': { 
+          id: 'teacher_term', 
+          email: 'termeszet@szenmihalyatisk.hu', 
+          name: 'Természettudomány Tanár',
+          subject: 'Természettudomány'
+        }
+      }
+
+      const account = teacherAccounts[code as keyof typeof teacherAccounts]
+      
+      if (!account) {
+        throw new Error('Érvénytelen bejelentkezési kód')
+      }
+
+      // Create teacher object
+      const teacher: Teacher = {
+        id: account.id,
+        email: account.email,
+        fullName: account.name,
+        authProvider: 'code',
+        isActive: true,
+        createdAt: new Date(),
+        subject: account.subject
+      }
+
+      // Create a simple token
+      const token = btoa(JSON.stringify({
+        teacherId: teacher.id,
+        email: teacher.email,
+        name: teacher.fullName,
+        iat: Date.now(),
+        exp: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+      }))
+
+      // Store in localStorage
+      localStorage.setItem('auth_token', token)
+      localStorage.setItem('teacher_data', JSON.stringify(teacher))
+      
+      dispatch({ 
+        type: 'LOGIN_SUCCESS', 
+        payload: { teacher, token } 
+      })
+    } catch (error) {
+      dispatch({ 
+        type: 'LOGIN_ERROR', 
+        payload: error instanceof Error ? error.message : 'Ismeretlen hiba' 
+      })
+      throw error
+    }
+  }
+
   const loginWithGoogle = async (credential: string) => {
     dispatch({ type: 'LOGIN_START' })
     
@@ -155,6 +242,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value: AuthContextType = {
     ...state,
+    loginWithCode,
     loginWithGoogle,
     logout,
     clearError

@@ -1,13 +1,13 @@
 export interface Teacher {
   id: string
-  username: string
   email: string
   fullName: string
   createdAt: Date
   lastLogin?: Date
   isActive: boolean
-  authProvider: 'local' | 'google'
+  authProvider: 'local' | 'google' | 'code'
   googleId?: string
+  subject?: string
 }
 
 // Internal interface for database storage (includes password)
@@ -41,6 +41,7 @@ export interface AuthState {
 }
 
 export interface AuthContextType extends AuthState {
+  loginWithCode: (code: string) => Promise<void>
   loginWithGoogle: (credential: string) => Promise<void>
   logout: () => void
   clearError: () => void

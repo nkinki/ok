@@ -27,8 +27,8 @@ function generateToken(teacher: Teacher): string {
   // Simple mock token for development
   return btoa(JSON.stringify({
     teacherId: teacher.id,
-    username: teacher.username,
     email: teacher.email,
+    name: teacher.fullName,
     exp: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
   }))
 }
@@ -98,9 +98,8 @@ export async function mockGoogleLogin(credential: string): Promise<LoginResponse
     // Auto-create teacher account for institutional users
     const newTeacher: MockTeacher = {
       id: generateId(),
-      username,
       email,
-      fullName: name || username,
+      fullName: name || email.split('@')[0],
       authProvider: 'google',
       googleId,
       isActive: true,
@@ -167,7 +166,6 @@ export function initializeDevAuth() {
     const institutionalTeachers: MockTeacher[] = [
       {
         id: 'teacher_google_001',
-        username: 'teszt.tanar',
         email: 'teszt.tanar@szenmihalyatisk.hu',
         fullName: 'Teszt Tanár',
         authProvider: 'google',
@@ -178,7 +176,6 @@ export function initializeDevAuth() {
       },
       {
         id: 'teacher_google_002',
-        username: 'kovacs.anna',
         email: 'kovacs.anna@szenmihalyatisk.hu',
         fullName: 'Kovács Anna',
         authProvider: 'google',

@@ -1,5 +1,5 @@
 import React from 'react'
-import GoogleLoginButton from './GoogleLoginButton'
+import SimpleLoginForm from './SimpleLoginForm'
 
 export default function AuthPage() {
   return (
@@ -17,19 +17,14 @@ export default function AuthPage() {
             <h2 className="text-xl font-semibold text-purple-700 mb-2">
               Okos Gyakorló
             </h2>
-            <p className="text-slate-600">
-              Tanári bejelentkezés
-            </p>
           </div>
 
-          {/* Google Login */}
-          <GoogleLoginButton />
+          {/* Simple Login Form */}
+          <SimpleLoginForm />
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-slate-200">
             <p className="text-xs text-slate-500 text-center">
-              Csak az intézményi Google fiókokkal (@szenmihalyatisk.hu) lehet bejelentkezni.
-              <br />
               Kérdés esetén forduljon az adminisztrátorhoz.
             </p>
           </div>

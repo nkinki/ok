@@ -164,7 +164,7 @@ export default function TeacherDashboard({ onHostGame }: TeacherDashboardProps) 
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="font-medium text-slate-800">{teacher?.fullName}</p>
-              <p className="text-sm text-slate-600">@{teacher?.username}</p>
+              <p className="text-sm text-slate-600">{teacher?.email}</p>
             </div>
             <div className="flex items-center gap-2">
               <a
