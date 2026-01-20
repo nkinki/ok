@@ -159,53 +159,16 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
           <h2 className="text-3xl font-bold text-slate-800">Feladat Könyvtár</h2>
           <p className="text-slate-600">A mentett és feldolgozott feladatok gyűjteménye.</p>
           
-          {/* Storage info - more prominent */}
-          <div className="flex items-center gap-4 mt-3">
-            <div className="flex items-center gap-2 bg-slate-200 px-4 py-2 rounded-lg text-sm font-medium border border-slate-300">
-              <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4V7c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4z"/>
-              </svg>
-              <span className="text-slate-800 font-bold">
-                Tárhely: {storageInfo.sizeMB > 1 ? `${storageInfo.sizeMB} MB` : `${storageInfo.sizeKB} KB`}
-                {storageInfo.itemCount > 0 && ` (${storageInfo.itemCount} elem)`}
-              </span>
-            </div>
-            
-            {/* Storage delete button */}
-            <button 
-              onClick={handleClearStorage} 
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2"
-              title="Teljes tárhely törlése"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-              </svg>
-              Tárhely törlése
-            </button>
-          </div>
-          
-          {/* Memory mode warning */}
+          {/* Memory mode warning - simplified */}
           {isMemoryMode && (
             <div className="mt-3 p-3 bg-orange-100 border border-orange-300 rounded-lg">
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                <span className="text-orange-800 font-bold text-sm flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                  </svg>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                <span className="text-orange-800 font-bold text-sm">
                   MEMÓRIA MÓD: A tárhely megtelt
                 </span>
-                <div className="flex gap-2">
-                  <button onClick={handleExportLibrary} className="bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium shadow hover:bg-orange-700">
-                    Mentés most
-                  </button>
-                  <button 
-                    onClick={handleClearStorage} 
-                    className="bg-red-600 text-white px-3 py-1 rounded text-sm font-medium shadow hover:bg-red-700"
-                    title="Teljes tárhely törlése"
-                  >
-                    Tárhely törlése
-                  </button>
-                </div>
               </div>
             </div>
           )}

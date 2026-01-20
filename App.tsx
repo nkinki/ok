@@ -41,7 +41,7 @@ function AppContent() {
             OK
           </div>
           <h1 className="text-4xl font-bold text-slate-800 mb-4">
-            Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
+            Szent Mihály Iskola és AMI
           </h1>
         </div>
 
@@ -131,7 +131,7 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
               OK
             </div>
             <div className="font-bold text-purple-900 text-sm md:text-base leading-tight">
-              Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
+              Szent Mihály Iskola és AMI
             </div>
           </div>
 
@@ -267,7 +267,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
               OK
             </div>
             <div className="font-bold text-purple-900 text-lg md:text-xl leading-tight">
-              Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
+              Szent Mihály Iskola és AMI
             </div>
           </div>
 
