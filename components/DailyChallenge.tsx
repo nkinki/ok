@@ -12,6 +12,7 @@ import StudentLoginForm from './auth/StudentLoginForm';
 interface Props {
   library: BulkResultItem[];
   onExit: () => void;
+  isStudentMode?: boolean;
 }
 
 type DailyStep = 'LOGIN' | 'ASSIGNMENTS' | 'PLAYING' | 'RESULT';
@@ -20,6 +21,7 @@ interface Student {
   id: string;
   name: string;
   className: string;
+  subject: string;
 }
 
 interface Assignment {
@@ -44,8 +46,8 @@ interface Session {
   status: string;
 }
 
-const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
-  const [step, setStep] = useState<DailyStep>('LOGIN');
+const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = false }) => {
+  const [step, setStep] = useState<DailyStep>(isStudentMode ? 'LOGIN' : 'ASSIGNMENTS');
   const [student, setStudent] = useState<Student | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
@@ -70,8 +72,17 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
     setError(null);
 
     try {
-      // Fetch assignments for student's class
-      const response = await fetch(`/api/simple-api/assignments/class/${encodeURIComponent(studentData.className)}`);
+      // Fetch assignments for student's class and subject
+      const response = await fetch(`/api/simple-api/assignments/active`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          className: studentData.className,
+          subject: studentData.subject
+        })
+      });
       
       if (!response.ok) {
         throw new Error('Nem sikerült betölteni a feladatokat');
@@ -209,8 +220,30 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
   };
 
   // --- RENDER: LOGIN ---
-  if (step === 'LOGIN') {
+  if (step === 'LOGIN' && !isStudentMode) {
       return <StudentLoginForm onLoginSuccess={handleStudentLogin} onBack={onExit} />;
+  }
+
+  // Skip login in student mode and show assignments directly
+  if (step === 'LOGIN' && isStudentMode) {
+      // Auto-set a default student for student mode
+      useEffect(() => {
+          if (!student) {
+              setStudent({
+                  id: 'student-mode',
+                  name: 'Diák',
+                  className: 'Általános',
+                  subject: 'Általános'
+              });
+              setStep('ASSIGNMENTS');
+          }
+      }, [student]);
+      
+      return (
+          <div className="flex items-center justify-center min-h-screen">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          </div>
+      );
   }
 
   // --- RENDER: ASSIGNMENTS ---
@@ -222,7 +255,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
                       📚
                   </div>
                   <h2 className="text-2xl font-bold text-slate-800">Üdv, {student?.name}!</h2>
-                  <p className="text-slate-500">Válassz egy feladatsort a {student?.className} osztály számára</p>
+                  <p className="text-slate-500">Válassz egy feladatsort: {student?.className} osztály - {student?.subject}</p>
               </div>
 
               {loading && (
@@ -244,7 +277,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                       </svg>
                       <h3 className="text-lg font-medium text-slate-400 mb-2">Nincs elérhető feladat</h3>
-                      <p className="text-slate-400 mb-4">A tanár még nem hozott létre feladatokat a {student?.className} osztály számára.</p>
+                      <p className="text-slate-400 mb-4">A tanár még nem hozott létre aktív feladatokat a {student?.className} osztály {student?.subject} tantárgyához.</p>
                       <button
                           onClick={handleFallbackToLibrary}
                           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
@@ -335,7 +368,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
                       <div className="sticky top-0 z-20 bg-slate-50 p-6 pb-2 border-b border-slate-200 mb-4 shadow-sm opacity-95 backdrop-blur">
                           <div className="flex justify-between items-center mb-4">
                               <span className="font-bold text-purple-900">Napi Kihívás</span>
-                              <span className="text-sm font-medium text-slate-500">{student?.name} - {student?.className}</span>
+                              <span className="text-sm font-medium text-slate-500">{student?.name} - {student?.className} - {student?.subject}</span>
                           </div>
                           
                           <div className="w-full bg-slate-200 rounded-full h-2 mb-4">

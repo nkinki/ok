@@ -1,20 +1,21 @@
 import React, { useState } from 'react'
 
 interface StudentLoginFormProps {
-  onLoginSuccess: (student: { id: string; name: string; className: string }) => void
+  onLoginSuccess: (student: { id: string; name: string; className: string; subject: string }) => void
   onBack: () => void
 }
 
 export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLoginFormProps) {
   const [studentName, setStudentName] = useState('')
   const [studentClass, setStudentClass] = useState('')
+  const [subject, setSubject] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!studentName.trim() || !studentClass.trim()) {
-      setError('Név és osztály megadása kötelező')
+    if (!studentName.trim() || !studentClass.trim() || !subject.trim()) {
+      setError('Név, osztály és tantárgy megadása kötelező')
       return
     }
     
@@ -30,7 +31,8 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
         },
         body: JSON.stringify({
           name: studentName.trim(),
-          className: studentClass.trim()
+          className: studentClass.trim(),
+          subject: subject.trim()
         })
       })
 
@@ -49,7 +51,8 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
           },
           body: JSON.stringify({
             name: studentName.trim(),
-            className: studentClass.trim()
+            className: studentClass.trim(),
+            subject: subject.trim()
           })
         })
 
@@ -76,6 +79,27 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
     '7.a', '7.b', '8.a', '8.b'
   ]
 
+  const subjectOptions = [
+    'Magyar nyelv és irodalom',
+    'Matematika',
+    'Történelem',
+    'Természetismeret',
+    'Biológia',
+    'Fizika',
+    'Kémia',
+    'Földrajz',
+    'Angol nyelv',
+    'Német nyelv',
+    'Informatika',
+    'Digitális kultúra',
+    'Technika és tervezés',
+    'Vizuális kultúra',
+    'Ének-zene',
+    'Testnevelés',
+    'Erkölcstan',
+    'Hit- és erkölcstan'
+  ]
+
   return (
     <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
       <div className="text-center mb-8">
@@ -83,7 +107,7 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
           👨‍🎓
         </div>
         <h2 className="text-2xl font-bold text-slate-800">Diák bejelentkezés</h2>
-        <p className="text-slate-500">Add meg a neved és az osztályodat</p>
+        <p className="text-slate-500">Add meg a neved, osztályodat és a tantárgyat</p>
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
@@ -120,9 +144,27 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
           </select>
         </div>
 
+        <div>
+          <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+            Tantárgy
+          </label>
+          <select
+            id="subject"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={loading}
+          >
+            <option value="">Válassz tantárgyat...</option>
+            {subjectOptions.map(subj => (
+              <option key={subj} value={subj}>{subj}</option>
+            ))}
+          </select>
+        </div>
+
         <button
           type="submit"
-          disabled={loading || !studentName.trim() || !studentClass.trim()}
+          disabled={loading || !studentName.trim() || !studentClass.trim() || !subject.trim()}
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (

@@ -267,10 +267,10 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 
     // Student registration
     if (path === '/api/simple-api/students/register' && method === 'POST') {
-      const { name, className } = req.body
+      const { name, className, subject } = req.body
 
-      if (!name || !className) {
-        return res.status(400).json({ error: 'Név és osztály megadása kötelező' })
+      if (!name || !className || !subject) {
+        return res.status(400).json({ error: 'Név, osztály és tantárgy megadása kötelező' })
       }
 
       const studentId = generateId()
@@ -278,6 +278,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         id: studentId,
         name: name.trim(),
         className: className.trim(),
+        subject: subject.trim(),
         createdAt: new Date(),
         lastActive: new Date()
       }
@@ -291,17 +292,18 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    // Get student by name and class
+    // Get student by name, class and subject
     if (path === '/api/simple-api/students/find' && method === 'POST') {
-      const { name, className } = req.body
+      const { name, className, subject } = req.body
 
-      if (!name || !className) {
-        return res.status(400).json({ error: 'Név és osztály megadása kötelező' })
+      if (!name || !className || !subject) {
+        return res.status(400).json({ error: 'Név, osztály és tantárgy megadása kötelező' })
       }
 
       const student = Array.from(students.values()).find(s => 
         s.name.toLowerCase() === name.toLowerCase() && 
-        s.className.toLowerCase() === className.toLowerCase()
+        s.className.toLowerCase() === className.toLowerCase() &&
+        s.subject.toLowerCase() === subject.toLowerCase()
       )
 
       if (!student) {
@@ -379,10 +381,10 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ error: 'Bejelentkezés szükséges' })
       }
 
-      const { title, description, targetClass, exerciseIds, startDate, endDate } = req.body
+      const { title, description, targetClass, subject, exerciseIds, startDate, endDate } = req.body
 
-      if (!title || !targetClass || !exerciseIds || !Array.isArray(exerciseIds) || exerciseIds.length === 0) {
-        return res.status(400).json({ error: 'Cím, célcsoport és feladatok megadása kötelező' })
+      if (!title || !targetClass || !subject || !exerciseIds || !Array.isArray(exerciseIds) || exerciseIds.length === 0) {
+        return res.status(400).json({ error: 'Cím, célcsoport, tantárgy és feladatok megadása kötelező' })
       }
 
       // Validate exercises belong to teacher
@@ -402,6 +404,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         title: title.trim(),
         description: description?.trim() || '',
         targetClass: targetClass.trim(),
+        subject: subject.trim(),
         exerciseIds: validExercises,
         isActive: true,
         startDate: startDate || new Date().toISOString().split('T')[0],
@@ -419,7 +422,39 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    // Get assignments for a class (student)
+    // Get active assignments for a class and subject (student)
+    if (path === '/api/simple-api/assignments/active' && method === 'POST') {
+      const { className, subject } = req.body
+      
+      if (!className || !subject) {
+        return res.status(400).json({ error: 'Osztály és tantárgy megadása kötelező' })
+      }
+
+      const today = new Date().toISOString().split('T')[0]
+
+      const activeAssignments = Array.from(dailyAssignments.values())
+        .filter(assignment => 
+          assignment.isActive && 
+          assignment.targetClass.toLowerCase() === className.toLowerCase() &&
+          assignment.subject.toLowerCase() === subject.toLowerCase() &&
+          assignment.startDate <= today &&
+          (!assignment.endDate || assignment.endDate >= today)
+        )
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+      // Include exercise details
+      const assignmentsWithExercises = activeAssignments.map(assignment => ({
+        ...assignment,
+        exercises: assignment.exerciseIds.map(id => exercises.get(id)).filter(Boolean)
+      }))
+
+      return res.json({
+        assignments: assignmentsWithExercises,
+        count: assignmentsWithExercises.length
+      })
+    }
+
+    // Get assignments for a class (student) - legacy endpoint
     if (path.includes('/api/simple-api/assignments/class/') && method === 'GET') {
       const classMatch = path.match(/\/assignments\/class\/(.+)/)
       if (!classMatch) {

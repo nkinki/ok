@@ -25,12 +25,12 @@ import { GameRoom, GamePlayer } from './types/game';
 import { logger } from './utils/logger';
 
 type ViewMode = 'SINGLE' | 'BULK' | 'LIBRARY' | 'DAILY' | 'DASHBOARD';
-type AppMode = 'TEACHER' | 'PLAYER_JOIN' | 'PLAYER_WAITING' | 'PLAYER_GAME' | 'TEACHER_HOST';
+type AppMode = 'ROLE_SELECT' | 'TEACHER' | 'STUDENT' | 'PLAYER_JOIN' | 'PLAYER_WAITING' | 'PLAYER_GAME' | 'TEACHER_HOST';
 
 // Main App Component (with authentication and routing)
 function AppContent() {
   const { isAuthenticated } = useAuth()
-  const [appMode, setAppMode] = useState<AppMode>('TEACHER')
+  const [appMode, setAppMode] = useState<AppMode>('ROLE_SELECT')
   const [playerData, setPlayerData] = useState<{
     player: GamePlayer | null
     room: GameRoom | null
@@ -75,9 +75,95 @@ function AppContent() {
     setAppMode('TEACHER')
   }
 
+  // Role selection component
+  const RoleSelectPage = () => (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="max-w-4xl w-full">
+        <div className="text-center mb-12">
+          <div className="bg-purple-100 text-purple-900 w-20 h-20 flex items-center justify-center rounded-2xl shadow-lg font-bold text-3xl mx-auto mb-6 border border-purple-200">
+            OK
+          </div>
+          <h1 className="text-4xl font-bold text-slate-800 mb-4">
+            Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
+          </h1>
+          <p className="text-xl text-slate-600">
+            Válaszd ki a szerepkört
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+          {/* Tanár gomb */}
+          <div 
+            onClick={() => setAppMode('TEACHER')}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 hover:shadow-xl transition-all cursor-pointer group hover:scale-105"
+          >
+            <div className="text-center">
+              <div className="bg-purple-100 text-purple-600 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-slate-800 mb-2">Tanár</h3>
+              <p className="text-slate-600 mb-4">
+                Feladatok létrehozása, szerkesztése és játékok vezetése
+              </p>
+              <div className="text-sm text-slate-500">
+                • Feladatok generálása<br/>
+                • Kahoot játékok<br/>
+                • Beállítások<br/>
+                • Teljes hozzáférés
+              </div>
+            </div>
+          </div>
+
+          {/* Diák gomb */}
+          <div 
+            onClick={() => setAppMode('STUDENT')}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 hover:shadow-xl transition-all cursor-pointer group hover:scale-105"
+          >
+            <div className="text-center">
+              <div className="bg-yellow-100 text-yellow-600 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-yellow-200 transition-colors">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-slate-800 mb-2">Diák</h3>
+              <p className="text-slate-600 mb-4">
+                Napi gyakorlás és játékokban való részvétel
+              </p>
+              <div className="text-sm text-slate-500">
+                • Napi gyakorló<br/>
+                • Játékokhoz csatlakozás<br/>
+                • Egyszerű felület<br/>
+                • Tanulásra fókuszálva
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center mt-8">
+          <p className="text-sm text-slate-500">
+            A szerepkör bármikor megváltoztatható a beállításokban
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Show role selection first
+  if (appMode === 'ROLE_SELECT') {
+    return <RoleSelectPage />
+  }
+
   // If not authenticated and in teacher mode, show auth page
   if (!isAuthenticated && appMode === 'TEACHER') {
     return <AuthPage />
+  }
+
+  // Student mode - show daily challenge directly
+  if (appMode === 'STUDENT') {
+    return <StudentApp onBackToRoleSelect={() => setAppMode('ROLE_SELECT')} />
   }
 
   // Player modes don't require authentication
@@ -117,11 +203,76 @@ function AppContent() {
   }
 
   // Teacher mode - show exercise app
-  return <ExerciseApp onHostGame={handleHostGame} />
+  return <ExerciseApp onHostGame={handleHostGame} onBackToRoleSelect={() => setAppMode('ROLE_SELECT')} />
+}
+
+// Student App Component (simplified interface for students)
+function StudentApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
+  const [library, setLibrary] = useState<BulkResultItem[]>([]);
+
+  // Load manual exercises on mount
+  useEffect(() => {
+    const loadManualExercises = async () => {
+      try {
+        const response = await fetch('/manual-exercises.json');
+        if (response.ok) {
+          const manualExercises = await response.json();
+          if (Array.isArray(manualExercises) && manualExercises.length > 0) {
+            setLibrary(manualExercises);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load manual exercises", e);
+      }
+    };
+
+    loadManualExercises();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans">
+      <nav className="bg-white border-b border-purple-200 sticky top-0 z-50 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200">
+              OK
+            </div>
+            <div className="font-bold text-purple-900 text-lg md:text-xl leading-tight">
+              Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-300">
+              ⭐ Diák Mód
+            </div>
+            <button 
+              onClick={onBackToRoleSelect}
+              className="text-slate-500 hover:text-purple-700 p-2"
+              title="Vissza a szerepkör választáshoz"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main>
+        <DailyChallenge 
+          library={library} 
+          onExit={onBackToRoleSelect}
+          isStudentMode={true}
+        />
+      </main>
+    </div>
+  );
 }
 
 // Exercise App Component (the original App logic)
-function ExerciseApp({ onHostGame }: { onHostGame: (room: GameRoom) => void }) {
+function ExerciseApp({ onHostGame, onBackToRoleSelect }: { onHostGame: (room: GameRoom) => void, onBackToRoleSelect: () => void }) {
   const [viewMode, setViewMode] = useState<ViewMode>('DAILY');
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [exerciseData, setExerciseData] = useState<ExerciseData | null>(null);
@@ -563,6 +714,10 @@ function ExerciseApp({ onHostGame }: { onHostGame: (room: GameRoom) => void }) {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-4">
+             <div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-lg text-sm font-bold border border-purple-300">
+               👨‍🏫 Tanár Mód
+             </div>
+             <div className="h-8 w-px bg-slate-200 mx-1"></div>
              <button onClick={() => setViewMode('DASHBOARD')} className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border transition-all ${viewMode === 'DASHBOARD' ? 'bg-purple-100 text-purple-800 border-purple-300' : 'text-slate-600 border-transparent hover:bg-slate-50'}`}>
                  🏠 Dashboard
              </button>
@@ -581,6 +736,15 @@ function ExerciseApp({ onHostGame }: { onHostGame: (room: GameRoom) => void }) {
              
              <button onClick={() => setIsSettingsOpen(true)} className="text-slate-500 hover:text-purple-700 p-2"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></button>
              <button onClick={() => setIsHelpOpen(true)} className="text-slate-500 hover:text-purple-700 p-2"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></button>
+             <button 
+               onClick={onBackToRoleSelect}
+               className="text-slate-500 hover:text-purple-700 p-2"
+               title="Vissza a szerepkör választáshoz"
+             >
+               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+               </svg>
+             </button>
           </div>
         </div>
       </nav>

@@ -22,6 +22,7 @@ export default function CreateAssignmentModal({ isOpen, onClose, onAssignmentCre
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [targetClass, setTargetClass] = useState('')
+  const [subject, setSubject] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -34,6 +35,27 @@ export default function CreateAssignmentModal({ isOpen, onClose, onAssignmentCre
     '1.a', '1.b', '2.a', '2.b', '3.a', '3.b', 
     '4.a', '4.b', '5.a', '5.b', '6.a', '6.b',
     '7.a', '7.b', '8.a', '8.b'
+  ]
+
+  const subjectOptions = [
+    'Magyar nyelv és irodalom',
+    'Matematika',
+    'Történelem',
+    'Természetismeret',
+    'Biológia',
+    'Fizika',
+    'Kémia',
+    'Földrajz',
+    'Angol nyelv',
+    'Német nyelv',
+    'Informatika',
+    'Digitális kultúra',
+    'Technika és tervezés',
+    'Vizuális kultúra',
+    'Ének-zene',
+    'Testnevelés',
+    'Erkölcstan',
+    'Hit- és erkölcstan'
   ]
 
   // Load teacher's exercises when modal opens
@@ -79,8 +101,8 @@ export default function CreateAssignmentModal({ isOpen, onClose, onAssignmentCre
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!title.trim() || !targetClass || selectedExerciseIds.length === 0) {
-      setError('Cím, célcsoport és legalább egy feladat megadása kötelező')
+    if (!title.trim() || !targetClass || !subject || selectedExerciseIds.length === 0) {
+      setError('Cím, célcsoport, tantárgy és legalább egy feladat megadása kötelező')
       return
     }
 
@@ -99,6 +121,7 @@ export default function CreateAssignmentModal({ isOpen, onClose, onAssignmentCre
           title: title.trim(),
           description: description.trim(),
           targetClass,
+          subject,
           exerciseIds: selectedExerciseIds,
           startDate,
           endDate: endDate || null
@@ -124,6 +147,7 @@ export default function CreateAssignmentModal({ isOpen, onClose, onAssignmentCre
     setTitle('')
     setDescription('')
     setTargetClass('')
+    setSubject('')
     setStartDate('')
     setEndDate('')
     setSelectedExerciseIds([])
@@ -173,7 +197,9 @@ export default function CreateAssignmentModal({ isOpen, onClose, onAssignmentCre
                   disabled={loading}
                 />
               </div>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Célcsoport *
@@ -187,6 +213,23 @@ export default function CreateAssignmentModal({ isOpen, onClose, onAssignmentCre
                   <option value="">Válassz osztályt...</option>
                   {classOptions.map(cls => (
                     <option key={cls} value={cls}>{cls}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tantárgy *
+                </label>
+                <select
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  disabled={loading}
+                >
+                  <option value="">Válassz tantárgyat...</option>
+                  {subjectOptions.map(subj => (
+                    <option key={subj} value={subj}>{subj}</option>
                   ))}
                 </select>
               </div>
