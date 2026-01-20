@@ -215,6 +215,61 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     document.body.removeChild(link);
   }
 
+  const cleanupOldSessions = () => {
+    try {
+      const sessionKeys: string[] = [];
+      const now = new Date().getTime();
+      const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000); // 1 week ago
+      
+      // Find all session-related keys
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('session_')) {
+          sessionKeys.push(key);
+        }
+      }
+      
+      let deletedCount = 0;
+      
+      // Check each session and delete old ones
+      sessionKeys.forEach(key => {
+        try {
+          if (key.includes('_summary') || key.includes('_results')) {
+            // Skip summary/results, check the main session
+            return;
+          }
+          
+          const sessionData = localStorage.getItem(key);
+          if (sessionData) {
+            const session = JSON.parse(sessionData);
+            const sessionDate = new Date(session.createdAt).getTime();
+            
+            if (sessionDate < oneWeekAgo) {
+              // Delete old session and related data
+              localStorage.removeItem(key);
+              localStorage.removeItem(`${key}_summary`);
+              localStorage.removeItem(`${key}_results`);
+              deletedCount++;
+            }
+          }
+        } catch (e) {
+          // If parsing fails, delete the corrupted key
+          localStorage.removeItem(key);
+          deletedCount++;
+        }
+      });
+      
+      if (deletedCount > 0) {
+        console.log(`🧹 Cleaned up ${deletedCount} old sessions`);
+      }
+      
+      return deletedCount;
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      return 0;
+    }
+  }
+
   const generateSessionCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
   }
@@ -229,6 +284,12 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     setError(null)
 
     try {
+      // Clean up old sessions first to free up space
+      const cleanedCount = cleanupOldSessions();
+      if (cleanedCount > 0) {
+        console.log(`🧹 Freed up space by cleaning ${cleanedCount} old sessions`);
+      }
+
       const sessionCode = generateSessionCode()
       const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
 
@@ -274,18 +335,67 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       setActiveSession(session)
       
       // Always also store in localStorage as backup
+      const sessionDataForStorage = {
+        code: sessionCode,
+        exercises: selectedExerciseData,
+        createdAt: new Date().toISOString(),
+        isActive: true
+      }
+      
       try {
-        const sessionData = {
-          code: sessionCode,
-          exercises: selectedExerciseData,
-          createdAt: new Date().toISOString(),
-          isActive: true
-        }
-        localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionData))
+        localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionDataForStorage))
         console.log('💾 Session saved to localStorage as backup')
       } catch (storageError) {
         console.warn('⚠️ Could not save session to localStorage:', storageError)
-        if (!apiSuccess) {
+        
+        // If quota exceeded, try to clean up more aggressively
+        if (storageError instanceof DOMException && storageError.code === 22) {
+          console.log('🧹 Quota exceeded, trying aggressive cleanup...');
+          
+          // Delete all old sessions (older than 1 day)
+          const oneDayAgo = new Date().getTime() - (24 * 60 * 60 * 1000);
+          let aggressiveCleanCount = 0;
+          
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('session_')) {
+              try {
+                if (key.includes('_summary') || key.includes('_results')) {
+                  continue;
+                }
+                
+                const data = localStorage.getItem(key);
+                if (data) {
+                  const session = JSON.parse(data);
+                  const sessionDate = new Date(session.createdAt).getTime();
+                  
+                  if (sessionDate < oneDayAgo) {
+                    localStorage.removeItem(key);
+                    localStorage.removeItem(`${key}_summary`);
+                    localStorage.removeItem(`${key}_results`);
+                    aggressiveCleanCount++;
+                  }
+                }
+              } catch (e) {
+                localStorage.removeItem(key);
+                aggressiveCleanCount++;
+              }
+            }
+          }
+          
+          console.log(`🧹 Aggressive cleanup removed ${aggressiveCleanCount} sessions`);
+          
+          // Try to save again
+          try {
+            localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionDataForStorage));
+            console.log('💾 Session saved after cleanup');
+          } catch (retryError) {
+            console.warn('⚠️ Still could not save after cleanup');
+            if (!apiSuccess) {
+              throw new Error('Tárhely megtelt és nem sikerült felszabadítani helyet. Használd a "Teljes előzmények törlése" gombot.');
+            }
+          }
+        } else if (!apiSuccess) {
           throw new Error('Nem sikerült menteni a munkamenetet')
         }
       }

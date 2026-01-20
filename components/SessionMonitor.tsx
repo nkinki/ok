@@ -44,6 +44,16 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
 
   const fetchSessionStatus = async () => {
     try {
+      // Always check localStorage for results first
+      const localSummaries = localStorage.getItem(`session_${sessionCode}_summary`);
+      const localResults = localStorage.getItem(`session_${sessionCode}_results`);
+      
+      const summaries = localSummaries ? JSON.parse(localSummaries) : [];
+      const results = localResults ? JSON.parse(localResults) : [];
+
+      console.log('📊 LocalStorage summaries:', summaries);
+      console.log('📊 LocalStorage results:', results);
+
       // Try API first
       let apiData = null;
       try {
@@ -51,36 +61,37 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
         if (response.ok) {
           const data = await response.json();
           apiData = data.session;
+          console.log('📡 API data:', apiData);
         }
       } catch (apiError) {
         console.warn('API fetch failed, using localStorage fallback:', apiError);
       }
 
-      // Always also check localStorage for additional results
-      const localSummaries = localStorage.getItem(`session_${sessionCode}_summary`);
-      const localResults = localStorage.getItem(`session_${sessionCode}_results`);
-      
-      const summaries = localSummaries ? JSON.parse(localSummaries) : [];
-      const results = localResults ? JSON.parse(localResults) : [];
-
       // If we have API data, merge with localStorage data
       if (apiData) {
-        // Update API students with localStorage completion data
         const sessionData = apiData as SessionStatus;
         const students = sessionData.students || [];
+        
+        // Update each API student with localStorage data
         students.forEach((student: Student) => {
-          // Find matching summary
+          // Find matching summary from localStorage
           const summary = summaries.find((s: any) => 
             s.studentName === student.name && s.studentClass === student.className
           );
-          if (summary) {
-            student.completedExercises = summary.completedExercises;
-          }
-
-          // Find matching results
+          
+          // Find matching results from localStorage
           const studentResults = results.filter((r: any) => 
             r.studentName === student.name && r.studentClass === student.className
           );
+
+          console.log(`📊 Student ${student.name}: summary=`, summary, 'results=', studentResults);
+
+          // Update student data with localStorage info
+          if (summary) {
+            student.completedExercises = summary.completedExercises;
+            student.currentExercise = summary.completedExercises;
+          }
+
           if (studentResults.length > 0) {
             student.results = studentResults.map((r: any) => ({
               exerciseIndex: 0,
@@ -91,8 +102,46 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
               completedAt: r.completedAt
             }));
             student.totalScore = studentResults.reduce((sum: number, r: any) => sum + (r.score || 0), 0);
+            student.completedExercises = Math.max(student.completedExercises, studentResults.length);
           }
         });
+
+        // Add students from localStorage who might not be in API
+        summaries.forEach((summary: any) => {
+          const existingStudent = students.find(s => 
+            s.name === summary.studentName && s.className === summary.studentClass
+          );
+          
+          if (!existingStudent) {
+            const studentResults = results.filter((r: any) => 
+              r.studentName === summary.studentName && r.studentClass === summary.studentClass
+            );
+            
+            const newStudent: Student = {
+              id: `${summary.studentName}_${summary.studentClass}`,
+              name: summary.studentName,
+              className: summary.studentClass,
+              joinedAt: summary.completedAt,
+              lastSeen: summary.completedAt,
+              isOnline: false,
+              currentExercise: summary.completedExercises,
+              completedExercises: summary.completedExercises,
+              totalScore: studentResults.reduce((sum: number, r: any) => sum + (r.score || 0), 0),
+              results: studentResults.map((r: any) => ({
+                exerciseIndex: 0,
+                exerciseTitle: r.exerciseTitle,
+                isCorrect: r.isCorrect,
+                score: r.score,
+                timeSpent: r.timeSpent,
+                completedAt: r.completedAt
+              }))
+            };
+            
+            students.push(newStudent);
+          }
+        });
+
+        sessionData.totalStudents = students.length;
         setSessionStatus(sessionData);
       } else {
         // Fallback: create session status from localStorage only
