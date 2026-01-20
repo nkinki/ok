@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ExerciseData, ExerciseType, MatchingContent, CategorizationContent, QuizContent } from '../types';
 import { BulkResultItem } from './BulkProcessor';
+import ImageViewer from './ImageViewer';
 
 interface Props {
   item: BulkResultItem;
@@ -12,32 +13,35 @@ interface Props {
 const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
   const [activeTab, setActiveTab] = useState<'CONTENT' | 'IMAGE'>('CONTENT');
   const [formData, setFormData] = useState<ExerciseData>(item.data);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>(item.imageUrl);
   
   // Crop state
   const [crop, setCrop] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
+  const [showCropMode, setShowCropMode] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     setFormData(item.data);
+    setCurrentImageUrl(item.imageUrl);
   }, [item]);
 
   // Load image for cropping
   useEffect(() => {
-      if (item.imageUrl) {
+      if (currentImageUrl && showCropMode) {
           const img = new Image();
-          img.src = item.imageUrl;
+          img.src = currentImageUrl;
           img.onload = () => {
               setOriginalImage(img);
               // Reset crop
               setCrop({ top: 0, bottom: 0, left: 0, right: 0 });
           };
       }
-  }, [item.imageUrl]);
+  }, [currentImageUrl, showCropMode]);
 
   // Render crop preview
   useEffect(() => {
-      if (activeTab === 'IMAGE' && originalImage && canvasRef.current) {
+      if (showCropMode && originalImage && canvasRef.current) {
           const canvas = canvasRef.current;
           const ctx = canvas.getContext('2d');
           if (!ctx) return;
@@ -76,13 +80,13 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           ctx.setLineDash([5, 5]);
           ctx.strokeRect(leftW, topH, canvas.width - leftW - rightW, canvas.height - topH - bottomH);
       }
-  }, [activeTab, crop, originalImage]);
+  }, [showCropMode, crop, originalImage]);
 
   if (!formData) return null;
 
   const handleSave = () => {
     if (formData) {
-        if (activeTab === 'IMAGE' && originalImage) {
+        if (showCropMode && originalImage) {
             // Apply crop and save
              const canvas = document.createElement('canvas');
              const ctx = canvas.getContext('2d');
@@ -109,19 +113,48 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                  // Create updated item without image change
                  const updatedItem: BulkResultItem = {
                    ...item,
-                   data: formData
+                   data: formData,
+                   imageUrl: currentImageUrl
                  };
                  onSave(updatedItem);
              }
         } else {
-            // Create updated item with only data changes
+            // Create updated item with current image (may have been enhanced)
             const updatedItem: BulkResultItem = {
               ...item,
-              data: formData
+              data: formData,
+              imageUrl: currentImageUrl
             };
             onSave(updatedItem);
         }
         onClose();
+    }
+  };
+
+  const handleImageUpdate = (newImageUrl: string) => {
+    setCurrentImageUrl(newImageUrl);
+  };
+
+  const applyCrop = () => {
+    if (originalImage) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const finalX = (crop.left / 100) * originalImage.width;
+        const finalY = (crop.top / 100) * originalImage.height;
+        const finalW = originalImage.width * (1 - (crop.left + crop.right) / 100);
+        const finalH = originalImage.height * (1 - (crop.top + crop.bottom) / 100);
+
+        canvas.width = finalW;
+        canvas.height = finalH;
+        
+        ctx.drawImage(originalImage, finalX, finalY, finalW, finalH, 0, 0, finalW, finalH);
+        const newImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+        
+        setCurrentImageUrl(newImageUrl);
+        setShowCropMode(false);
+        setCrop({ top: 0, bottom: 0, left: 0, right: 0 });
+      }
     }
   };
 
@@ -307,12 +340,12 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
               >
                   Tartalom
               </button>
-              {item.imageUrl && (
+              {currentImageUrl && (
                 <button 
                     onClick={() => setActiveTab('IMAGE')}
                     className={`px-4 py-2 font-bold text-xs rounded-t-lg transition-colors ${activeTab === 'IMAGE' ? 'bg-white text-brand-900 border-t-2 border-brand-600 shadow-sm' : 'text-brand-700 hover:bg-brand-200'}`}
                 >
-                    Képvágás
+                    Kép szerkesztés
                 </button>
               )}
           </div>
@@ -321,26 +354,94 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
 
         <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
             {activeTab === 'IMAGE' ? (
-                <div className="flex flex-col items-center">
-                    <p className="text-xs text-slate-600 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200 w-full text-center">
-                        Sötétített rész eltávolításra kerül.
-                    </p>
-                    <canvas ref={canvasRef} className="border border-slate-300 shadow-md max-w-full" />
-                    
-                    <div className="grid grid-cols-2 gap-2 w-full max-w-lg mt-4 bg-white p-3 rounded-xl border border-slate-200">
-                        {['top', 'bottom', 'left', 'right'].map((dir) => (
-                            <div key={dir}>
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">{dir}</label>
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max="45" 
-                                    value={(crop as any)[dir]} 
-                                    onChange={(e) => setCrop({...crop, [dir]: Number(e.target.value)})} 
-                                    className="w-full accent-brand-600 h-2"
-                                />
-                            </div>
-                        ))}
+                <div className="space-y-4">
+                    {/* AI Enhancement and Image Viewer */}
+                    <div className="bg-white rounded-xl p-4 border border-slate-200">
+                        <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Kép szerkesztés és AI javítás
+                        </h3>
+                        <div className="h-96 bg-slate-900 rounded-lg overflow-hidden">
+                            <ImageViewer 
+                                src={currentImageUrl}
+                                alt="Szerkesztendő kép"
+                                onImageUpdate={handleImageUpdate}
+                                studentMode={false}
+                            />
+                        </div>
+                        <p className="text-xs text-slate-600 mt-2 bg-blue-50 p-2 rounded border border-blue-200">
+                            💡 Használd az AI funkciókat a kép minőségének javítására, majd a vágás funkcióval távolítsd el a felesleges részeket.
+                        </p>
+                    </div>
+
+                    {/* Crop Controls */}
+                    <div className="bg-white rounded-xl p-4 border border-slate-200">
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
+                                </svg>
+                                Képvágás
+                            </h3>
+                            <button
+                                onClick={() => setShowCropMode(!showCropMode)}
+                                className={`px-3 py-1 rounded text-xs font-medium ${
+                                    showCropMode 
+                                        ? 'bg-red-100 text-red-700 border border-red-200' 
+                                        : 'bg-green-100 text-green-700 border border-green-200'
+                                }`}
+                            >
+                                {showCropMode ? 'Vágás bezárása' : 'Vágás megnyitása'}
+                            </button>
+                        </div>
+
+                        {showCropMode && (
+                            <>
+                                <p className="text-xs text-slate-600 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
+                                    ⚠️ Sötétített rész eltávolításra kerül. Állítsd be a csúszkákkal a vágási területet.
+                                </p>
+                                
+                                <canvas ref={canvasRef} className="border border-slate-300 shadow-md max-w-full mb-4 rounded" />
+                                
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    {['top', 'bottom', 'left', 'right'].map((dir) => (
+                                        <div key={dir} className="bg-slate-50 p-2 rounded">
+                                            <label className="text-xs font-bold text-slate-600 uppercase block mb-1">
+                                                {dir === 'top' ? 'Felül' : dir === 'bottom' ? 'Alul' : dir === 'left' ? 'Balról' : 'Jobbról'}: {(crop as any)[dir]}%
+                                            </label>
+                                            <input 
+                                                type="range" 
+                                                min="0" 
+                                                max="45" 
+                                                value={(crop as any)[dir]} 
+                                                onChange={(e) => setCrop({...crop, [dir]: Number(e.target.value)})} 
+                                                className="w-full accent-brand-600 h-2"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={applyCrop}
+                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-xs font-medium flex items-center gap-2"
+                                    >
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Vágás alkalmazása
+                                    </button>
+                                    <button
+                                        onClick={() => setCrop({ top: 0, bottom: 0, left: 0, right: 0 })}
+                                        className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-medium"
+                                    >
+                                        Visszaállítás
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             ) : (
@@ -513,7 +614,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
         <div className="p-3 border-t border-slate-100 bg-white flex justify-end gap-2 shrink-0 rounded-b-xl">
             <button onClick={onClose} className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-medium">Mégse</button>
             <button onClick={handleSave} className="bg-green-100 text-green-900 border border-green-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-200 shadow-sm">
-                Mentés {activeTab === 'IMAGE' ? '& Vágás' : ''}
+                Mentés {activeTab === 'IMAGE' ? '& Alkalmazás' : ''}
             </button>
         </div>
       </div>
