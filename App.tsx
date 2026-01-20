@@ -3,8 +3,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthPage from './components/auth/AuthPage';
 import TeacherSessionManager from './components/TeacherSessionManager';
+import TeacherExerciseCreator from './components/TeacherExerciseCreator';
+import TeacherLibrary from './components/TeacherLibrary';
 import DailyChallenge from './components/DailyChallenge';
-import { BulkResultItem } from './components/BulkProcessor';
+import BulkProcessor, { BulkResultItem } from './components/BulkProcessor';
+import UploadZone from './components/UploadZone';
+import MatchingExercise from './components/MatchingExercise';
+import CategorizationExercise from './components/CategorizationExercise';
+import QuizExercise from './components/QuizExercise';
+import ImageViewer from './components/ImageViewer';
+import HelpModal from './components/HelpModal';
+import SettingsModal from './components/SettingsModal';
+import EditExerciseModal from './components/EditExerciseModal';
+import ReanalyzeModal from './components/ReanalyzeModal';
+import { analyzeImage } from './services/geminiService';
+import { ExerciseData, ExerciseType } from './types';
 
 type ViewMode = 'SINGLE' | 'BULK' | 'LIBRARY' | 'DAILY' | 'DASHBOARD';
 type AppMode = 'ROLE_SELECT' | 'TEACHER' | 'STUDENT';
@@ -191,8 +204,9 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
   );
 }
 
-// Teacher App Component (session manager)
+// Teacher App Component (full functionality with session manager)
 function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
+  const [viewMode, setViewMode] = useState<'SESSION' | 'SINGLE' | 'BULK' | 'LIBRARY'>('SESSION')
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
 
   // Load saved library on mount
@@ -228,6 +242,36 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
     loadManualExercises();
   }, []);
 
+  // Auto-save library
+  useEffect(() => {
+    if (library.length > 0) {
+      try {
+        localStorage.setItem('okosgyakorlo_library', JSON.stringify(library));
+      } catch (e) {
+        console.error("Storage full", e);
+      }
+    }
+  }, [library]);
+
+  const handleBulkComplete = (results: BulkResultItem[]) => {
+    setLibrary((prev: any[]) => {
+      const newItems = results.filter((r: any) => !prev.some((p: any) => p.id === r.id));
+      return [...prev, ...newItems];
+    });
+    setViewMode('LIBRARY');
+    alert(`${results.length} új elem mentve a Könyvtárba!`);
+  };
+
+  const handleBulkImport = (importedData: BulkResultItem[]) => {
+    setLibrary((prev: any[]) => {
+      const uniqueImported = importedData.filter((newItem: any) => 
+        !prev.some((existing: any) => existing.id === newItem.id)
+      );
+      return [...prev, ...uniqueImported];
+    });
+    alert(`${importedData.length} meglévő elem betöltve!`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       <nav className="bg-white border-b border-purple-200 sticky top-0 z-50 shadow-md">
@@ -241,10 +285,52 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 sm:gap-4">
             <div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-lg text-sm font-bold border border-purple-300">
               👨‍🏫 Tanár Mód
             </div>
+            <div className="h-8 w-px bg-slate-200 mx-1"></div>
+            
+            <button 
+              onClick={() => setViewMode('SESSION')} 
+              className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border transition-all ${
+                viewMode === 'SESSION' ? 'bg-green-100 text-green-800 border-green-300' : 'text-slate-600 border-transparent hover:bg-slate-50'
+              }`}
+            >
+              🎯 Munkamenet
+            </button>
+            
+            <div className="h-8 w-px bg-slate-200 mx-1"></div>
+            
+            <button 
+              onClick={() => setViewMode('LIBRARY')} 
+              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                viewMode === 'LIBRARY' ? 'bg-purple-50 text-purple-800' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-bold">{library.length}</span>}
+            </button>
+            
+            <button 
+              onClick={() => setViewMode('BULK')} 
+              className={`hidden sm:block px-3 py-2 rounded-lg text-sm font-medium ${
+                viewMode === 'BULK' ? 'bg-purple-50 text-purple-800' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Tömeges
+            </button>
+            
+            <button 
+              onClick={() => setViewMode('SINGLE')} 
+              className={`hidden sm:block px-3 py-2 rounded-lg text-sm font-medium ${
+                viewMode === 'SINGLE' ? 'bg-purple-50 text-purple-800' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Egyesével
+            </button>
+            
+            <div className="h-8 w-px bg-slate-200 mx-1"></div>
+            
             <button 
               onClick={onBackToRoleSelect}
               className="text-slate-500 hover:text-purple-700 p-2"
@@ -259,10 +345,35 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
       </nav>
 
       <main>
-        <TeacherSessionManager 
-          library={library} 
-          onExit={onBackToRoleSelect}
-        />
+        {viewMode === 'SESSION' && (
+          <TeacherSessionManager 
+            library={library} 
+            onExit={onBackToRoleSelect}
+          />
+        )}
+        {viewMode === 'SINGLE' && (
+          <TeacherExerciseCreator 
+            library={library}
+            setLibrary={setLibrary}
+            onExit={() => setViewMode('SESSION')}
+          />
+        )}
+        {viewMode === 'BULK' && (
+          <BulkProcessor 
+            onAnalysisComplete={handleBulkComplete} 
+            existingLibrary={library} 
+            onLibraryImport={handleBulkImport} 
+            onExit={() => setViewMode('LIBRARY')} 
+          />
+        )}
+        {viewMode === 'LIBRARY' && (
+          <TeacherLibrary 
+            library={library}
+            setLibrary={setLibrary}
+            onExit={() => setViewMode('SESSION')}
+            onOpenSingle={() => setViewMode('SINGLE')}
+          />
+        )}
       </main>
     </div>
   );
