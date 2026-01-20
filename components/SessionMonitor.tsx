@@ -44,14 +44,103 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
 
   const fetchSessionStatus = async () => {
     try {
-      const response = await fetch(`/api/simple-api/sessions/${sessionCode}/status`);
-      if (response.ok) {
-        const data = await response.json();
-        setSessionStatus(data.session);
-        setError(null);
-      } else {
-        throw new Error('Failed to fetch session status');
+      // Try API first
+      let apiData = null;
+      try {
+        const response = await fetch(`/api/simple-api/sessions/${sessionCode}/status`);
+        if (response.ok) {
+          const data = await response.json();
+          apiData = data.session;
+        }
+      } catch (apiError) {
+        console.warn('API fetch failed, using localStorage fallback:', apiError);
       }
+
+      // Always also check localStorage for additional results
+      const localSummaries = localStorage.getItem(`session_${sessionCode}_summary`);
+      const localResults = localStorage.getItem(`session_${sessionCode}_results`);
+      
+      const summaries = localSummaries ? JSON.parse(localSummaries) : [];
+      const results = localResults ? JSON.parse(localResults) : [];
+
+      // If we have API data, merge with localStorage data
+      if (apiData) {
+        // Update API students with localStorage completion data
+        const sessionData = apiData as SessionStatus;
+        const students = sessionData.students || [];
+        students.forEach((student: Student) => {
+          // Find matching summary
+          const summary = summaries.find((s: any) => 
+            s.studentName === student.name && s.studentClass === student.className
+          );
+          if (summary) {
+            student.completedExercises = summary.completedExercises;
+          }
+
+          // Find matching results
+          const studentResults = results.filter((r: any) => 
+            r.studentName === student.name && r.studentClass === student.className
+          );
+          if (studentResults.length > 0) {
+            student.results = studentResults.map((r: any) => ({
+              exerciseIndex: 0,
+              exerciseTitle: r.exerciseTitle,
+              isCorrect: r.isCorrect,
+              score: r.score,
+              timeSpent: r.timeSpent,
+              completedAt: r.completedAt
+            }));
+            student.totalScore = studentResults.reduce((sum: number, r: any) => sum + (r.score || 0), 0);
+          }
+        });
+        setSessionStatus(sessionData);
+      } else {
+        // Fallback: create session status from localStorage only
+        const sessionData = localStorage.getItem(`session_${sessionCode}`);
+        if (sessionData || summaries.length > 0) {
+          const session = sessionData ? JSON.parse(sessionData) : null;
+          
+          const fallbackStatus: SessionStatus = {
+            code: sessionCode,
+            isActive: session?.isActive ?? true,
+            createdAt: session?.createdAt ?? new Date().toISOString(),
+            totalExercises: session?.exercises?.length ?? 0,
+            students: summaries.map((summary: any) => {
+              const studentResults = results.filter((r: any) => 
+                r.studentName === summary.studentName && r.studentClass === summary.studentClass
+              );
+              
+              return {
+                id: `${summary.studentName}_${summary.studentClass}`,
+                name: summary.studentName,
+                className: summary.studentClass,
+                joinedAt: summary.completedAt,
+                lastSeen: summary.completedAt,
+                isOnline: false,
+                currentExercise: summary.completedExercises,
+                completedExercises: summary.completedExercises,
+                totalScore: studentResults.reduce((sum: number, r: any) => sum + (r.score || 0), 0),
+                results: studentResults.map((r: any) => ({
+                  exerciseIndex: 0,
+                  exerciseTitle: r.exerciseTitle,
+                  isCorrect: r.isCorrect,
+                  score: r.score,
+                  timeSpent: r.timeSpent,
+                  completedAt: r.completedAt
+                }))
+              };
+            }),
+            onlineCount: 0,
+            totalStudents: summaries.length
+          };
+          
+          setSessionStatus(fallbackStatus);
+        } else {
+          throw new Error('Munkamenet nem található');
+        }
+      }
+      
+      setError(null);
     } catch (err) {
       setError('Nem sikerült betölteni a munkamenet állapotát');
       console.error('Session status fetch error:', err);

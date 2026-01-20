@@ -112,10 +112,90 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       });
       
       console.log(`✅ Session ${sessionCode} deleted`);
+      
+      // Force re-render by updating state
+      setShowHistory(false);
+      setTimeout(() => setShowHistory(true), 100);
     } catch (error) {
       console.error('Error deleting session:', error);
       alert('Hiba történt a munkamenet törlésekor.');
     }
+  }
+
+  const exportSessionToCSV = (sessionCode: string) => {
+    const { summaries, results } = getSessionResults(sessionCode);
+    
+    if (summaries.length === 0 && results.length === 0) {
+      alert('Nincs exportálható adat ehhez a munkamenethez.');
+      return;
+    }
+
+    const csvData: (string | number)[][] = [];
+    
+    // Header
+    csvData.push([
+      'Munkamenet kód',
+      'Diák neve', 
+      'Osztály', 
+      'Összes feladat',
+      'Befejezett feladat',
+      'Befejezés időpontja',
+      'Feladat címe',
+      'Feladat típusa', 
+      'Helyes válasz',
+      'Pontszám',
+      'Időtartam (mp)'
+    ]);
+
+    // Add summary data first
+    summaries.forEach((summary: any) => {
+      csvData.push([
+        sessionCode,
+        summary.studentName,
+        summary.studentClass,
+        summary.totalExercises,
+        summary.completedExercises,
+        new Date(summary.completedAt).toLocaleString('hu-HU'),
+        'ÖSSZESÍTÉS',
+        '',
+        '',
+        '',
+        ''
+      ]);
+    });
+
+    // Add detailed results
+    results.forEach((result: any) => {
+      csvData.push([
+        sessionCode,
+        result.studentName,
+        result.studentClass,
+        '',
+        '',
+        new Date(result.timeSpent ? Date.now() : Date.now()).toLocaleString('hu-HU'),
+        result.exerciseTitle || 'Ismeretlen feladat',
+        result.exerciseType || 'Ismeretlen típus',
+        result.isCorrect ? 'IGEN' : 'NEM',
+        result.score || 0,
+        result.timeSpent || 0
+      ]);
+    });
+
+    // Convert to CSV string
+    const csvContent = csvData.map(row => 
+      row.map(cell => `"${cell}"`).join(',')
+    ).join('\n');
+
+    // Download CSV
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `munkamenet_${sessionCode}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   const generateSessionCode = () => {
@@ -287,16 +367,28 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                       {session.createdAt ? new Date(session.createdAt).toLocaleString('hu-HU') : 'Ismeretlen időpont'}
                     </p>
                   </div>
-                  <button
-                    onClick={() => deleteSession(session.code)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium flex items-center gap-1"
-                    title="Munkamenet törlése"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    Törlés
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => exportSessionToCSV(session.code)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-medium flex items-center gap-1"
+                      title="Eredmények exportálása CSV-be"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                      CSV Export
+                    </button>
+                    <button
+                      onClick={() => deleteSession(session.code)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium flex items-center gap-1"
+                      title="Munkamenet törlése"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      Törlés
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
