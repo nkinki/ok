@@ -763,6 +763,29 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
+    // Delete session (teacher)
+    if (path.includes('/api/simple-api/sessions/') && path.includes('/delete') && method === 'DELETE') {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/delete/)
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' })
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase()
+      const session = sessions.get(sessionCode)
+
+      if (!session) {
+        return res.status(404).json({ error: 'Munkamenet nem található' })
+      }
+
+      // Remove session from memory
+      sessions.delete(sessionCode)
+
+      return res.json({
+        success: true,
+        message: 'Munkamenet törölve'
+      })
+    }
+
     // Get session status (teacher)
     if (path.includes('/api/simple-api/sessions/') && path.includes('/status') && method === 'GET') {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/status/)

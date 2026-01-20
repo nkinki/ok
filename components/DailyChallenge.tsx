@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { BulkResultItem } from './BulkProcessor';
 import { ExerciseType, MatchingContent, CategorizationContent, QuizContent } from '../types';
-import { generateEmailData } from '../utils/emailUtils';
 import ImageViewer from './ImageViewer';
 import MatchingExercise from './MatchingExercise';
 import CategorizationExercise from './CategorizationExercise';
@@ -58,14 +57,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   
-  // Email Modal State
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailData, setEmailData] = useState<{link: string, body: string, subject: string} | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Helper to get teacher email
-  const getTeacherEmail = () => localStorage.getItem('teacher_email') || '';
 
   // Heartbeat to keep connection alive
   const startHeartbeat = (sessionCode: string, studentId: string) => {
@@ -389,27 +382,6 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       }
   };
 
-  const handlePrepareEmail = () => {
-      const email = getTeacherEmail();
-      if (!email) {
-          alert("A tanár email címe nincs beállítva! Kérd meg a tanárt, hogy állítsa be a Beállításokban (Fogaskerék ikon).");
-          return;
-      }
-      const data = generateEmailData(email, student?.name || '', student?.className || '', completedCount, playlist.length);
-      setEmailData(data);
-      setShowEmailModal(true);
-      
-      // Try to open automatically too
-      window.location.href = data.link;
-  };
-
-  const copyToClipboard = () => {
-      if (emailData) {
-          navigator.clipboard.writeText(emailData.body);
-          alert("Szöveg másolva a vágólapra! Most beillesztheted egy emailbe.");
-      }
-  };
-
   // --- RENDER: LOGIN ---
   if (step === 'LOGIN') {
       if (isStudentMode) {
@@ -596,7 +568,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               🏆
           </div>
           <h2 className="text-3xl font-bold text-slate-800 mb-2">Szép munka, {student?.name}!</h2>
-          <p className="text-slate-500 mb-8">A mai gyakorlás véget ért.</p>
+          <p className="text-slate-500 mb-8">A mai gyakorlás véget ért. Az eredmények automatikusan mentve lettek.</p>
 
           <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
               <div className="text-sm text-slate-500 uppercase font-bold tracking-wider mb-1">Teljesítve</div>
@@ -604,45 +576,20 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               <div className="text-sm font-medium text-slate-600 mt-2">feladat sikeresen megoldva</div>
           </div>
 
-          <button 
-            onClick={handlePrepareEmail}
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 mb-4 transition-transform hover:scale-[1.02]"
-          >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-              Eredmény küldése a Tanárnak
-          </button>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-center gap-2 text-green-700">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  <span className="font-medium">Eredmények mentve!</span>
+              </div>
+              <p className="text-sm text-green-600 mt-1">A tanár láthatja a teljesítményedet a munkamenet kezelőben.</p>
+          </div>
 
-          <button onClick={onExit} className="text-slate-500 hover:text-slate-700 font-medium">
+          <button onClick={onExit} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02]">
               Vissza a főoldalra
           </button>
 
-          {/* EMAIL MODAL */}
-          {showEmailModal && emailData && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                      <div className="bg-slate-100 p-4 border-b border-slate-200 flex justify-between items-center">
-                          <h3 className="font-bold text-slate-800">Email küldése</h3>
-                          <button onClick={() => setShowEmailModal(false)}><svg className="w-6 h-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-                      </div>
-                      <div className="p-6">
-                          <p className="text-sm text-slate-600 mb-4">
-                              Ha nem nyílt meg automatikusan a levelezőprogramod, másold ki az alábbi szöveget és küldd el a tanárnak!
-                          </p>
-                          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 font-mono text-xs text-slate-700 mb-4 h-32 overflow-y-auto whitespace-pre-wrap">
-                              {emailData.body}
-                          </div>
-                          <div className="flex gap-3">
-                              <button onClick={copyToClipboard} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-2 rounded-lg font-bold">
-                                  Szöveg másolása
-                              </button>
-                              <a href={emailData.link} className="flex-1 bg-brand-600 hover:bg-brand-700 text-white py-2 rounded-lg font-bold text-center block">
-                                  Megnyitás
-                              </a>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          )}
       </div>
   );
 };
