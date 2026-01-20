@@ -26,6 +26,20 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
     setCurrentImageUrl(item.imageUrl);
   }, [item]);
 
+  // ESC key handler for closing modal
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose]);
+
   // Load image for cropping
   useEffect(() => {
       if (currentImageUrl && showCropMode) {
@@ -329,9 +343,20 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
 
   return (
     // UPDATED: Added pt-24 (top padding) and items-start to push it down.
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+    <div 
+      className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+      onClick={(e) => {
+        // Close modal if clicking on backdrop
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       {/* UPDATED: Changed max-h to 80vh to prevent bottom overflow */}
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col relative">
+      <div 
+        className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col relative"
+        onClick={(e) => e.stopPropagation()} // Prevent backdrop click when clicking inside modal
+      >
         <div className="bg-brand-100 px-4 py-2 text-brand-900 border-b border-brand-200 flex justify-between items-center shrink-0 rounded-t-xl">
           <div className="flex gap-2">
               <button 
@@ -349,7 +374,19 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                 </button>
               )}
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-brand-200 rounded-full"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }} 
+            className="p-1 hover:bg-brand-200 rounded-full transition-colors"
+            title="Bezárás"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
@@ -612,7 +649,16 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
         </div>
 
         <div className="p-3 border-t border-slate-100 bg-white flex justify-end gap-2 shrink-0 rounded-b-xl">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-medium">Mégse</button>
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+              }} 
+              className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50 text-xs font-medium transition-colors"
+            >
+              Mégse
+            </button>
             <button onClick={handleSave} className="bg-green-100 text-green-900 border border-green-200 px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-200 shadow-sm">
                 Mentés {activeTab === 'IMAGE' ? '& Alkalmazás' : ''}
             </button>

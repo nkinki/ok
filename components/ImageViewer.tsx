@@ -502,7 +502,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
 
       {/* Custom Enhancement Options Modal */}
       {showEnhancementOptions && (
-        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-20">
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-30">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-bold text-gray-800 mb-4">AI Képjavítás beállítások</h3>
             
