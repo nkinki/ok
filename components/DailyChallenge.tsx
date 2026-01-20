@@ -13,6 +13,7 @@ interface Props {
   library: BulkResultItem[];
   onExit: () => void;
   isStudentMode?: boolean;
+  sessionCode?: string;
 }
 
 type DailyStep = 'LOGIN' | 'ASSIGNMENTS' | 'PLAYING' | 'RESULT';
@@ -21,7 +22,6 @@ interface Student {
   id: string;
   name: string;
   className: string;
-  subject: string;
 }
 
 interface Assignment {
@@ -46,7 +46,7 @@ interface Session {
   status: string;
 }
 
-const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = false }) => {
+const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = false, sessionCode }) => {
   const [step, setStep] = useState<DailyStep>(isStudentMode ? 'LOGIN' : 'ASSIGNMENTS');
   const [student, setStudent] = useState<Student | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -66,41 +66,32 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   // Helper to get teacher email
   const getTeacherEmail = () => localStorage.getItem('teacher_email') || '';
 
-  const handleStudentLogin = async (studentData: Student) => {
+  const handleStudentLogin = async (studentData: Student, code: string) => {
     setStudent(studentData);
     setLoading(true);
     setError(null);
 
     try {
-      // Fetch assignments for student's class and subject
-      const response = await fetch(`/api/simple-api/assignments/active`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          className: studentData.className,
-          subject: studentData.subject
-        })
-      });
+      // Fetch session exercises using the code
+      const response = await fetch(`/api/simple-api/sessions/${code}/exercises`);
       
       if (!response.ok) {
         throw new Error('Nem sikerült betölteni a feladatokat');
       }
 
       const data = await response.json();
-      setAssignments(data.assignments || []);
       
-      if (data.assignments && data.assignments.length > 0) {
-        setStep('ASSIGNMENTS');
+      if (data.exercises && data.exercises.length > 0) {
+        setPlaylist(data.exercises);
+        setCurrentIndex(0);
+        setCompletedCount(0);
+        setStep('PLAYING');
       } else {
-        // Fallback to library mode if no assignments
-        handleFallbackToLibrary();
+        setError("Nincs elérhető feladat ehhez a kódhoz!");
       }
     } catch (error) {
-      console.error('Error loading assignments:', error);
-      // Fallback to library mode on error
-      handleFallbackToLibrary();
+      console.error('Error loading session exercises:', error);
+      setError("Hiba a feladatok betöltésekor. Ellenőrizd a tanári kódot!");
     } finally {
       setLoading(false);
     }
@@ -228,16 +219,15 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   if (step === 'LOGIN' && isStudentMode) {
       // Auto-set a default student for student mode
       useEffect(() => {
-          if (!student) {
+          if (!student && !isStudentMode) {
               setStudent({
-                  id: 'student-mode',
-                  name: 'Diák',
-                  className: 'Általános',
-                  subject: 'Általános'
+                  id: 'teacher-mode',
+                  name: 'Tanár',
+                  className: 'Általános'
               });
               setStep('ASSIGNMENTS');
           }
-      }, [student]);
+      }, [student, isStudentMode]);
       
       return (
           <div className="flex items-center justify-center min-h-screen">
@@ -255,7 +245,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       📚
                   </div>
                   <h2 className="text-2xl font-bold text-slate-800">Üdv, {student?.name}!</h2>
-                  <p className="text-slate-500">Válassz egy feladatsort: {student?.className} osztály - {student?.subject}</p>
+                  <p className="text-slate-500">Válassz egy feladatsort: {student?.className} osztály</p>
               </div>
 
               {loading && (
@@ -277,7 +267,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                       </svg>
                       <h3 className="text-lg font-medium text-slate-400 mb-2">Nincs elérhető feladat</h3>
-                      <p className="text-slate-400 mb-4">A tanár még nem hozott létre aktív feladatokat a {student?.className} osztály {student?.subject} tantárgyához.</p>
+                      <p className="text-slate-400 mb-4">A tanár még nem hozott létre aktív feladatokat a {student?.className} osztály számára.</p>
                       <button
                           onClick={handleFallbackToLibrary}
                           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
@@ -368,7 +358,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       <div className="sticky top-0 z-20 bg-slate-50 p-6 pb-2 border-b border-slate-200 mb-4 shadow-sm opacity-95 backdrop-blur">
                           <div className="flex justify-between items-center mb-4">
                               <span className="font-bold text-purple-900">Napi Kihívás</span>
-                              <span className="text-sm font-medium text-slate-500">{student?.name} - {student?.className} - {student?.subject}</span>
+                              <span className="text-sm font-medium text-slate-500">{student?.name} - {student?.className}</span>
                           </div>
                           
                           <div className="w-full bg-slate-200 rounded-full h-2 mb-4">

@@ -1,21 +1,21 @@
 import React, { useState } from 'react'
 
 interface StudentLoginFormProps {
-  onLoginSuccess: (student: { id: string; name: string; className: string; subject: string }) => void
+  onLoginSuccess: (student: { id: string; name: string; className: string }, sessionCode: string) => void
   onBack: () => void
 }
 
 export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLoginFormProps) {
   const [studentName, setStudentName] = useState('')
   const [studentClass, setStudentClass] = useState('')
-  const [subject, setSubject] = useState('')
+  const [sessionCode, setSessionCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!studentName.trim() || !studentClass.trim() || !subject.trim()) {
-      setError('Név, osztály és tantárgy megadása kötelező')
+    if (!studentName.trim() || !studentClass.trim() || !sessionCode.trim()) {
+      setError('Név, osztály és tanári kód megadása kötelező')
       return
     }
     
@@ -23,8 +23,8 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
     setError(null)
     
     try {
-      // First try to find existing student
-      const findResponse = await fetch('/api/simple-api/students/find', {
+      // Validate session code and get exercises
+      const response = await fetch('/api/simple-api/sessions/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -32,40 +32,17 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
         body: JSON.stringify({
           name: studentName.trim(),
           className: studentClass.trim(),
-          subject: subject.trim()
+          sessionCode: sessionCode.trim().toUpperCase()
         })
       })
 
-      let student
-      
-      if (findResponse.ok) {
-        // Student exists
-        const data = await findResponse.json()
-        student = data.student
-      } else {
-        // Register new student
-        const registerResponse = await fetch('/api/simple-api/students/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: studentName.trim(),
-            className: studentClass.trim(),
-            subject: subject.trim()
-          })
-        })
-
-        if (!registerResponse.ok) {
-          const errorData = await registerResponse.json()
-          throw new Error(errorData.error || 'Regisztráció sikertelen')
-        }
-
-        const data = await registerResponse.json()
-        student = data.student
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Hibás tanári kód vagy a munkamenet nem aktív')
       }
 
-      onLoginSuccess(student)
+      const data = await response.json()
+      onLoginSuccess(data.student, sessionCode.trim().toUpperCase())
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Ismeretlen hiba')
     } finally {
@@ -79,27 +56,6 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
     '7.a', '7.b', '8.a', '8.b'
   ]
 
-  const subjectOptions = [
-    'Magyar nyelv és irodalom',
-    'Matematika',
-    'Történelem',
-    'Természetismeret',
-    'Biológia',
-    'Fizika',
-    'Kémia',
-    'Földrajz',
-    'Angol nyelv',
-    'Német nyelv',
-    'Informatika',
-    'Digitális kultúra',
-    'Technika és tervezés',
-    'Vizuális kultúra',
-    'Ének-zene',
-    'Testnevelés',
-    'Erkölcstan',
-    'Hit- és erkölcstan'
-  ]
-
   return (
     <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
       <div className="text-center mb-8">
@@ -107,7 +63,7 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
           👨‍🎓
         </div>
         <h2 className="text-2xl font-bold text-slate-800">Diák bejelentkezés</h2>
-        <p className="text-slate-500">Add meg a neved, osztályodat és a tantárgyat</p>
+        <p className="text-slate-500">Add meg a neved, osztályodat és a tanári kódot</p>
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
@@ -145,26 +101,24 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
         </div>
 
         <div>
-          <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
-            Tantárgy
+          <label htmlFor="sessionCode" className="block text-sm font-medium text-gray-700 mb-2">
+            Tanári kód
           </label>
-          <select
-            id="subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          <input
+            type="text"
+            id="sessionCode"
+            value={sessionCode}
+            onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
+            placeholder="Pl: ABC123"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-center text-lg"
             disabled={loading}
-          >
-            <option value="">Válassz tantárgyat...</option>
-            {subjectOptions.map(subj => (
-              <option key={subj} value={subj}>{subj}</option>
-            ))}
-          </select>
+            maxLength={6}
+          />
         </div>
 
         <button
           type="submit"
-          disabled={loading || !studentName.trim() || !studentClass.trim() || !subject.trim()}
+          disabled={loading || !studentName.trim() || !studentClass.trim() || !sessionCode.trim()}
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (

@@ -17,6 +17,9 @@ let studentSessions = new Map()
 let studentAnswers = new Map()
 let teachers = new Map()
 
+// Session management storage
+let sessions = new Map()
+
 // Initialize fixed rooms and sample data
 function initializeFixedRooms() {
   if (rooms.size > 0) return // Already initialized
@@ -602,6 +605,107 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({
         assignments: assignmentsWithDetails,
         count: assignmentsWithDetails.length
+      })
+    }
+
+    // === SESSION MANAGEMENT ENDPOINTS ===
+
+    // Create session (teacher)
+    if (path === '/api/simple-api/sessions/create' && method === 'POST') {
+      const { code, exercises } = req.body
+
+      if (!code || !exercises || !Array.isArray(exercises)) {
+        return res.status(400).json({ error: 'Kód és feladatok megadása kötelező' })
+      }
+
+      const session = {
+        code: code.toUpperCase(),
+        exercises,
+        createdAt: new Date(),
+        isActive: true,
+        students: []
+      }
+
+      sessions.set(code.toUpperCase(), session)
+
+      return res.json({
+        success: true,
+        session,
+        message: 'Munkamenet sikeresen létrehozva'
+      })
+    }
+
+    // Join session (student)
+    if (path === '/api/simple-api/sessions/join' && method === 'POST') {
+      const { name, className, sessionCode } = req.body
+
+      if (!name || !className || !sessionCode) {
+        return res.status(400).json({ error: 'Név, osztály és kód megadása kötelező' })
+      }
+
+      const session = sessions.get(sessionCode.toUpperCase())
+      if (!session || !session.isActive) {
+        return res.status(404).json({ error: 'Hibás kód vagy a munkamenet nem aktív' })
+      }
+
+      const student = {
+        id: generateId(),
+        name: name.trim(),
+        className: className.trim(),
+        joinedAt: new Date()
+      }
+
+      // Add student to session
+      session.students.push(student)
+      sessions.set(sessionCode.toUpperCase(), session)
+
+      return res.json({
+        success: true,
+        student,
+        message: 'Sikeresen csatlakoztál a munkamenethez'
+      })
+    }
+
+    // Get session exercises (student)
+    if (path.includes('/api/simple-api/sessions/') && path.includes('/exercises') && method === 'GET') {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/exercises/)
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' })
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase()
+      const session = sessions.get(sessionCode)
+
+      if (!session || !session.isActive) {
+        return res.status(404).json({ error: 'Munkamenet nem található vagy nem aktív' })
+      }
+
+      return res.json({
+        exercises: session.exercises,
+        count: session.exercises.length
+      })
+    }
+
+    // Stop session (teacher)
+    if (path.includes('/api/simple-api/sessions/') && path.includes('/stop') && method === 'POST') {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/stop/)
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' })
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase()
+      const session = sessions.get(sessionCode)
+
+      if (!session) {
+        return res.status(404).json({ error: 'Munkamenet nem található' })
+      }
+
+      session.isActive = false
+      sessions.set(sessionCode, session)
+
+      return res.json({
+        success: true,
+        message: 'Munkamenet leállítva'
       })
     }
 
