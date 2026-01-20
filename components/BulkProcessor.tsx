@@ -82,11 +82,44 @@ const BulkProcessor: React.FC<Props> = ({ onAnalysisComplete, existingLibrary = 
           try {
               const content = ev.target?.result as string;
               const items = JSON.parse(content) as BulkResultItem[];
-              if (Array.isArray(items)) {
-                  onLibraryImport(items);
+              
+              if (!Array.isArray(items)) {
+                  alert("❌ Hibás fájlformátum!\n\nA JSON fájl nem tartalmaz érvényes tömböt.");
+                  return;
               }
+              
+              if (items.length === 0) {
+                  alert("⚠️ Üres fájl!\n\nA JSON fájl nem tartalmaz feladatokat.");
+                  return;
+              }
+              
+              // Validate structure
+              const invalidItems = items.filter(item => 
+                  !item.id || !item.fileName || !item.data || !item.imageUrl
+              );
+              
+              if (invalidItems.length > 0) {
+                  alert(`❌ Hibás adatstruktúra!\n\n${invalidItems.length} elem hiányos vagy hibás formátumú.\n\nEllenőrizd, hogy minden elem tartalmazza:\n• id\n• fileName\n• data\n• imageUrl`);
+                  return;
+              }
+              
+              // Check for processed exercises (should have exercise data)
+              const unprocessedItems = items.filter(item => 
+                  !item.data.type || !item.data.title || !item.data.instruction
+              );
+              
+              if (unprocessedItems.length > 0) {
+                  alert(`⚠️ Feldolgozatlan feladatok!\n\n${unprocessedItems.length} elem még nincs feldolgozva (hiányzik a type, title vagy instruction).\n\nCsak feldolgozott feladatokat lehet importálni.`);
+                  return;
+              }
+              
+              // Success - import items
+              onLibraryImport(items);
+              alert(`✅ Sikeres import!\n\n${items.length} feldolgozott feladat importálva a könyvtárba.`);
+              
           } catch (err) {
-              alert("Hiba a JSON betöltésekor.");
+              console.error("JSON import error:", err);
+              alert(`❌ Hiba a JSON betöltésekor!\n\nRészletek: ${err instanceof Error ? err.message : 'Ismeretlen hiba'}\n\nEllenőrizd, hogy érvényes JSON fájlt választottál.`);
           }
       };
       reader.readAsText(file);

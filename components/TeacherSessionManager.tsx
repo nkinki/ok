@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState } from 'react'
 import { BulkResultItem } from './BulkProcessor'
 
 interface Props {
@@ -19,64 +19,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [activeSession, setActiveSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const handleImportClick = () => fileInputRef.current?.click()
-
-  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string
-        const importedData = JSON.parse(content) as BulkResultItem[]
-        if (Array.isArray(importedData) && importedData.length > 0 && importedData[0].data) {
-          // Add imported exercises to library without re-processing
-          const newExercises = importedData.filter(item => 
-            !library.some(existing => existing.id === item.id)
-          )
-          
-          if (newExercises.length > 0) {
-            // Update library through parent component - no page reload needed
-            const updatedLibrary = [...library, ...newExercises]
-            
-            try {
-              localStorage.setItem('okosgyakorlo_library', JSON.stringify(updatedLibrary))
-              alert(`${newExercises.length} feldolgozott feladat importálva a könyvtárba!`)
-              // Trigger library reload in parent component
-              if (onLibraryUpdate) {
-                onLibraryUpdate()
-              }
-            } catch (e) {
-              if (e instanceof DOMException && e.code === 22) {
-                // Storage quota exceeded
-                alert(`⚠️ TÁRHELY MEGTELT!\n\n${newExercises.length} feladat importálva, de nem menthetők a böngésző tárhelyre.\n\nJavasolt megoldások:\n• Töröld a régi feladatokat\n• Exportáld a jelenlegi könyvtárat\n• Használj kisebb JSON fájlokat\n\nA feladatok ideiglenesen elérhetők, de újratöltés után elvesznek.`)
-                
-                // Still trigger library update in parent component (temporary state)
-                if (onLibraryUpdate) {
-                  onLibraryUpdate()
-                }
-              } else {
-                console.error("Storage error:", e)
-                alert("Hiba a mentés során. Próbáld újra vagy töröld a régi feladatokat.")
-              }
-            }
-          } else {
-            alert("Minden feladat már létezik a könyvtárban.")
-          }
-        } else {
-          alert("Hibás fájlformátum. Csak feldolgozott feladat JSON fájlokat lehet importálni.")
-        }
-      } catch (err) {
-        console.error(err)
-        alert("Hiba a fájl beolvasásakor. Ellenőrizd, hogy érvényes JSON fájl-e.")
-      }
-    }
-    reader.readAsText(file)
-    event.target.value = ''
-  }
 
   const toggleExerciseSelection = (exerciseId: string) => {
     setSelectedExercises(prev => 
@@ -89,48 +31,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const generateSessionCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
   }
-
-  const handleClearStorage = () => {
-    if (confirm("⚠️ FIGYELEM!\n\nEz törölni fogja az ÖSSZES böngésző adatot ezen az oldalon:\n• Feladat könyvtár\n• Beállítások\n• Minden mentett adat\n\nBiztosan folytatod?")) {
-      try {
-        // Clear all localStorage for this domain
-        localStorage.clear()
-        alert("✅ Tárhely sikeresen törölve!\n\nAz oldal újratöltődik...")
-        // Reload page to reset everything
-        window.location.reload()
-      } catch (e) {
-        console.error("Error clearing storage:", e)
-        alert("❌ Hiba a tárhely törlésekor. Próbáld újra vagy használd a böngésző beállításait.")
-      }
-    }
-  }
-
-  const getStorageInfo = () => {
-    try {
-      // Estimate localStorage usage
-      let totalSize = 0
-      for (let key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-          totalSize += localStorage[key].length + key.length
-        }
-      }
-      
-      // Convert to KB/MB
-      const sizeKB = (totalSize / 1024).toFixed(1)
-      const sizeMB = (totalSize / (1024 * 1024)).toFixed(2)
-      
-      return {
-        totalSize,
-        sizeKB: parseFloat(sizeKB),
-        sizeMB: parseFloat(sizeMB),
-        itemCount: Object.keys(localStorage).length
-      }
-    } catch (e) {
-      return { totalSize: 0, sizeKB: 0, sizeMB: 0, itemCount: 0 }
-    }
-  }
-
-  const storageInfo = getStorageInfo()
 
   const handleStartSession = async () => {
     if (selectedExercises.length === 0) {
@@ -145,21 +45,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const sessionCode = generateSessionCode()
       const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
 
-      const response = await fetch('/api/simple-api/sessions/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          code: sessionCode,
-          exercises: selectedExerciseData
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Nem sikerült létrehozni a munkamenetet')
-      }
-
+      // Create session locally without API call for now
       const session: Session = {
         code: sessionCode,
         exercises: selectedExerciseData,
@@ -168,6 +54,21 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       }
 
       setActiveSession(session)
+      
+      // Store session in localStorage for student access
+      try {
+        const sessionData = {
+          code: sessionCode,
+          exercises: selectedExerciseData,
+          createdAt: new Date().toISOString(),
+          isActive: true
+        }
+        localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionData))
+      } catch (storageError) {
+        console.warn('Could not save session to localStorage:', storageError)
+        // Session still works, just won't persist across page reloads
+      }
+
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Ismeretlen hiba')
     } finally {
@@ -179,13 +80,15 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     if (!activeSession) return
 
     try {
-      await fetch(`/api/simple-api/sessions/${activeSession.code}/stop`, {
-        method: 'POST'
-      })
+      // Remove session from localStorage
+      localStorage.removeItem(`session_${activeSession.code}`)
       setActiveSession(null)
       setSelectedExercises([])
     } catch (error) {
       console.error('Error stopping session:', error)
+      // Still stop the session even if localStorage fails
+      setActiveSession(null)
+      setSelectedExercises([])
     }
   }
 
@@ -232,31 +135,9 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-slate-800">Tanári munkamenet</h2>
-          <p className="text-slate-600">Importálj feldolgozott feladatokat (JSON) és indíts munkamenetet a diákoknak</p>
+          <p className="text-slate-600">Válassz ki feladatokat a könyvtárból és indíts munkamenetet a diákoknak</p>
         </div>
         <div className="flex gap-3">
-          <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleFileImport} />
-          
-          {/* Storage info */}
-          <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-lg text-sm">
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4V7c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4z"/>
-            </svg>
-            <span className="text-slate-600">
-              {storageInfo.sizeMB > 1 ? `${storageInfo.sizeMB} MB` : `${storageInfo.sizeKB} KB`}
-            </span>
-          </div>
-          
-          <button
-            onClick={handleImportClick}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-            </svg>
-            JSON Import
-          </button>
-          
           <button
             onClick={onExit}
             className="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium"
@@ -267,17 +148,8 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex justify-between items-center">
-          <span>{error}</span>
-          {error.includes('tárhely') && (
-            <button 
-              onClick={handleClearStorage} 
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-bold ml-4"
-              title="Teljes tárhely törlése"
-            >
-              Tárhely törlése
-            </button>
-          )}
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          {error}
         </div>
       )}
 
@@ -287,7 +159,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
           </svg>
           <h3 className="text-xl font-medium text-slate-400">Nincs feladat a könyvtárban</h3>
-          <p className="text-slate-400 mt-2">Importálj feldolgozott JSON fájlt vagy hozz létre új feladatokat!</p>
+          <p className="text-slate-400 mt-2">Menj a "Tömeges" feldolgozóba és hozz létre feladatokat!</p>
         </div>
       ) : (
         <>

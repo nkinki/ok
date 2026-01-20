@@ -193,9 +193,9 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
   );
 }
 
-// Teacher App Component (full functionality with session manager)
+// Teacher App Component (full functionality with bulk processor first)
 function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
-  const [viewMode, setViewMode] = useState<'SESSION' | 'SINGLE' | 'BULK' | 'LIBRARY'>('SESSION')
+  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'SINGLE' | 'LIBRARY'>('BULK')
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
   const [isMemoryMode, setIsMemoryMode] = useState(false)
   
@@ -301,9 +301,18 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             <div className="h-8 w-px bg-slate-200 mx-1"></div>
             
             <button 
-              onClick={() => setViewMode('SESSION')} 
+              onClick={() => setViewMode('BULK')} 
               className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border transition-all ${
-                viewMode === 'SESSION' ? 'bg-green-100 text-green-800 border-green-300' : 'text-slate-600 border-transparent hover:bg-slate-50'
+                viewMode === 'BULK' ? 'bg-purple-100 text-purple-800 border-purple-300' : 'text-slate-600 border-transparent hover:bg-slate-50'
+              }`}
+            >
+              🔄 Tömeges
+            </button>
+            
+            <button 
+              onClick={() => setViewMode('SESSION')} 
+              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                viewMode === 'SESSION' ? 'bg-green-100 text-green-800' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
               🎯 Munkamenet
@@ -318,15 +327,6 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
               }`}
             >
               Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-bold">{library.length}</span>}
-            </button>
-            
-            <button 
-              onClick={() => setViewMode('BULK')} 
-              className={`hidden sm:block px-3 py-2 rounded-lg text-sm font-medium ${
-                viewMode === 'BULK' ? 'bg-purple-50 text-purple-800' : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Tömeges
             </button>
             
             <button 
@@ -377,6 +377,14 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
       </nav>
 
       <main>
+        {viewMode === 'BULK' && (
+          <BulkProcessor 
+            onAnalysisComplete={handleBulkComplete} 
+            existingLibrary={library} 
+            onLibraryImport={handleBulkImport} 
+            onExit={() => setViewMode('LIBRARY')} 
+          />
+        )}
         {viewMode === 'SESSION' && (
           <TeacherSessionManager 
             library={library} 
@@ -388,22 +396,14 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
           <TeacherExerciseCreator 
             library={library}
             setLibrary={setLibrary}
-            onExit={() => setViewMode('SESSION')}
-          />
-        )}
-        {viewMode === 'BULK' && (
-          <BulkProcessor 
-            onAnalysisComplete={handleBulkComplete} 
-            existingLibrary={library} 
-            onLibraryImport={handleBulkImport} 
-            onExit={() => setViewMode('LIBRARY')} 
+            onExit={() => setViewMode('BULK')}
           />
         )}
         {viewMode === 'LIBRARY' && (
           <TeacherLibrary 
             library={library}
             setLibrary={setLibrary}
-            onExit={() => setViewMode('SESSION')}
+            onExit={() => setViewMode('BULK')}
             onOpenSingle={() => setViewMode('SINGLE')}
             isMemoryMode={isMemoryMode}
           />
