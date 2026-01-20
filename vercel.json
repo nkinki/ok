@@ -6,6 +6,22 @@
   "devCommand": "npm run dev",
   "rewrites": [
     {
+      "source": "/api/simple-api/sessions/create",
+      "destination": "/api/sessions/create"
+    },
+    {
+      "source": "/api/simple-api/sessions/([^/]+)/check",
+      "destination": "/api/sessions/$1/check"
+    },
+    {
+      "source": "/api/simple-api/sessions/([^/]+)/exercises",
+      "destination": "/api/sessions/$1/exercises"
+    },
+    {
+      "source": "/api/simple-api/(.*)",
+      "destination": "/api/simple-api"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
