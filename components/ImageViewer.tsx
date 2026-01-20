@@ -4,9 +4,10 @@ interface Props {
   src: string;
   alt: string;
   onImageUpdate?: (newSrc: string) => void;
+  studentMode?: boolean;
 }
 
-const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate }) => {
+const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = false }) => {
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0);
@@ -16,7 +17,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const zoomLevels = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
+  const zoomLevels = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
 
   const handleZoomIn = () => {
     const currentIndex = zoomLevels.findIndex(level => level >= zoom);
@@ -227,60 +228,65 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate }) => {
           1:1
         </button>
         
-        <div className="w-px h-6 bg-white/30 mx-1"></div>
-        
-        {/* Rotation Controls */}
-        <button
-          onClick={handleRotateLeft}
-          disabled={isProcessing}
-          className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white rounded flex items-center justify-center"
-          title="Forgatás balra"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1v6m0 0l4-4m-4 4L8 3m11 8a8 8 0 11-16 0 8 8 0 0116 0z" />
-          </svg>
-        </button>
-        
-        <button
-          onClick={handleRotateRight}
-          disabled={isProcessing}
-          className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white rounded flex items-center justify-center"
-          title="Forgatás jobbra"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1v6m0 0l-4-4m4 4l4-4m5 8a8 8 0 01-16 0 8 8 0 0116 0z" />
-          </svg>
-        </button>
-        
-        {rotation !== 0 && (
-          <button
-            onClick={applyRotation}
-            disabled={isProcessing}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded text-xs font-medium"
-            title="Forgatás alkalmazása"
-          >
-            Alkalmaz
-          </button>
+        {/* Teacher-only controls */}
+        {!studentMode && (
+          <>
+            <div className="w-px h-6 bg-white/30 mx-1"></div>
+            
+            {/* Rotation Controls */}
+            <button
+              onClick={handleRotateLeft}
+              disabled={isProcessing}
+              className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white rounded flex items-center justify-center"
+              title="Forgatás balra"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1v6m0 0l4-4m-4 4L8 3m11 8a8 8 0 11-16 0 8 8 0 0116 0z" />
+              </svg>
+            </button>
+            
+            <button
+              onClick={handleRotateRight}
+              disabled={isProcessing}
+              className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white rounded flex items-center justify-center"
+              title="Forgatás jobbra"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1v6m0 0l-4-4m4 4l4-4m5 8a8 8 0 01-16 0 8 8 0 0116 0z" />
+              </svg>
+            </button>
+            
+            {rotation !== 0 && (
+              <button
+                onClick={applyRotation}
+                disabled={isProcessing}
+                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded text-xs font-medium"
+                title="Forgatás alkalmazása"
+              >
+                Alkalmaz
+              </button>
+            )}
+            
+            <div className="w-px h-6 bg-white/30 mx-1"></div>
+            
+            {/* Document Enhancement */}
+            <button
+              onClick={enhanceDocument}
+              disabled={isProcessing || !onImageUpdate}
+              className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1"
+              title="Dokumentum olvashatóság javítása"
+            >
+              {isProcessing ? (
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+              ) : (
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+              Scanner
+            </button>
+          </>
         )}
-        
-        <div className="w-px h-6 bg-white/30 mx-1"></div>
-        
-        {/* Document Enhancement */}
-        <button
-          onClick={enhanceDocument}
-          disabled={isProcessing || !onImageUpdate}
-          className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1"
-          title="Dokumentum olvashatóság javítása"
-        >
-          {isProcessing ? (
-            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-          ) : (
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          )}
-          Scanner
-        </button>
       </div>
 
       {/* Hidden canvas for image processing */}
@@ -301,7 +307,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate }) => {
           alt={alt} 
           className="w-full h-full object-contain transition-transform duration-200 select-none"
           style={{
-            transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px) rotate(${rotation}deg)`,
+            transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)${studentMode ? '' : ` rotate(${rotation}deg)`}`,
             transformOrigin: 'center center'
           }}
           draggable={false}

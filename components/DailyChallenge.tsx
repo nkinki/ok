@@ -67,6 +67,53 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   // Helper to get teacher email
   const getTeacherEmail = () => localStorage.getItem('teacher_email') || '';
 
+  // Heartbeat to keep connection alive
+  const startHeartbeat = (sessionCode: string, studentId: string) => {
+    if (!studentId) return;
+    
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        await fetch(`/api/simple-api/sessions/${sessionCode}/heartbeat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ studentId })
+        });
+      } catch (error) {
+        console.warn('Heartbeat failed:', error);
+      }
+    }, 15000); // Every 15 seconds
+
+    // Store interval ID to clear it later
+    (window as any).heartbeatInterval = heartbeatInterval;
+  };
+
+  // Submit exercise result to API
+  const submitExerciseResult = async (exerciseIndex: number, isCorrect: boolean, score: number, timeSpent: number, answer?: any) => {
+    if (!currentSessionCode || !student?.id) return;
+
+    try {
+      await fetch(`/api/simple-api/sessions/${currentSessionCode}/result`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          studentId: student.id,
+          exerciseIndex,
+          isCorrect,
+          score,
+          timeSpent,
+          answer
+        })
+      });
+      console.log('📊 Result submitted to API');
+    } catch (error) {
+      console.warn('Failed to submit result to API:', error);
+    }
+  };
+
   const handleStudentLogin = async (studentData: Student, code: string) => {
     setStudent(studentData);
     setCurrentSessionCode(code);
@@ -86,6 +133,34 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           const data = await response.json();
           console.log('📡 API check data:', data);
           if (data.exists) {
+            // Join the session
+            const joinResponse = await fetch(`/api/simple-api/sessions/join`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                name: studentData.name,
+                className: studentData.className,
+                sessionCode: code.toUpperCase()
+              })
+            });
+
+            if (joinResponse.ok) {
+              const joinData = await joinResponse.json();
+              console.log('✅ Joined session:', joinData);
+              
+              // Store student ID for later use
+              if (studentData && joinData.student?.id) {
+                setStudent(prev => prev ? { ...prev, id: joinData.student.id } : null);
+              }
+
+              // Start heartbeat to keep connection alive
+              if (joinData.student?.id) {
+                startHeartbeat(code.toUpperCase(), joinData.student.id);
+              }
+            }
+
             // Get exercises from API
             const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
             console.log('📡 API exercises response status:', exercisesResponse.status);
@@ -215,9 +290,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   };
 
   const handleExerciseComplete = async (isCorrect: boolean = false, score: number = 0, timeSpent: number = 0) => {
+      // Submit result to API if connected
+      await submitExerciseResult(currentIndex, isCorrect, score, timeSpent);
+      
       setCompletedCount(prev => prev + 1);
       
-      // Submit answer if we have a session
+      // Submit answer if we have a session (legacy localStorage method)
       if (currentSession && playlist[currentIndex]) {
         try {
           await fetch('/api/simple-api/sessions/answer', {
@@ -238,7 +316,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           console.error('Error submitting answer:', error);
         }
       } else if (student && currentSessionCode) {
-        // Save result to localStorage-based session for teacher to see
+        // Save result to localStorage-based session for teacher to see (legacy method)
         try {
           const resultData = {
             studentName: student.name,
@@ -301,6 +379,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               console.error('Error saving summary:', error);
             }
           }
+
+          // Clear heartbeat when session ends
+          if ((window as any).heartbeatInterval) {
+            clearInterval((window as any).heartbeatInterval);
+          }
+
           setStep('RESULT');
       }
   };
@@ -437,6 +521,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                         <ImageViewer 
                           src={currentItem.imageUrl} 
                           alt="Feladat forrása"
+                          studentMode={true}
                           // No onImageUpdate in student mode - students can't edit exercises
                         />
                    ) : (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { BulkResultItem } from './BulkProcessor'
+import SessionMonitor from './SessionMonitor'
 
 interface Props {
   library: BulkResultItem[]
@@ -20,6 +21,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showResults, setShowResults] = useState(false)
+  const [showMonitor, setShowMonitor] = useState(false)
 
   const toggleExerciseSelection = (exerciseId: string) => {
     setSelectedExercises(prev => 
@@ -314,10 +316,16 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             )}
           </p>
           <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => setShowMonitor(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
+            >
+              📊 Valós idejű monitor
+            </button>
             {summaries.length > 0 && (
               <button
                 onClick={() => setShowResults(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium"
               >
                 Eredmények megtekintése ({summaries.length})
               </button>
@@ -336,6 +344,14 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             </button>
           </div>
         </div>
+        
+        {/* Session Monitor Modal */}
+        {showMonitor && (
+          <SessionMonitor 
+            sessionCode={activeSession.code}
+            onClose={() => setShowMonitor(false)}
+          />
+        )}
       </div>
     )
   }

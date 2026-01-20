@@ -675,11 +675,36 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(404).json({ error: 'Hibás kód vagy a munkamenet nem aktív' })
       }
 
+      // Check if student already joined
+      const existingStudent = session.students.find(s => 
+        s.name.toLowerCase() === name.toLowerCase() && 
+        s.className.toLowerCase() === className.toLowerCase()
+      )
+
+      if (existingStudent) {
+        // Update last seen time
+        existingStudent.lastSeen = new Date()
+        existingStudent.isOnline = true
+        sessions.set(sessionCode.toUpperCase(), session)
+        
+        return res.json({
+          success: true,
+          student: existingStudent,
+          message: 'Újracsatlakozás sikeres'
+        })
+      }
+
       const student = {
         id: generateId(),
         name: name.trim(),
         className: className.trim(),
-        joinedAt: new Date()
+        joinedAt: new Date(),
+        lastSeen: new Date(),
+        isOnline: true,
+        currentExercise: 0,
+        completedExercises: 0,
+        totalScore: 0,
+        results: []
       }
 
       // Add student to session
@@ -729,12 +754,138 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       session.isActive = false
+      session.endedAt = new Date()
       sessions.set(sessionCode, session)
 
       return res.json({
         success: true,
         message: 'Munkamenet leállítva'
       })
+    }
+
+    // Get session status (teacher)
+    if (path.includes('/api/simple-api/sessions/') && path.includes('/status') && method === 'GET') {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/status/)
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' })
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase()
+      const session = sessions.get(sessionCode)
+
+      if (!session) {
+        return res.status(404).json({ error: 'Munkamenet nem található' })
+      }
+
+      // Update online status (consider offline if not seen in last 30 seconds)
+      const now = new Date()
+      session.students.forEach(student => {
+        const timeSinceLastSeen = now.getTime() - new Date(student.lastSeen).getTime()
+        student.isOnline = timeSinceLastSeen < 30000 // 30 seconds
+      })
+
+      return res.json({
+        success: true,
+        session: {
+          code: session.code,
+          isActive: session.isActive,
+          createdAt: session.createdAt,
+          endedAt: session.endedAt || null,
+          totalExercises: session.exercises.length,
+          students: session.students,
+          onlineCount: session.students.filter(s => s.isOnline).length,
+          totalStudents: session.students.length
+        }
+      })
+    }
+
+    // Submit exercise result (student)
+    if (path.includes('/api/simple-api/sessions/') && path.includes('/result') && method === 'POST') {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/result/)
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' })
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase()
+      const { studentId, exerciseIndex, isCorrect, score, timeSpent, answer } = req.body
+
+      if (!studentId || exerciseIndex === undefined) {
+        return res.status(400).json({ error: 'Diák ID és feladat index megadása kötelező' })
+      }
+
+      const session = sessions.get(sessionCode)
+      if (!session || !session.isActive) {
+        return res.status(404).json({ error: 'Munkamenet nem található vagy nem aktív' })
+      }
+
+      const student = session.students.find(s => s.id === studentId)
+      if (!student) {
+        return res.status(404).json({ error: 'Diák nem található' })
+      }
+
+      // Update student progress
+      student.lastSeen = new Date()
+      student.isOnline = true
+      student.currentExercise = Math.max(student.currentExercise, exerciseIndex + 1)
+      
+      if (isCorrect) {
+        student.completedExercises += 1
+        student.totalScore += score || 1
+      }
+
+      // Add result
+      const result = {
+        exerciseIndex,
+        exerciseTitle: session.exercises[exerciseIndex]?.data?.title || `Feladat ${exerciseIndex + 1}`,
+        isCorrect: isCorrect || false,
+        score: score || 0,
+        timeSpent: timeSpent || 0,
+        answer: answer || null,
+        completedAt: new Date()
+      }
+
+      student.results.push(result)
+      sessions.set(sessionCode, session)
+
+      return res.json({
+        success: true,
+        message: 'Eredmény mentve',
+        student: {
+          currentExercise: student.currentExercise,
+          completedExercises: student.completedExercises,
+          totalScore: student.totalScore,
+          progress: Math.round((student.currentExercise / session.exercises.length) * 100)
+        }
+      })
+    }
+
+    // Update student heartbeat (keep alive)
+    if (path.includes('/api/simple-api/sessions/') && path.includes('/heartbeat') && method === 'POST') {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/heartbeat/)
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' })
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase()
+      const { studentId } = req.body
+
+      if (!studentId) {
+        return res.status(400).json({ error: 'Diák ID megadása kötelező' })
+      }
+
+      const session = sessions.get(sessionCode)
+      if (!session) {
+        return res.status(404).json({ error: 'Munkamenet nem található' })
+      }
+
+      const student = session.students.find(s => s.id === studentId)
+      if (student) {
+        student.lastSeen = new Date()
+        student.isOnline = true
+        sessions.set(sessionCode, session)
+      }
+
+      return res.json({ success: true })
     }
 
     // Default response for unmatched routes
