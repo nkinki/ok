@@ -374,6 +374,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
               setViewMode('LIBRARY');
             }}
             isStudentMode={false}
+            isPreviewMode={true}
           />
         )}
         {viewMode === 'LIBRARY' && (

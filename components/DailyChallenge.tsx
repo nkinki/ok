@@ -13,6 +13,7 @@ interface Props {
   onExit: () => void;
   isStudentMode?: boolean;
   sessionCode?: string;
+  isPreviewMode?: boolean;
 }
 
 type DailyStep = 'LOGIN' | 'ASSIGNMENTS' | 'PLAYING' | 'RESULT';
@@ -45,9 +46,13 @@ interface Session {
   status: string;
 }
 
-const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = false, sessionCode }) => {
-  const [step, setStep] = useState<DailyStep>(isStudentMode ? 'LOGIN' : 'ASSIGNMENTS');
-  const [student, setStudent] = useState<Student | null>(null);
+const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = false, sessionCode, isPreviewMode = false }) => {
+  const [step, setStep] = useState<DailyStep>(
+    isPreviewMode ? 'PLAYING' : (isStudentMode ? 'LOGIN' : 'ASSIGNMENTS')
+  );
+  const [student, setStudent] = useState<Student | null>(
+    isPreviewMode ? { id: 'preview', name: 'Tanári előnézet', className: 'Előnézet' } : null
+  );
 
   // ESC key handler for closing
   useEffect(() => {
@@ -70,6 +75,16 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [playlist, setPlaylist] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
+
+  // Initialize playlist in preview mode
+  useEffect(() => {
+    if (isPreviewMode && library.length > 0) {
+      console.log('🔍 Preview mode: initializing playlist with library item');
+      setPlaylist(library);
+      setCurrentIndex(0);
+      setCompletedCount(0);
+    }
+  }, [isPreviewMode, library]);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -297,6 +312,20 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   };
 
   const handleExerciseComplete = async (isCorrect: boolean = false, score: number = 0, timeSpent: number = 0, answer?: any) => {
+      // Skip saving in preview mode
+      if (isPreviewMode) {
+        console.log('🔍 Preview mode: skipping result save');
+        setCompletedCount(prev => prev + 1);
+        
+        // Move to next exercise or finish
+        if (currentIndex < playlist.length - 1) {
+          setCurrentIndex(prev => prev + 1);
+        } else {
+          setStep('RESULT');
+        }
+        return;
+      }
+
       // Submit result to API if connected
       await submitExerciseResult(currentIndex, isCorrect, score, timeSpent, answer);
       
@@ -528,7 +557,16 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       {/* Sticky Header */}
                       <div className="sticky top-0 z-20 bg-slate-50 p-6 pb-2 border-b border-slate-200 mb-4 shadow-sm opacity-95 backdrop-blur">
                           <div className="flex justify-between items-center mb-4">
-                              <span className="font-bold text-purple-900">Napi Kihívás</span>
+                              <div className="flex items-center gap-3">
+                                  <span className="font-bold text-purple-900">
+                                      {isPreviewMode ? 'Feladat Előnézet' : 'Napi Kihívás'}
+                                  </span>
+                                  {isPreviewMode && (
+                                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                                          Tanári előnézet
+                                      </span>
+                                  )}
+                              </div>
                               <div className="flex items-center gap-3">
                                   <span className="text-sm font-medium text-slate-500">{student?.name} - {student?.className}</span>
                                   <button
@@ -598,29 +636,54 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   return (
       <div className="max-w-lg mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 text-center relative">
           <div className="w-24 h-24 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 text-5xl animate-bounce">
-              🏆
+              {isPreviewMode ? '👁️' : '🏆'}
           </div>
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">Szép munka, {student?.name}!</h2>
-          <p className="text-slate-500 mb-8">A mai gyakorlás véget ért. Az eredmények automatikusan mentve lettek.</p>
+          <h2 className="text-3xl font-bold text-slate-800 mb-2">
+              {isPreviewMode ? 'Előnézet befejezve!' : `Szép munka, ${student?.name}!`}
+          </h2>
+          <p className="text-slate-500 mb-8">
+              {isPreviewMode 
+                  ? 'A feladat előnézete véget ért. Szerkesztheted a feladatot a könyvtárban.' 
+                  : 'A mai gyakorlás véget ért. Az eredmények automatikusan mentve lettek.'
+              }
+          </p>
 
           <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
-              <div className="text-sm text-slate-500 uppercase font-bold tracking-wider mb-1">Teljesítve</div>
+              <div className="text-sm text-slate-500 uppercase font-bold tracking-wider mb-1">
+                  {isPreviewMode ? 'Megtekintve' : 'Teljesítve'}
+              </div>
               <div className="text-5xl font-black text-purple-600">{completedCount} <span className="text-2xl text-slate-400 font-medium">/ {playlist.length}</span></div>
-              <div className="text-sm font-medium text-slate-600 mt-2">feladat sikeresen megoldva</div>
+              <div className="text-sm font-medium text-slate-600 mt-2">
+                  {isPreviewMode ? 'feladat megtekintve' : 'feladat sikeresen megoldva'}
+              </div>
           </div>
 
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center justify-center gap-2 text-green-700">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
-                  </svg>
-                  <span className="font-medium">Eredmények mentve!</span>
+          {!isPreviewMode && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-center gap-2 text-green-700">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                      </svg>
+                      <span className="font-medium">Eredmények mentve!</span>
+                  </div>
+                  <p className="text-sm text-green-600 mt-1">A tanár láthatja a teljesítményedet a munkamenet kezelőben.</p>
               </div>
-              <p className="text-sm text-green-600 mt-1">A tanár láthatja a teljesítményedet a munkamenet kezelőben.</p>
-          </div>
+          )}
+
+          {isPreviewMode && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-center gap-2 text-blue-700">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                      </svg>
+                      <span className="font-medium">Szerkesztés elérhető!</span>
+                  </div>
+                  <p className="text-sm text-blue-600 mt-1">A könyvtárban szerkesztheted a feladat tartalmát és képét.</p>
+              </div>
+          )}
 
           <button onClick={onExit} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02]">
-              Vissza a főoldalra
+              {isPreviewMode ? 'Vissza a könyvtárba' : 'Vissza a főoldalra'}
           </button>
 
       </div>
