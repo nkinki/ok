@@ -14,6 +14,7 @@ interface StudentResult {
     isCorrect: boolean;
     score: number;
     timeSpent: number;
+    studentAnswer?: any; // Add this field for detailed answers
   }>;
 }
 
@@ -272,17 +273,69 @@ export default function StudentProgressDashboard({ onClose }: Props) {
                           <h5 className="font-medium text-gray-700 mb-2">Feladat részletek:</h5>
                           <div className="space-y-2">
                             {session.results.map((result, resultIdx) => (
-                              <div key={resultIdx} className="bg-white rounded p-3 flex justify-between items-center">
-                                <div>
-                                  <div className="font-medium text-gray-800">{result.exerciseTitle}</div>
-                                  <div className="text-sm text-gray-600">{result.exerciseType}</div>
-                                </div>
-                                <div className="text-right">
-                                  <div className={`font-bold ${result.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                                    {result.isCorrect ? '✓' : '✗'} {result.score} pont
+                              <div key={resultIdx} className="bg-white rounded p-3">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-800">{result.exerciseTitle}</div>
+                                    <div className="text-sm text-gray-600">{result.exerciseType}</div>
                                   </div>
-                                  <div className="text-sm text-gray-600">{result.timeSpent}s</div>
+                                  <div className="text-right">
+                                    <div className={`font-bold ${result.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                                      {result.isCorrect ? '✓' : '✗'} {result.score} pont
+                                    </div>
+                                    <div className="text-sm text-gray-600">{result.timeSpent}s</div>
+                                  </div>
                                 </div>
+                                
+                                {/* Show detailed answers if available */}
+                                {result.studentAnswer && (
+                                  <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                                    <div className="font-medium text-gray-700 mb-1">Részletes válaszok:</div>
+                                    {result.exerciseType === 'QUIZ' && result.studentAnswer.questions && (
+                                      <div className="space-y-1">
+                                        {result.studentAnswer.questions.map((q: any, qIdx: number) => (
+                                          <div key={qIdx} className="text-xs">
+                                            <span className="font-medium">{q.question}</span>
+                                            <div className="ml-2 text-gray-600">
+                                              Helyes: {q.options[q.correctAnswer]} | 
+                                              Válasz: {q.options[result.studentAnswer?.selectedAnswers?.[qIdx]] || 'Nincs válasz'}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {result.exerciseType === 'MATCHING' && result.studentAnswer.pairs && (
+                                      <div className="space-y-1">
+                                        {result.studentAnswer.pairs.map((pair: any, pIdx: number) => (
+                                          <div key={pIdx} className="text-xs">
+                                            <span className="font-medium">{pair.left}</span>
+                                            <div className="ml-2 text-gray-600">
+                                              Helyes: {pair.right} | Válasz: {pair.userMatch}
+                                              <span className={pair.isCorrect ? 'text-green-600 ml-1' : 'text-red-600 ml-1'}>
+                                                {pair.isCorrect ? '✓' : '✗'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {result.exerciseType === 'CATEGORIZATION' && result.studentAnswer.items && (
+                                      <div className="space-y-1">
+                                        {result.studentAnswer.items.map((item: any, iIdx: number) => (
+                                          <div key={iIdx} className="text-xs">
+                                            <span className="font-medium">{item.text}</span>
+                                            <div className="ml-2 text-gray-600">
+                                              Helyes: {item.correctCategory} | Válasz: {item.userCategory}
+                                              <span className={item.isCorrect ? 'text-green-600 ml-1' : 'text-red-600 ml-1'}>
+                                                {item.isCorrect ? '✓' : '✗'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>

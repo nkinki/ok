@@ -5,7 +5,7 @@ import { QuizContent } from '../types';
 interface Props {
   content: QuizContent;
   onComplete: () => void;
-  onNext?: () => void;
+  onNext?: (isCorrect?: boolean, score?: number, timeSpent?: number, answer?: any) => void;
   onAnswer?: (selectedAnswers: number[], isCorrect: boolean, responseTime: number) => void;
   startTime?: Date;
 }
@@ -96,6 +96,24 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
     } else {
       setFinished(true);
       onComplete();
+      
+      // Pass complete quiz results to parent
+      if (onNext) {
+        const totalTimeSpent = Math.floor((new Date().getTime() - questionStartTime.getTime()) / 1000);
+        const quizAnswer = {
+          totalQuestions: content.questions.length,
+          correctAnswers: score,
+          questions: content.questions.map((q, idx) => ({
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.correctIndex,
+            correctAnswers: q.correctIndices || [q.correctIndex]
+          }))
+        };
+        
+        const isCorrect = score === content.questions.length;
+        onNext(isCorrect, score, totalTimeSpent, quizAnswer);
+      }
     }
   };
 
@@ -121,7 +139,22 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
             </button>
             {onNext && (
                 <button 
-                    onClick={onNext} 
+                    onClick={() => {
+                      const totalTimeSpent = Math.floor((new Date().getTime() - questionStartTime.getTime()) / 1000);
+                      const quizAnswer = {
+                        totalQuestions: content.questions.length,
+                        correctAnswers: score,
+                        questions: content.questions.map((q, idx) => ({
+                          question: q.question,
+                          options: q.options,
+                          correctAnswer: q.correctIndex,
+                          correctAnswers: q.correctIndices || [q.correctIndex]
+                        }))
+                      };
+                      
+                      const isCorrect = score === content.questions.length;
+                      onNext(isCorrect, score, totalTimeSpent, quizAnswer);
+                    }} 
                     className="bg-brand-600 text-white px-8 py-3 rounded-full font-bold hover:bg-brand-700 transition-colors shadow-lg flex items-center gap-2"
                 >
                     Következő feladat

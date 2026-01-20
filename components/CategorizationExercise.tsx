@@ -5,7 +5,7 @@ import { CategorizationContent } from '../types';
 interface Props {
   content: CategorizationContent;
   onComplete: () => void;
-  onNext?: () => void;
+  onNext?: (isCorrect?: boolean, score?: number, timeSpent?: number, answer?: any) => void;
   onAnswer?: (isCorrect: boolean, responseTime: number) => void;
   startTime?: Date;
 }
@@ -94,6 +94,28 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
     
     if (allCorrect) {
         onComplete();
+    }
+  };
+
+  const handleNext = () => {
+    if (onNext) {
+      const timeSpent = Math.floor((new Date().getTime() - exerciseStartTime.getTime()) / 1000);
+      const correctCount = Object.values(results).filter(Boolean).length;
+      const isCorrect = correctCount === items.length;
+      
+      const categorizationAnswer = {
+        categories: content.categories,
+        items: items.map(item => ({
+          text: item.text,
+          correctCategory: content.categories.find(c => c.id === item.categoryId)?.name || 'Ismeretlen',
+          userCategory: content.categories.find(c => c.id === assignments[item.id])?.name || 'Nincs válasz',
+          isCorrect: results[item.id] || false
+        })),
+        totalItems: items.length,
+        correctItems: correctCount
+      };
+      
+      onNext(isCorrect, correctCount, timeSpent, categorizationAnswer);
     }
   };
 
@@ -228,7 +250,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
              </button>
              {onNext && (
                 <button 
-                    onClick={onNext}
+                    onClick={handleNext}
                     className="pointer-events-auto bg-brand-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-brand-700 transition-colors flex items-center gap-2 text-sm"
                 >
                     Következő

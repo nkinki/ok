@@ -282,9 +282,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     }
   };
 
-  const handleExerciseComplete = async (isCorrect: boolean = false, score: number = 0, timeSpent: number = 0) => {
+  const handleExerciseComplete = async (isCorrect: boolean = false, score: number = 0, timeSpent: number = 0, answer?: any) => {
       // Submit result to API if connected
-      await submitExerciseResult(currentIndex, isCorrect, score, timeSpent);
+      await submitExerciseResult(currentIndex, isCorrect, score, timeSpent, answer);
       
       setCompletedCount(prev => prev + 1);
       
@@ -299,7 +299,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             body: JSON.stringify({
               sessionId: currentSession.id,
               exerciseId: playlist[currentIndex].id,
-              studentAnswer: { completed: true }, // Basic answer data
+              studentAnswer: answer || { completed: true }, // Include actual answer
               isCorrect,
               score,
               timeSpentSeconds: timeSpent
@@ -311,11 +311,14 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       } else if (student && currentSessionCode) {
         // Save result to localStorage-based session for teacher to see (legacy method)
         try {
+          const currentExercise = playlist[currentIndex];
           const resultData = {
             studentName: student.name,
             studentClass: student.className,
-            exerciseTitle: playlist[currentIndex].data.title,
-            exerciseType: playlist[currentIndex].data.type,
+            exerciseTitle: currentExercise.data.title,
+            exerciseType: currentExercise.data.type,
+            exerciseContent: currentExercise.data.content, // Save the questions/content
+            studentAnswer: answer, // Save the student's actual answer
             isCorrect,
             score,
             timeSpent,
@@ -332,6 +335,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           
           // Save back to localStorage
           localStorage.setItem(sessionKey, JSON.stringify(results));
+          console.log('💾 Detailed result saved:', resultData);
         } catch (error) {
           console.error('Error saving result:', error);
         }
@@ -533,7 +537,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                 key={uniqueKey}
                                 content={currentItem.data.content as MatchingContent}
                                 onComplete={() => {}} // Handled by Next button
-                                onNext={handleExerciseComplete} 
+                                onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)} 
                               />
                           )}
                           
@@ -542,7 +546,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                 key={uniqueKey}
                                 content={currentItem.data.content as CategorizationContent}
                                 onComplete={() => {}} 
-                                onNext={handleExerciseComplete}
+                                onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)}
                               />
                           )}
 
@@ -551,7 +555,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                 key={uniqueKey}
                                 content={currentItem.data.content as QuizContent}
                                 onComplete={() => {}}
-                                onNext={handleExerciseComplete}
+                                onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)}
                               />
                           )}
                       </div>

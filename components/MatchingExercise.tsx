@@ -5,7 +5,7 @@ import { MatchingContent } from '../types';
 interface Props {
   content: MatchingContent;
   onComplete: () => void;
-  onNext?: () => void;
+  onNext?: (isCorrect?: boolean, score?: number, timeSpent?: number, answer?: any) => void;
 }
 
 const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
@@ -13,6 +13,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
   const [rightItems, setRightItems] = useState<Array<{id: string, text: string}>>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null); // For click-to-place
+  const [startTime] = useState<Date>(new Date());
 
   useEffect(() => {
     setRightItems(content.pairs.map(p => ({ id: p.id, text: p.right })).sort(() => Math.random() - 0.5));
@@ -66,6 +67,27 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
     const correctCount = content.pairs.filter(p => matches[p.id] === p.id).length;
     if (correctCount === content.pairs.length) {
         onComplete();
+    }
+  };
+
+  const handleNext = () => {
+    if (onNext) {
+      const timeSpent = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
+      const correctCount = content.pairs.filter(p => matches[p.id] === p.id).length;
+      const isCorrect = correctCount === content.pairs.length;
+      
+      const matchingAnswer = {
+        pairs: content.pairs.map(pair => ({
+          left: pair.left,
+          right: pair.right,
+          userMatch: rightItems.find(r => r.id === matches[pair.id])?.text || 'Nincs válasz',
+          isCorrect: matches[pair.id] === pair.id
+        })),
+        totalPairs: content.pairs.length,
+        correctPairs: correctCount
+      };
+      
+      onNext(isCorrect, correctCount, timeSpent, matchingAnswer);
     }
   };
 
@@ -230,7 +252,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
                 </button>
                 {onNext && (
                     <button 
-                        onClick={onNext}
+                        onClick={handleNext}
                         className="bg-brand-600 text-white px-8 py-3 rounded-full font-bold hover:bg-brand-700 transition-colors shadow-lg flex items-center justify-center gap-2"
                     >
                         Következő feladat
