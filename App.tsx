@@ -7,7 +7,6 @@ import TeacherExerciseCreator from './components/TeacherExerciseCreator';
 import TeacherLibrary from './components/TeacherLibrary';
 import DailyChallenge from './components/DailyChallenge';
 import BulkProcessor, { BulkResultItem } from './components/BulkProcessor';
-import HelpModal from './components/HelpModal';
 import SettingsModal from './components/SettingsModal';
 
 type AppMode = 'ROLE_SELECT' | 'TEACHER' | 'STUDENT';
@@ -174,7 +173,6 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
   const [isMemoryMode, setIsMemoryMode] = useState(false)
   
   // Modals
-  const [isHelpOpen, setIsHelpOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   // Load saved library on mount with error handling
@@ -326,18 +324,6 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             </button>
             
             <button 
-              onClick={() => setIsHelpOpen(true)}
-              className="text-slate-500 hover:text-purple-700 p-2"
-              title="Súgó"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </button>
-            
-            <div className="h-8 w-px bg-slate-200 mx-1"></div>
-            
-            <button 
               onClick={onBackToRoleSelect}
               className="text-slate-500 hover:text-purple-700 p-2"
               title="Vissza a szerepkör választáshoz"
@@ -391,7 +377,6 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
         )}
       </main>
       
-      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       <SettingsModal 
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
