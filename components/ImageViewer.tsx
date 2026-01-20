@@ -174,11 +174,11 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
   };
 
   const handleRotateLeft = () => {
-    setRotation(prev => (prev - 5) % 360);
+    setRotation(prev => (prev - 2) % 360);
   };
 
   const handleRotateRight = () => {
-    setRotation(prev => (prev + 5) % 360);
+    setRotation(prev => (prev + 2) % 360);
   };
 
   const enhanceDocument = useCallback(async () => {
@@ -374,7 +374,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
               onClick={handleRotateLeft}
               disabled={isProcessing}
               className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white rounded flex items-center justify-center"
-              title="Forgatás balra (5°)"
+              title="Forgatás balra (2°)"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1v6m0 0l4-4m-4 4L8 3m11 8a8 8 0 11-16 0 8 8 0 0116 0z" />
@@ -385,7 +385,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
               onClick={handleRotateRight}
               disabled={isProcessing}
               className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white rounded flex items-center justify-center"
-              title="Forgatás jobbra (5°)"
+              title="Forgatás jobbra (2°)"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1v6m0 0l-4-4m4 4l4-4m5 8a8 8 0 01-16 0 8 8 0 0116 0z" />

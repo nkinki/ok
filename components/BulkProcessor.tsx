@@ -348,16 +348,16 @@ const BulkProcessor: React.FC<Props> = ({ onAnalysisComplete, existingLibrary = 
     <div className="max-w-6xl mx-auto p-6">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
-          <h2 className="text-2xl font-bold text-slate-800">Tömeges Feldolgozó</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Kezdés - Tömeges Feldolgozó</h2>
           <div className="flex gap-2 items-center">
               {onLibraryImport && (
                   <label className="text-sm text-brand-600 underline cursor-pointer hover:text-brand-800">
-                      Meglévő JSON betöltése (Szűréshez)
+                      1. Meglévő JSON betöltése (Szűréshez)
                       <input type="file" accept=".json" className="hidden" onChange={handleJSONImport} />
                   </label>
               )}
               <span className="text-slate-300">|</span>
-              <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-sm text-brand-600 underline">Kvóta ellenőrzése</a>
+              <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-sm text-brand-600 underline">API beszerzése</a>
           </div>
         </div>
         <p className="text-slate-600 mb-6">

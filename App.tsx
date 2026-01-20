@@ -130,14 +130,18 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
             <div className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200">
               OK
             </div>
-            <div className="font-bold text-purple-900 text-lg md:text-xl leading-tight">
+            <div className="font-bold text-purple-900 text-sm md:text-base leading-tight">
               Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-300">
-              ⭐ Diák Mód
+            <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-300 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+              </svg>
+              Diák Mód
             </div>
             <button 
               onClick={onBackToRoleSelect}
@@ -167,7 +171,7 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
 
 // Teacher App Component (full functionality with session manager first to show history)
 function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
-  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'SINGLE' | 'LIBRARY'>('SESSION')
+  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'LIBRARY'>('BULK')
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<BulkResultItem | null>(null);
   const [isMemoryMode, setIsMemoryMode] = useState(false)
@@ -267,8 +271,11 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
           </div>
 
           <div className="flex items-center gap-1 sm:gap-4">
-            <div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-lg text-sm font-bold border border-purple-300">
-              👨‍🏫 Tanár Mód
+            <div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-lg text-sm font-bold border border-purple-300 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+              Tanár Mód
             </div>
             <div className="h-8 w-px bg-slate-200 mx-1"></div>
             
@@ -278,7 +285,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
                 viewMode === 'BULK' ? 'bg-purple-100 text-purple-800 border-purple-300' : 'text-slate-600 border-transparent hover:bg-slate-50'
               }`}
             >
-              🔄 Tömeges
+              🔄 Kezdés
             </button>
             
             <button 
@@ -299,15 +306,6 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
               }`}
             >
               Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-bold">{library.length}</span>}
-            </button>
-            
-            <button 
-              onClick={() => setViewMode('SINGLE')} 
-              className={`hidden sm:block px-3 py-2 rounded-lg text-sm font-medium ${
-                viewMode === 'SINGLE' ? 'bg-purple-50 text-purple-800' : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Egyesével
             </button>
             
             <div className="h-8 w-px bg-slate-200 mx-1"></div>
@@ -350,17 +348,6 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             library={library} 
             onExit={onBackToRoleSelect}
             onLibraryUpdate={handleLibraryUpdate}
-          />
-        )}
-        {viewMode === 'SINGLE' && selectedExercise && (
-          <DailyChallenge 
-            library={[selectedExercise]}
-            onExit={() => {
-              setSelectedExercise(null);
-              setViewMode('LIBRARY');
-            }}
-            isStudentMode={false}
-            isPreviewMode={true}
           />
         )}
         {viewMode === 'LIBRARY' && (
