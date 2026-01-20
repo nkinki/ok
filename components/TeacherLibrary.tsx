@@ -159,17 +159,29 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
           <h2 className="text-3xl font-bold text-slate-800">Feladat Könyvtár</h2>
           <p className="text-slate-600">A mentett és feldolgozott feladatok gyűjteménye.</p>
           
-          {/* Storage info bar */}
+          {/* Storage info - more prominent */}
           <div className="flex items-center gap-4 mt-3">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center gap-2 bg-slate-200 px-4 py-2 rounded-lg text-sm font-medium border border-slate-300">
+              <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4V7c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4z"/>
               </svg>
-              <span>
+              <span className="text-slate-800 font-bold">
                 Tárhely: {storageInfo.sizeMB > 1 ? `${storageInfo.sizeMB} MB` : `${storageInfo.sizeKB} KB`}
                 {storageInfo.itemCount > 0 && ` (${storageInfo.itemCount} elem)`}
               </span>
             </div>
+            
+            {/* Storage delete button */}
+            <button 
+              onClick={handleClearStorage} 
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2"
+              title="Teljes tárhely törlése"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              Tárhely törlése
+            </button>
           </div>
           
           {/* Memory mode warning */}
@@ -197,26 +209,6 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
               </div>
             </div>
           )}
-        </div>
-        
-        {/* Action buttons - simplified */}
-        <div className="flex gap-3">
-          {/* Primary actions */}
-          <button onClick={handleImportClick} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-            </svg>
-            Import
-          </button>
-          <button onClick={handleExportLibrary} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-            </svg>
-            Export
-          </button>
-          <button onClick={onExit} className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium">
-            Vissza
-          </button>
         </div>
       </div>
 
