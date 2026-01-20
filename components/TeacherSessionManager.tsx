@@ -42,17 +42,26 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             // Update library through parent component - no page reload needed
             const updatedLibrary = [...library, ...newExercises]
             
-            // Save to localStorage
             try {
               localStorage.setItem('okosgyakorlo_library', JSON.stringify(updatedLibrary))
+              alert(`${newExercises.length} feldolgozott feladat importálva a könyvtárba!`)
+              // Trigger library reload in parent component
+              if (onLibraryUpdate) {
+                onLibraryUpdate()
+              }
             } catch (e) {
-              console.error("Storage full", e)
-            }
-            
-            alert(`${newExercises.length} feldolgozott feladat importálva a könyvtárba!`)
-            // Trigger library reload in parent component
-            if (onLibraryUpdate) {
-              onLibraryUpdate()
+              if (e instanceof DOMException && e.code === 22) {
+                // Storage quota exceeded
+                alert(`⚠️ TÁRHELY MEGTELT!\n\n${newExercises.length} feladat importálva, de nem menthetők a böngésző tárhelyre.\n\nJavasolt megoldások:\n• Töröld a régi feladatokat\n• Exportáld a jelenlegi könyvtárat\n• Használj kisebb JSON fájlokat\n\nA feladatok ideiglenesen elérhetők, de újratöltés után elvesznek.`)
+                
+                // Still trigger library update in parent component (temporary state)
+                if (onLibraryUpdate) {
+                  onLibraryUpdate()
+                }
+              } else {
+                console.error("Storage error:", e)
+                alert("Hiba a mentés során. Próbáld újra vagy töröld a régi feladatokat.")
+              }
             }
           } else {
             alert("Minden feladat már létezik a könyvtárban.")

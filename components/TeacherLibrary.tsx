@@ -44,13 +44,33 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
         const content = e.target?.result as string
         const importedData = JSON.parse(content) as BulkResultItem[]
         if (Array.isArray(importedData) && importedData.length > 0 && importedData[0].data) {
-          setLibrary((prev: any[]) => {
-            const uniqueImported = importedData.filter((newItem: any) => 
-              !prev.some((existing: any) => existing.id === newItem.id)
-            )
-            return [...prev, ...uniqueImported]
-          })
-          alert(`${importedData.length} feldolgozott feladat importálva!`)
+          // Filter out duplicates
+          const uniqueImported = importedData.filter((newItem: any) => 
+            !library.some((existing: any) => existing.id === newItem.id)
+          )
+          
+          if (uniqueImported.length > 0) {
+            // Try to update library with storage error handling
+            try {
+              const updatedLibrary = [...library, ...uniqueImported]
+              localStorage.setItem('okosgyakorlo_library', JSON.stringify(updatedLibrary))
+              setLibrary(updatedLibrary)
+              alert(`${uniqueImported.length} feldolgozott feladat importálva a könyvtárba!`)
+            } catch (storageError) {
+              if (storageError instanceof DOMException && storageError.code === 22) {
+                // Storage quota exceeded
+                alert(`⚠️ TÁRHELY MEGTELT!\n\n${uniqueImported.length} feladat importálva, de nem menthetők a böngésző tárhelyre.\n\nJavasolt megoldások:\n• Töröld a régi feladatokat\n• Exportáld a jelenlegi könyvtárat\n• Használj kisebb JSON fájlokat\n\nA feladatok ideiglenesen elérhetők, de újratöltés után elvesznek.`)
+                
+                // Still update the state temporarily (until page reload)
+                setLibrary([...library, ...uniqueImported])
+              } else {
+                console.error("Storage error:", storageError)
+                alert("Hiba a mentés során. Próbáld újra vagy töröld a régi feladatokat.")
+              }
+            }
+          } else {
+            alert("Minden feladat már létezik a könyvtárban.")
+          }
         } else {
           alert("Hibás fájlformátum. Csak feldolgozott feladat JSON fájlokat lehet importálni.")
         }

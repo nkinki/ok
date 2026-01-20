@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthPage from './components/auth/AuthPage';
 import TeacherSessionManager from './components/TeacherSessionManager';
@@ -7,19 +7,9 @@ import TeacherExerciseCreator from './components/TeacherExerciseCreator';
 import TeacherLibrary from './components/TeacherLibrary';
 import DailyChallenge from './components/DailyChallenge';
 import BulkProcessor, { BulkResultItem } from './components/BulkProcessor';
-import UploadZone from './components/UploadZone';
-import MatchingExercise from './components/MatchingExercise';
-import CategorizationExercise from './components/CategorizationExercise';
-import QuizExercise from './components/QuizExercise';
-import ImageViewer from './components/ImageViewer';
 import HelpModal from './components/HelpModal';
 import SettingsModal from './components/SettingsModal';
-import EditExerciseModal from './components/EditExerciseModal';
-import ReanalyzeModal from './components/ReanalyzeModal';
-import { analyzeImage } from './services/geminiService';
-import { ExerciseData, ExerciseType } from './types';
 
-type ViewMode = 'SINGLE' | 'BULK' | 'LIBRARY' | 'DAILY' | 'DASHBOARD';
 type AppMode = 'ROLE_SELECT' | 'TEACHER' | 'STUDENT';
 
 // Main App Component (with authentication and routing)
@@ -38,7 +28,7 @@ function AppContent() {
   }, [])
 
   // Handle student login with session code
-  const handleStudentLogin = (student: any, code: string) => {
+  const handleStudentLogin = (code: string) => {
     setSessionCode(code)
     // Student login is handled in DailyChallenge component
   }
@@ -142,19 +132,21 @@ function AppContent() {
 function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: () => void, sessionCode: string | null }) {
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
 
-  // Load manual exercises on mount
+  // Load manual exercises on mount with error handling
   useEffect(() => {
     // Only load from localStorage, no manual exercises file
-    const savedLibrary = localStorage.getItem('okosgyakorlo_library');
-    if (savedLibrary) {
-      try {
+    try {
+      const savedLibrary = localStorage.getItem('okosgyakorlo_library');
+      if (savedLibrary) {
         const parsed = JSON.parse(savedLibrary);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setLibrary(parsed);
         }
-      } catch (e) {
-        console.error("Failed to restore library", e);
       }
+    } catch (e) {
+      console.error("Failed to restore library from localStorage:", e);
+      // If localStorage is corrupted, start with empty library
+      setLibrary([]);
     }
   }, []);
 
@@ -211,34 +203,46 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-  // Load saved library on mount
+  // Load saved library on mount with error handling
   useEffect(() => {
-    const savedLibrary = localStorage.getItem('okosgyakorlo_library');
-    if (savedLibrary) {
-      try {
+    try {
+      const savedLibrary = localStorage.getItem('okosgyakorlo_library');
+      if (savedLibrary) {
         const parsed = JSON.parse(savedLibrary);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setLibrary(parsed);
         }
-      } catch (e) {
-        console.error("Failed to restore library", e);
       }
+    } catch (e) {
+      console.error("Failed to restore library from localStorage:", e);
+      // If localStorage is corrupted, start with empty library
+      setLibrary([]);
     }
   }, []);
 
-  // Auto-save library
+  // Auto-save library with improved error handling
   useEffect(() => {
     if (library.length > 0) {
       try {
         localStorage.setItem('okosgyakorlo_library', JSON.stringify(library));
         if (isMemoryMode) setIsMemoryMode(false);
       } catch (e) {
-        console.error("Storage full", e);
-        setIsMemoryMode(true);
+        if (e instanceof DOMException && e.code === 22) {
+          // Storage quota exceeded
+          console.warn("Storage quota exceeded, switching to memory mode");
+          setIsMemoryMode(true);
+        } else {
+          console.error("Storage error:", e);
+        }
       }
     } else {
+      // Clean up empty library
       if (library.length === 0 && localStorage.getItem('okosgyakorlo_library')) {
-        localStorage.removeItem('okosgyakorlo_library');
+        try {
+          localStorage.removeItem('okosgyakorlo_library');
+        } catch (e) {
+          console.error("Error removing empty library:", e);
+        }
       }
     }
   }, [library, isMemoryMode]);
@@ -253,17 +257,18 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
   };
 
   const handleLibraryUpdate = () => {
-    // Reload library from localStorage
-    const savedLibrary = localStorage.getItem('okosgyakorlo_library');
-    if (savedLibrary) {
-      try {
+    // Reload library from localStorage with error handling
+    try {
+      const savedLibrary = localStorage.getItem('okosgyakorlo_library');
+      if (savedLibrary) {
         const parsed = JSON.parse(savedLibrary);
         if (Array.isArray(parsed)) {
           setLibrary(parsed);
         }
-      } catch (e) {
-        console.error("Failed to reload library", e);
       }
+    } catch (e) {
+      console.error("Failed to reload library from localStorage:", e);
+      // If localStorage is corrupted or inaccessible, keep current state
     }
   };
   const handleBulkImport = (importedData: BulkResultItem[]) => {
