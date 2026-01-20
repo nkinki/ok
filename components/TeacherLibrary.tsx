@@ -6,10 +6,10 @@ interface Props {
   setLibrary: React.Dispatch<React.SetStateAction<BulkResultItem[]>>
   onExit: () => void
   onOpenSingle: () => void
+  isMemoryMode?: boolean
 }
 
-export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSingle }: Props) {
-  const [isMemoryMode, setIsMemoryMode] = useState(false)
+export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSingle, isMemoryMode = false }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleExportLibrary = () => {
@@ -30,7 +30,6 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
     if (confirm("Biztosan törölni szeretnéd a teljes munkamenetet? Minden nem exportált adat elveszik!")) {
       setLibrary([])
       localStorage.removeItem('okosgyakorlo_library')
-      setIsMemoryMode(false)
     }
   }
 

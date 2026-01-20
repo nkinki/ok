@@ -144,21 +144,18 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
 
   // Load manual exercises on mount
   useEffect(() => {
-    const loadManualExercises = async () => {
+    // Only load from localStorage, no manual exercises file
+    const savedLibrary = localStorage.getItem('okosgyakorlo_library');
+    if (savedLibrary) {
       try {
-        const response = await fetch('/manual-exercises.json');
-        if (response.ok) {
-          const manualExercises = await response.json();
-          if (Array.isArray(manualExercises) && manualExercises.length > 0) {
-            setLibrary(manualExercises);
-          }
+        const parsed = JSON.parse(savedLibrary);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setLibrary(parsed);
         }
       } catch (e) {
-        console.error("Failed to load manual exercises", e);
+        console.error("Failed to restore library", e);
       }
-    };
-
-    loadManualExercises();
+    }
   }, []);
 
   return (
@@ -208,6 +205,7 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
 function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
   const [viewMode, setViewMode] = useState<'SESSION' | 'SINGLE' | 'BULK' | 'LIBRARY'>('SESSION')
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
+  const [isMemoryMode, setIsMemoryMode] = useState(false)
   
   // Modals
   const [isHelpOpen, setIsHelpOpen] = useState(false)
@@ -221,29 +219,11 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
         const parsed = JSON.parse(savedLibrary);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setLibrary(parsed);
-          return;
         }
       } catch (e) {
         console.error("Failed to restore library", e);
       }
     }
-
-    // Load manual exercises if no saved library exists
-    const loadManualExercises = async () => {
-      try {
-        const response = await fetch('/manual-exercises.json');
-        if (response.ok) {
-          const manualExercises = await response.json();
-          if (Array.isArray(manualExercises) && manualExercises.length > 0) {
-            setLibrary(manualExercises);
-          }
-        }
-      } catch (e) {
-        console.error("Failed to load manual exercises", e);
-      }
-    };
-
-    loadManualExercises();
   }, []);
 
   // Auto-save library
@@ -251,11 +231,17 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
     if (library.length > 0) {
       try {
         localStorage.setItem('okosgyakorlo_library', JSON.stringify(library));
+        if (isMemoryMode) setIsMemoryMode(false);
       } catch (e) {
         console.error("Storage full", e);
+        setIsMemoryMode(true);
+      }
+    } else {
+      if (library.length === 0 && localStorage.getItem('okosgyakorlo_library')) {
+        localStorage.removeItem('okosgyakorlo_library');
       }
     }
-  }, [library]);
+  }, [library, isMemoryMode]);
 
   const handleBulkComplete = (results: BulkResultItem[]) => {
     setLibrary((prev: any[]) => {
@@ -399,6 +385,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             setLibrary={setLibrary}
             onExit={() => setViewMode('SESSION')}
             onOpenSingle={() => setViewMode('SINGLE')}
+            isMemoryMode={isMemoryMode}
           />
         )}
       </main>
