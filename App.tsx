@@ -40,8 +40,8 @@ function AppContent() {
           <div className="bg-purple-100 text-purple-900 w-20 h-20 flex items-center justify-center rounded-2xl shadow-lg font-bold text-3xl mx-auto mb-6 border border-purple-200">
             OK
           </div>
-          <h1 className="text-4xl font-bold text-slate-800 mb-4">
-            Szent Mihály Iskola és AMI
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-4">
+            Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
           </h1>
         </div>
 
@@ -130,8 +130,8 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
             <div className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200">
               OK
             </div>
-            <div className="font-bold text-purple-900 text-sm md:text-base leading-tight">
-              Szent Mihály Iskola és AMI
+            <div className="font-bold text-purple-900 text-xs md:text-sm leading-tight">
+              Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
             </div>
           </div>
 
@@ -266,8 +266,8 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             <div className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200">
               OK
             </div>
-            <div className="font-bold text-purple-900 text-lg md:text-xl leading-tight">
-              Szent Mihály Iskola és AMI
+            <div className="font-bold text-purple-900 text-sm md:text-base leading-tight">
+              Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
             </div>
           </div>
 
