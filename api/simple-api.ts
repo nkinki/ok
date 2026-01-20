@@ -786,6 +786,18 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
+    // Delete all sessions (teacher)
+    if (path === '/api/simple-api/sessions/delete-all' && method === 'DELETE') {
+      // Clear all sessions from memory
+      sessions.clear()
+
+      return res.json({
+        success: true,
+        message: 'Összes munkamenet törölve',
+        deletedCount: sessions.size
+      })
+    }
+
     // Get session status (teacher)
     if (path.includes('/api/simple-api/sessions/') && path.includes('/status') && method === 'GET') {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/status/)

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { BulkResultItem } from './BulkProcessor'
 import SessionMonitor from './SessionMonitor'
+import StudentProgressDashboard from './StudentProgressDashboard'
 
 interface Props {
   library: BulkResultItem[]
@@ -23,6 +24,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [showResults, setShowResults] = useState(false)
   const [showMonitor, setShowMonitor] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [showStudentDashboard, setShowStudentDashboard] = useState(false)
 
   const toggleExerciseSelection = (exerciseId: string) => {
     setSelectedExercises(prev => 
@@ -94,31 +96,46 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   }
 
   const deleteSession = (sessionCode: string) => {
-    if (!confirm(`Biztosan törölni szeretnéd a ${sessionCode} munkamenetet és minden hozzá tartozó eredményt?`)) {
+    // This function is now disabled - sessions should be kept for history
+    alert('Az egyedi munkamenet törlés le van tiltva. Használd a "Teljes előzmények törlése" gombot ha minden adatot törölni szeretnél.');
+  }
+
+  const deleteAllSessions = () => {
+    if (!confirm('⚠️ FIGYELEM!\n\nEz törölni fogja az ÖSSZES munkamenet előzményt és eredményt!\n\nBiztosan folytatod?')) {
       return;
     }
 
     try {
-      // Remove all session-related data from localStorage
-      localStorage.removeItem(`session_${sessionCode}`);
-      localStorage.removeItem(`session_${sessionCode}_summary`);
-      localStorage.removeItem(`session_${sessionCode}_results`);
-      
+      // Get all session-related keys from localStorage
+      const keysToDelete: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('session_') || key.includes('_summary') || key.includes('_results'))) {
+          keysToDelete.push(key);
+        }
+      }
+
+      // Delete all session keys
+      keysToDelete.forEach(key => {
+        localStorage.removeItem(key);
+      });
+
       // Also try to delete from API if available
-      fetch(`/api/simple-api/sessions/${sessionCode}/delete`, {
+      fetch('/api/simple-api/sessions/delete-all', {
         method: 'DELETE'
       }).catch(error => {
-        console.warn('Could not delete session from API:', error);
+        console.warn('Could not delete sessions from API:', error);
       });
+
+      console.log(`✅ All sessions deleted (${keysToDelete.length} items)`);
+      alert(`Sikeresen törölve ${keysToDelete.length} munkamenet adat.`);
       
-      console.log(`✅ Session ${sessionCode} deleted`);
-      
-      // Force re-render by updating state
+      // Force re-render
       setShowHistory(false);
       setTimeout(() => setShowHistory(true), 100);
     } catch (error) {
-      console.error('Error deleting session:', error);
-      alert('Hiba történt a munkamenet törlésekor.');
+      console.error('Error deleting all sessions:', error);
+      alert('Hiba történt a munkamenetek törlésekor.');
     }
   }
 
@@ -339,6 +356,18 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             <p className="text-slate-600">Korábbi munkamenetek és eredmények kezelése</p>
           </div>
           <div className="flex gap-3">
+            {sessionHistory.length > 0 && (
+              <button
+                onClick={deleteAllSessions}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
+                title="Összes munkamenet törlése"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Teljes előzmények törlése
+              </button>
+            )}
             <button
               onClick={() => setShowHistory(false)}
               className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium"
@@ -377,16 +406,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                       </svg>
                       CSV Export
-                    </button>
-                    <button
-                      onClick={() => deleteSession(session.code)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium flex items-center gap-1"
-                      title="Munkamenet törlése"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                      </svg>
-                      Törlés
                     </button>
                   </div>
                 </div>
@@ -654,6 +673,15 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         </div>
         <div className="flex gap-3">
           <button
+            onClick={() => setShowStudentDashboard(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+            </svg>
+            Diák teljesítmények
+          </button>
+          <button
             onClick={() => setShowHistory(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
           >
@@ -753,6 +781,11 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             ))}
           </div>
         </>
+      )}
+      
+      {/* Student Progress Dashboard */}
+      {showStudentDashboard && (
+        <StudentProgressDashboard onClose={() => setShowStudentDashboard(false)} />
       )}
     </div>
   )

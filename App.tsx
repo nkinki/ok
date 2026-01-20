@@ -166,9 +166,9 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
   );
 }
 
-// Teacher App Component (full functionality with bulk processor first)
+// Teacher App Component (full functionality with session manager first to show history)
 function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
-  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'SINGLE' | 'LIBRARY'>('BULK')
+  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'SINGLE' | 'LIBRARY'>('SESSION')
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
   const [isMemoryMode, setIsMemoryMode] = useState(false)
   
