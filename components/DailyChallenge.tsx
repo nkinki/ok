@@ -72,11 +72,30 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setError(null);
 
     try {
-      // Fetch session exercises using the code
+      // First try to get session from localStorage (created by teacher)
+      const sessionKey = `session_${code.toUpperCase()}`;
+      const sessionData = localStorage.getItem(sessionKey);
+      
+      if (sessionData) {
+        try {
+          const session = JSON.parse(sessionData);
+          if (session.isActive && session.exercises && session.exercises.length > 0) {
+            setPlaylist(session.exercises);
+            setCurrentIndex(0);
+            setCompletedCount(0);
+            setStep('PLAYING');
+            return;
+          }
+        } catch (parseError) {
+          console.error('Error parsing session data:', parseError);
+        }
+      }
+
+      // Fallback to API if localStorage doesn't have the session
       const response = await fetch(`/api/simple-api/sessions/${code}/exercises`);
       
       if (!response.ok) {
-        throw new Error('Nem sikerült betölteni a feladatokat');
+        throw new Error('Hibás tanári kód vagy a munkamenet nem aktív');
       }
 
       const data = await response.json();
@@ -91,7 +110,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       }
     } catch (error) {
       console.error('Error loading session exercises:', error);
-      setError("Hiba a feladatok betöltésekor. Ellenőrizd a tanári kódot!");
+      setError("Hibás tanári kód vagy a munkamenet nem aktív!");
     } finally {
       setLoading(false);
     }
@@ -211,29 +230,14 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   };
 
   // --- RENDER: LOGIN ---
-  if (step === 'LOGIN' && !isStudentMode) {
-      return <StudentLoginForm onLoginSuccess={handleStudentLogin} onBack={onExit} />;
-  }
-
-  // Skip login in student mode and show assignments directly
-  if (step === 'LOGIN' && isStudentMode) {
-      // Auto-set a default student for student mode
-      useEffect(() => {
-          if (!student && !isStudentMode) {
-              setStudent({
-                  id: 'teacher-mode',
-                  name: 'Tanár',
-                  className: 'Általános'
-              });
-              setStep('ASSIGNMENTS');
-          }
-      }, [student, isStudentMode]);
-      
-      return (
-          <div className="flex items-center justify-center min-h-screen">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-          </div>
-      );
+  if (step === 'LOGIN') {
+      if (isStudentMode) {
+          // In student mode, show the login form with session code input
+          return <StudentLoginForm onLoginSuccess={handleStudentLogin} onBack={onExit} />;
+      } else {
+          // In teacher mode, also show login form
+          return <StudentLoginForm onLoginSuccess={handleStudentLogin} onBack={onExit} />;
+      }
   }
 
   // --- RENDER: ASSIGNMENTS ---

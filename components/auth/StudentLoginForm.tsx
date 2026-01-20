@@ -23,26 +23,15 @@ export default function StudentLoginForm({ onLoginSuccess, onBack }: StudentLogi
     setError(null)
     
     try {
-      // Validate session code and get exercises
-      const response = await fetch('/api/simple-api/sessions/join', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: studentName.trim(),
-          className: studentClass.trim(),
-          sessionCode: sessionCode.trim().toUpperCase()
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Hibás tanári kód vagy a munkamenet nem aktív')
+      // Create student object and pass to parent
+      const student = {
+        id: `student_${Date.now()}`,
+        name: studentName.trim(),
+        className: studentClass.trim()
       }
-
-      const data = await response.json()
-      onLoginSuccess(data.student, sessionCode.trim().toUpperCase())
+      
+      // Pass student data and session code to parent
+      onLoginSuccess(student, sessionCode.trim().toUpperCase())
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Ismeretlen hiba')
     } finally {
