@@ -90,6 +90,48 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     return Math.random().toString(36).substring(2, 8).toUpperCase()
   }
 
+  const handleClearStorage = () => {
+    if (confirm("⚠️ FIGYELEM!\n\nEz törölni fogja az ÖSSZES böngésző adatot ezen az oldalon:\n• Feladat könyvtár\n• Beállítások\n• Minden mentett adat\n\nBiztosan folytatod?")) {
+      try {
+        // Clear all localStorage for this domain
+        localStorage.clear()
+        alert("✅ Tárhely sikeresen törölve!\n\nAz oldal újratöltődik...")
+        // Reload page to reset everything
+        window.location.reload()
+      } catch (e) {
+        console.error("Error clearing storage:", e)
+        alert("❌ Hiba a tárhely törlésekor. Próbáld újra vagy használd a böngésző beállításait.")
+      }
+    }
+  }
+
+  const getStorageInfo = () => {
+    try {
+      // Estimate localStorage usage
+      let totalSize = 0
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          totalSize += localStorage[key].length + key.length
+        }
+      }
+      
+      // Convert to KB/MB
+      const sizeKB = (totalSize / 1024).toFixed(1)
+      const sizeMB = (totalSize / (1024 * 1024)).toFixed(2)
+      
+      return {
+        totalSize,
+        sizeKB: parseFloat(sizeKB),
+        sizeMB: parseFloat(sizeMB),
+        itemCount: Object.keys(localStorage).length
+      }
+    } catch (e) {
+      return { totalSize: 0, sizeKB: 0, sizeMB: 0, itemCount: 0 }
+    }
+  }
+
+  const storageInfo = getStorageInfo()
+
   const handleStartSession = async () => {
     if (selectedExercises.length === 0) {
       setError('Válassz ki legalább egy feladatot!')
@@ -194,6 +236,17 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         </div>
         <div className="flex gap-3">
           <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleFileImport} />
+          
+          {/* Storage info */}
+          <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-lg text-sm">
+            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4V7c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4z"/>
+            </svg>
+            <span className="text-slate-600">
+              {storageInfo.sizeMB > 1 ? `${storageInfo.sizeMB} MB` : `${storageInfo.sizeKB} KB`}
+            </span>
+          </div>
+          
           <button
             onClick={handleImportClick}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
@@ -201,8 +254,9 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
             </svg>
-            JSON Import (Feldolgozott feladatok)
+            JSON Import
           </button>
+          
           <button
             onClick={onExit}
             className="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium"
@@ -213,8 +267,17 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex justify-between items-center">
+          <span>{error}</span>
+          {error.includes('tárhely') && (
+            <button 
+              onClick={handleClearStorage} 
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-bold ml-4"
+              title="Teljes tárhely törlése"
+            >
+              Tárhely törlése
+            </button>
+          )}
         </div>
       )}
 

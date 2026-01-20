@@ -33,6 +33,49 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
     }
   }
 
+  const handleClearStorage = () => {
+    if (confirm("⚠️ FIGYELEM!\n\nEz törölni fogja az ÖSSZES böngésző adatot ezen az oldalon:\n• Feladat könyvtár\n• Beállítások\n• Minden mentett adat\n\nBiztosan folytatod?")) {
+      try {
+        // Clear all localStorage for this domain
+        localStorage.clear()
+        setLibrary([])
+        alert("✅ Tárhely sikeresen törölve!\n\nAz oldal újratöltődik...")
+        // Reload page to reset everything
+        window.location.reload()
+      } catch (e) {
+        console.error("Error clearing storage:", e)
+        alert("❌ Hiba a tárhely törlésekor. Próbáld újra vagy használd a böngésző beállításait.")
+      }
+    }
+  }
+
+  const getStorageInfo = () => {
+    try {
+      // Estimate localStorage usage
+      let totalSize = 0
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          totalSize += localStorage[key].length + key.length
+        }
+      }
+      
+      // Convert to KB/MB
+      const sizeKB = (totalSize / 1024).toFixed(1)
+      const sizeMB = (totalSize / (1024 * 1024)).toFixed(2)
+      
+      return {
+        totalSize,
+        sizeKB: parseFloat(sizeKB),
+        sizeMB: parseFloat(sizeMB),
+        itemCount: Object.keys(localStorage).length
+      }
+    } catch (e) {
+      return { totalSize: 0, sizeKB: 0, sizeMB: 0, itemCount: 0 }
+    }
+  }
+
+  const storageInfo = getStorageInfo()
+
   const handleImportClick = () => fileInputRef.current?.click()
 
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,17 +140,38 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
           {isMemoryMode && (
             <div className="mt-2 p-3 bg-orange-100 border border-orange-300 rounded-lg flex flex-col sm:flex-row gap-3 items-center">
               <span className="text-orange-800 font-bold text-sm">⚠️ MEMÓRIA MÓD: A tárhely megtelt. Kérlek mentsd le a munkádat fájlba!</span>
-              <button onClick={handleExportLibrary} className="bg-orange-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-orange-700 whitespace-nowrap">
-                Mentés fájlba most
-              </button>
+              <div className="flex gap-2">
+                <button onClick={handleExportLibrary} className="bg-orange-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-orange-700 whitespace-nowrap">
+                  Mentés fájlba most
+                </button>
+                <button 
+                  onClick={handleClearStorage} 
+                  className="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-red-700 whitespace-nowrap"
+                  title="Teljes tárhely törlése (minden adat elveszik!)"
+                >
+                  Teljes tárhely törlése
+                </button>
+              </div>
             </div>
           )}
         </div>
         <div className="flex flex-wrap gap-3">
           <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleFileImport} />
+          
+          {/* Storage info */}
+          <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-lg text-sm">
+            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4V7c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4z"/>
+            </svg>
+            <span className="text-slate-600">
+              Tárhely: {storageInfo.sizeMB > 1 ? `${storageInfo.sizeMB} MB` : `${storageInfo.sizeKB} KB`}
+              {storageInfo.itemCount > 0 && ` (${storageInfo.itemCount} elem)`}
+            </span>
+          </div>
+          
           <button onClick={handleClearSession} className="bg-white text-red-600 border border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg font-medium shadow-sm text-sm flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            Törlés / Új munkamenet
+            Könyvtár törlése
           </button>
           <button onClick={handleImportClick} className="bg-white text-brand-700 border border-brand-200 hover:bg-brand-50 px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
