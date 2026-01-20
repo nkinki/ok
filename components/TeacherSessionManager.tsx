@@ -64,8 +64,32 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const sessionCode = generateSessionCode()
       const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
 
-      // Try to create session via API for network sharing
-      let apiSuccess = false
+      // Create local session object
+      const session: Session = {
+        code: sessionCode,
+        exercises: selectedExerciseData,
+        createdAt: new Date(),
+        isActive: true
+      }
+
+      setActiveSession(session)
+      
+      // Store in localStorage (primary method for simplicity)
+      try {
+        const sessionData = {
+          code: sessionCode,
+          exercises: selectedExerciseData,
+          createdAt: new Date().toISOString(),
+          isActive: true
+        }
+        localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionData))
+        console.log('Session created and saved to localStorage')
+      } catch (storageError) {
+        console.warn('Could not save session to localStorage:', storageError)
+        throw new Error('Nem sikerült menteni a munkamenetet')
+      }
+
+      // Try to also create via API for potential network sharing (optional)
       try {
         const response = await fetch('/api/simple-api/sessions/create', {
           method: 'POST',
@@ -79,46 +103,10 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         })
 
         if (response.ok) {
-          const apiResult = await response.json()
-          console.log('Session created via API for network sharing:', apiResult)
-          apiSuccess = true
-        } else {
-          console.warn('API session creation failed with status:', response.status)
+          console.log('Session also created via API for network sharing')
         }
       } catch (apiError) {
-        console.warn('API session creation failed:', apiError)
-      }
-
-      // Create local session object
-      const session: Session = {
-        code: sessionCode,
-        exercises: selectedExerciseData,
-        createdAt: new Date(),
-        isActive: true
-      }
-
-      setActiveSession(session)
-      
-      // Always store in localStorage (works in both dev and production)
-      try {
-        const sessionData = {
-          code: sessionCode,
-          exercises: selectedExerciseData,
-          createdAt: new Date().toISOString(),
-          isActive: true
-        }
-        localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionData))
-        console.log('Session saved to localStorage as backup')
-      } catch (storageError) {
-        console.warn('Could not save session to localStorage:', storageError)
-        if (!apiSuccess) {
-          throw new Error('Nem sikerült menteni a munkamenetet sem API-n, sem helyileg')
-        }
-      }
-
-      // Show warning if only localStorage works
-      if (!apiSuccess) {
-        console.warn('Session created in localStorage only - network access may be limited')
+        console.warn('API session creation failed (not critical):', apiError)
       }
 
     } catch (error) {

@@ -76,54 +76,53 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     try {
       let sessionFound = false;
 
-      // Try to check session via API (for network access)
-      try {
-        const response = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.exists) {
-            // Get exercises from API
-            const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
-            if (exercisesResponse.ok) {
-              const exercisesData = await exercisesResponse.json();
-              if (exercisesData.exercises && exercisesData.exercises.length > 0) {
-                console.log('Session loaded from API for network access');
-                setPlaylist(exercisesData.exercises);
-                setCurrentIndex(0);
-                setCompletedCount(0);
-                setStep('PLAYING');
-                sessionFound = true;
+      // Primary: Try localStorage first (most reliable)
+      console.log('Checking localStorage for session...');
+      const sessionKey = `session_${code.toUpperCase()}`;
+      const sessionData = localStorage.getItem(sessionKey);
+      
+      if (sessionData) {
+        try {
+          const session = JSON.parse(sessionData);
+          if (session.isActive && session.exercises && session.exercises.length > 0) {
+            console.log('Session loaded from localStorage');
+            setPlaylist(session.exercises);
+            setCurrentIndex(0);
+            setCompletedCount(0);
+            setStep('PLAYING');
+            sessionFound = true;
+          }
+        } catch (parseError) {
+          console.error('Error parsing session data:', parseError);
+        }
+      }
+
+      // Secondary: Try API if localStorage didn't work
+      if (!sessionFound) {
+        try {
+          console.log('Trying API fallback...');
+          const response = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.exists) {
+              // Get exercises from API
+              const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
+              if (exercisesResponse.ok) {
+                const exercisesData = await exercisesResponse.json();
+                if (exercisesData.exercises && exercisesData.exercises.length > 0) {
+                  console.log('Session loaded from API fallback');
+                  setPlaylist(exercisesData.exercises);
+                  setCurrentIndex(0);
+                  setCompletedCount(0);
+                  setStep('PLAYING');
+                  sessionFound = true;
+                }
               }
             }
           }
-        } else {
-          console.log('API session check failed with status:', response.status);
-        }
-      } catch (apiError) {
-        console.warn('API session check failed:', apiError);
-      }
-
-      // If API didn't work, try localStorage fallback
-      if (!sessionFound) {
-        console.log('Trying localStorage fallback...');
-        const sessionKey = `session_${code.toUpperCase()}`;
-        const sessionData = localStorage.getItem(sessionKey);
-        
-        if (sessionData) {
-          try {
-            const session = JSON.parse(sessionData);
-            if (session.isActive && session.exercises && session.exercises.length > 0) {
-              console.log('Session loaded from localStorage fallback');
-              setPlaylist(session.exercises);
-              setCurrentIndex(0);
-              setCompletedCount(0);
-              setStep('PLAYING');
-              sessionFound = true;
-            }
-          } catch (parseError) {
-            console.error('Error parsing session data:', parseError);
-          }
+        } catch (apiError) {
+          console.warn('API fallback also failed:', apiError);
         }
       }
 
