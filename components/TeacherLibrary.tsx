@@ -152,57 +152,83 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
+      <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleFileImport} />
+      
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+        <div className="flex-1">
           <h2 className="text-3xl font-bold text-slate-800">Feladat Könyvtár</h2>
           <p className="text-slate-600">A mentett és feldolgozott feladatok gyűjteménye.</p>
+          
+          {/* Storage info bar */}
+          <div className="flex items-center gap-4 mt-3">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4V7c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4z"/>
+              </svg>
+              <span>
+                Tárhely: {storageInfo.sizeMB > 1 ? `${storageInfo.sizeMB} MB` : `${storageInfo.sizeKB} KB`}
+                {storageInfo.itemCount > 0 && ` (${storageInfo.itemCount} elem)`}
+              </span>
+            </div>
+          </div>
+          
+          {/* Memory mode warning */}
           {isMemoryMode && (
-            <div className="mt-2 p-3 bg-orange-100 border border-orange-300 rounded-lg flex flex-col sm:flex-row gap-3 items-center">
-              <span className="text-orange-800 font-bold text-sm">⚠️ MEMÓRIA MÓD: A tárhely megtelt. Kérlek mentsd le a munkádat fájlba!</span>
-              <div className="flex gap-2">
-                <button onClick={handleExportLibrary} className="bg-orange-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-orange-700 whitespace-nowrap">
-                  Mentés fájlba most
-                </button>
-                <button 
-                  onClick={handleClearStorage} 
-                  className="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-red-700 whitespace-nowrap"
-                  title="Teljes tárhely törlése (minden adat elveszik!)"
-                >
-                  Teljes tárhely törlése
-                </button>
+            <div className="mt-3 p-3 bg-orange-100 border border-orange-300 rounded-lg">
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                <span className="text-orange-800 font-bold text-sm flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                  </svg>
+                  MEMÓRIA MÓD: A tárhely megtelt
+                </span>
+                <div className="flex gap-2">
+                  <button onClick={handleExportLibrary} className="bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium shadow hover:bg-orange-700">
+                    Mentés most
+                  </button>
+                  <button 
+                    onClick={handleClearStorage} 
+                    className="bg-red-600 text-white px-3 py-1 rounded text-sm font-medium shadow hover:bg-red-700"
+                    title="Teljes tárhely törlése"
+                  >
+                    Tárhely törlése
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
-        <div className="flex flex-wrap gap-3">
-          <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleFileImport} />
-          
-          {/* Storage info */}
-          <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-lg text-sm">
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 1.79 4 4 4h8c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4V7c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4z"/>
-            </svg>
-            <span className="text-slate-600">
-              Tárhely: {storageInfo.sizeMB > 1 ? `${storageInfo.sizeMB} MB` : `${storageInfo.sizeKB} KB`}
-              {storageInfo.itemCount > 0 && ` (${storageInfo.itemCount} elem)`}
-            </span>
+        
+        {/* Action buttons - organized in groups */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Primary actions */}
+          <div className="flex gap-2">
+            <button onClick={handleImportClick} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              </svg>
+              Import
+            </button>
+            <button onClick={handleExportLibrary} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              Export
+            </button>
           </div>
           
-          <button onClick={handleClearSession} className="bg-white text-red-600 border border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg font-medium shadow-sm text-sm flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            Könyvtár törlése
-          </button>
-          <button onClick={handleImportClick} className="bg-white text-brand-700 border border-brand-200 hover:bg-brand-50 px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            JSON Import (Feldolgozott)
-          </button>
-          <button onClick={handleExportLibrary} className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Mentés fájlba (Export)
-          </button>
-          <button onClick={onExit} className="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium">
-            Vissza
-          </button>
+          {/* Secondary actions */}
+          <div className="flex gap-2">
+            <button onClick={handleClearSession} className="bg-white text-red-600 border border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg font-medium shadow-sm flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              Törlés
+            </button>
+            <button onClick={onExit} className="bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-lg font-medium">
+              Vissza
+            </button>
+          </div>
         </div>
       </div>
 
@@ -215,61 +241,71 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {library.map((item, idx) => (
-            <div key={item.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group">
+            <div key={item.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-all group">
+              {/* Image with overlay actions */}
               <div className="h-48 bg-slate-100 relative cursor-pointer" onClick={() => handleOpenFromLibrary(item)}>
                 <img src={item.imageUrl} className="w-full h-full object-cover" alt={item.data.title} />
-                <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
+                
+                {/* Type badge */}
+                <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm font-medium">
                   {item.data.type}
                 </div>
-                {/* Edit button overlay */}
-                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                
+                {/* Action buttons - only visible on hover */}
+                <div className="absolute top-3 left-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation()
                       handleEditExercise(item)
                     }}
-                    className="p-2 bg-white/90 hover:bg-white text-slate-700 hover:text-purple-600 rounded-full shadow-lg transition-all"
-                    title="Feladat szerkesztése"
+                    className="p-2 bg-white/95 hover:bg-white text-slate-700 hover:text-blue-600 rounded-full shadow-lg transition-all"
+                    title="Szerkesztés"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
                     </svg>
                   </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteExercise(item.id)
+                    }}
+                    className="p-2 bg-white/95 hover:bg-white text-slate-700 hover:text-red-600 rounded-full shadow-lg transition-all"
+                    title="Törlés"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
                 </div>
-              </div>
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-slate-800 truncate flex-1" title={item.data.title}>{item.data.title}</h3>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleEditExercise(item)
-                      }}
-                      className="p-1 text-slate-400 hover:text-purple-600 bg-slate-50 rounded border border-slate-200" 
-                      title="Szerkesztés"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                      </svg>
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteExercise(item.id)
-                      }}
-                      className="p-1 text-slate-400 hover:text-red-600 bg-slate-50 rounded border border-slate-200" 
-                      title="Törlés"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                      </svg>
-                    </button>
+                
+                {/* Click to open overlay */}
+                <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-4 py-2 rounded-lg font-medium text-slate-800">
+                    Kattints a megnyitáshoz
                   </div>
                 </div>
-                <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10">{item.data.instruction}</p>
-                <button onClick={() => handleOpenFromLibrary(item)} className="w-full bg-purple-50 text-purple-700 font-bold py-2 rounded-lg hover:bg-purple-100 transition-colors">
-                  Megnyitás
+              </div>
+              
+              {/* Content */}
+              <div className="p-4">
+                <h3 className="font-bold text-slate-800 mb-2 line-clamp-2 leading-tight" title={item.data.title}>
+                  {item.data.title}
+                </h3>
+                <p className="text-sm text-slate-500 line-clamp-3 mb-4 leading-relaxed">
+                  {item.data.instruction}
+                </p>
+                
+                {/* Single action button */}
+                <button 
+                  onClick={() => handleOpenFromLibrary(item)} 
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  Előnézet
                 </button>
               </div>
             </div>
