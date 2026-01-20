@@ -32,14 +32,33 @@ export default function TeacherSessionManager({ library, onExit }: Props) {
         const content = e.target?.result as string
         const importedData = JSON.parse(content) as BulkResultItem[]
         if (Array.isArray(importedData) && importedData.length > 0 && importedData[0].data) {
-          // Add to library logic would go here
-          alert(`${importedData.length} feladat importálva!`)
+          // Add imported exercises to library without re-processing
+          const newExercises = importedData.filter(item => 
+            !library.some(existing => existing.id === item.id)
+          )
+          
+          if (newExercises.length > 0) {
+            // Update library through parent component
+            const updatedLibrary = [...library, ...newExercises]
+            // Save to localStorage
+            try {
+              localStorage.setItem('okosgyakorlo_library', JSON.stringify(updatedLibrary))
+            } catch (e) {
+              console.error("Storage full", e)
+            }
+            
+            alert(`${newExercises.length} feldolgozott feladat importálva a könyvtárba!`)
+            // Refresh the page to show updated library
+            window.location.reload()
+          } else {
+            alert("Minden feladat már létezik a könyvtárban.")
+          }
         } else {
-          alert("Hibás fájlformátum.")
+          alert("Hibás fájlformátum. Csak feldolgozott feladat JSON fájlokat lehet importálni.")
         }
       } catch (err) {
         console.error(err)
-        alert("Hiba a fájl beolvasásakor.")
+        alert("Hiba a fájl beolvasásakor. Ellenőrizd, hogy érvényes JSON fájl-e.")
       }
     }
     reader.readAsText(file)
@@ -158,7 +177,7 @@ export default function TeacherSessionManager({ library, onExit }: Props) {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-slate-800">Tanári munkamenet</h2>
-          <p className="text-slate-600">Válassz feladatokat és indíts munkamenetet a diákoknak</p>
+          <p className="text-slate-600">Importálj feldolgozott feladatokat (JSON) és indíts munkamenetet a diákoknak</p>
         </div>
         <div className="flex gap-3">
           <input type="file" ref={fileInputRef} accept=".json" className="hidden" onChange={handleFileImport} />
@@ -169,7 +188,7 @@ export default function TeacherSessionManager({ library, onExit }: Props) {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
             </svg>
-            JSON Import
+            JSON Import (Feldolgozott feladatok)
           </button>
           <button
             onClick={onExit}
@@ -192,7 +211,7 @@ export default function TeacherSessionManager({ library, onExit }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
           </svg>
           <h3 className="text-xl font-medium text-slate-400">Nincs feladat a könyvtárban</h3>
-          <p className="text-slate-400 mt-2">Importálj JSON fájlt vagy hozz létre új feladatokat!</p>
+          <p className="text-slate-400 mt-2">Importálj feldolgozott JSON fájlt vagy hozz létre új feladatokat!</p>
         </div>
       ) : (
         <>
