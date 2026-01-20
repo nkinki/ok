@@ -64,33 +64,12 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const sessionCode = generateSessionCode()
       const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
 
-      // Create local session object
-      const session: Session = {
-        code: sessionCode,
-        exercises: selectedExerciseData,
-        createdAt: new Date(),
-        isActive: true
-      }
-
-      setActiveSession(session)
-      
-      // Store in localStorage (primary method for simplicity)
+      // Try API first for network sharing
+      let apiSuccess = false
       try {
-        const sessionData = {
-          code: sessionCode,
-          exercises: selectedExerciseData,
-          createdAt: new Date().toISOString(),
-          isActive: true
-        }
-        localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionData))
-        console.log('Session created and saved to localStorage')
-      } catch (storageError) {
-        console.warn('Could not save session to localStorage:', storageError)
-        throw new Error('Nem sikerült menteni a munkamenetet')
-      }
-
-      // Try to also create via API for potential network sharing (optional)
-      try {
+        console.log('🌐 Creating session via API...');
+        console.log('📊 Session data:', { code: sessionCode, exerciseCount: selectedExerciseData.length });
+        
         const response = await fetch('/api/simple-api/sessions/create', {
           method: 'POST',
           headers: {
@@ -102,15 +81,55 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           })
         })
 
+        console.log('📡 API create response status:', response.status);
+        
         if (response.ok) {
-          console.log('Session also created via API for network sharing')
+          const apiResult = await response.json()
+          console.log('✅ Session created via API for network sharing:', apiResult)
+          apiSuccess = true
+        } else {
+          const errorText = await response.text();
+          console.warn('⚠️ API session creation failed with status:', response.status, errorText)
         }
       } catch (apiError) {
-        console.warn('API session creation failed (not critical):', apiError)
+        console.warn('⚠️ API session creation failed:', apiError)
+      }
+
+      // Create local session object
+      const session: Session = {
+        code: sessionCode,
+        exercises: selectedExerciseData,
+        createdAt: new Date(),
+        isActive: true
+      }
+
+      setActiveSession(session)
+      
+      // Always also store in localStorage as backup
+      try {
+        const sessionData = {
+          code: sessionCode,
+          exercises: selectedExerciseData,
+          createdAt: new Date().toISOString(),
+          isActive: true
+        }
+        localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionData))
+        console.log('💾 Session saved to localStorage as backup')
+      } catch (storageError) {
+        console.warn('⚠️ Could not save session to localStorage:', storageError)
+        if (!apiSuccess) {
+          throw new Error('Nem sikerült menteni a munkamenetet')
+        }
+      }
+
+      if (apiSuccess) {
+        console.log('🌐 Session available for network access with code:', sessionCode)
+      } else {
+        console.log('💻 Session available locally only with code:', sessionCode)
       }
 
     } catch (error) {
-      console.error('Session creation error:', error)
+      console.error('❌ Session creation error:', error)
       setError(error instanceof Error ? error.message : 'Ismeretlen hiba a munkamenet létrehozásakor')
     } finally {
       setLoading(false)
@@ -131,19 +150,27 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         })
 
         if (response.ok) {
-          console.log('Session stopped via API')
+          console.log('✅ Session stopped via API')
+        } else {
+          console.warn('⚠️ API session stop failed with status:', response.status)
         }
       } catch (apiError) {
-        console.warn('API session stop failed:', apiError)
+        console.warn('⚠️ API session stop failed:', apiError)
       }
 
       // Remove session from localStorage
-      localStorage.removeItem(`session_${activeSession.code}`)
+      try {
+        localStorage.removeItem(`session_${activeSession.code}`)
+        console.log('💾 Session removed from localStorage')
+      } catch (storageError) {
+        console.warn('⚠️ Could not remove session from localStorage:', storageError)
+      }
+
       setActiveSession(null)
       setSelectedExercises([])
     } catch (error) {
-      console.error('Error stopping session:', error)
-      // Still stop the session even if API fails
+      console.error('❌ Error stopping session:', error)
+      // Still stop the session even if cleanup fails
       setActiveSession(null)
       setSelectedExercises([])
     }
@@ -264,6 +291,17 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
               {activeSession.code}
             </div>
           </div>
+          
+          {/* Network Access Info */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 className="font-bold text-blue-800 mb-2">🌐 Hálózati Hozzáférés</h3>
+            <p className="text-sm text-blue-700">
+              <strong>Ugyanazon gép:</strong> Minden böngésző működik<br/>
+              <strong>Más gépek:</strong> API-n keresztül (ha elérhető)<br/>
+              <strong>Helyi hálózat:</strong> Használd a <code className="bg-blue-100 px-1 rounded">npm run dev:network</code> parancsot
+            </p>
+          </div>
+          
           <p className="text-green-700 mb-6">
             A diákok ezzel a kóddal csatlakozhatnak a feladatokhoz.
             <br />

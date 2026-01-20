@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 API Debug Test</h1>
+    
+    <div class="test-section">
+        <h2>1. API Health Check</h2>
+        <button onclick="testApiHealth()">Test API Health</button>
+        <div id="health-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Create Test Session</h2>
+        <button onclick="createTestSession()">Create Test Session</button>
+        <div id="create-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Check Session</h2>
+        <input type="text" id="session-code" placeholder="Session Code (e.g. ABC123)" value="TEST123">
+        <button onclick="checkSession()">Check Session</button>
+        <div id="check-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Get Session Exercises</h2>
+        <button onclick="getSessionExercises()">Get Exercises</button>
+        <div id="exercises-result"></div>
+    </div>
+
+    <script>
+        let testSessionCode = 'TEST123';
+
+        async function testApiHealth() {
+            const resultDiv = document.getElementById('health-result');
+            try {
+                const response = await fetch('/api/simple-api');
+                const data = await response.json();
+                
+                resultDiv.className = 'test-section success';
+                resultDiv.innerHTML = `
+                    <h3>✅ API Health OK</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'test-section error';
+                resultDiv.innerHTML = `
+                    <h3>❌ API Health Failed</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function createTestSession() {
+            const resultDiv = document.getElementById('create-result');
+            try {
+                const testExercises = [
+                    {
+                        id: 'test-1',
+                        imageUrl: 'https://via.placeholder.com/300x200',
+                        data: {
+                            title: 'Test Exercise 1',
+                            instruction: 'This is a test exercise',
+                            type: 'quiz',
+                            content: {
+                                question: 'What is 2+2?',
+                                options: ['3', '4', '5', '6'],
+                                correctAnswer: 1
+                            }
+                        },
+                        fileName: 'test1.jpg'
+                    },
+                    {
+                        id: 'test-2',
+                        imageUrl: 'https://via.placeholder.com/300x200',
+                        data: {
+                            title: 'Test Exercise 2',
+                            instruction: 'Another test exercise',
+                            type: 'quiz',
+                            content: {
+                                question: 'What is 3+3?',
+                                options: ['5', '6', '7', '8'],
+                                correctAnswer: 1
+                            }
+                        },
+                        fileName: 'test2.jpg'
+                    }
+                ];
+
+                const response = await fetch('/api/simple-api/sessions/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: testSessionCode,
+                        exercises: testExercises
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'test-section success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Session Created</h3>
+                        <p><strong>Code:</strong> ${testSessionCode}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'test-section error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Session Creation Failed</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function checkSession() {
+            const code = document.getElementById('session-code').value || testSessionCode;
+            const resultDiv = document.getElementById('check-result');
+            
+            try {
+                const response = await fetch(`/api/simple-api/sessions/${code}/check`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = data.exists ? 'test-section success' : 'test-section error';
+                    resultDiv.innerHTML = `
+                        <h3>${data.exists ? '✅' : '❌'} Session Check</h3>
+                        <p><strong>Code:</strong> ${code}</p>
+                        <p><strong>Exists:</strong> ${data.exists}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'test-section error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Session Check Failed</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function getSessionExercises() {
+            const code = document.getElementById('session-code').value || testSessionCode;
+            const resultDiv = document.getElementById('exercises-result');
+            
+            try {
+                const response = await fetch(`/api/simple-api/sessions/${code}/exercises`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'test-section success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Exercises Retrieved</h3>
+                        <p><strong>Code:</strong> ${code}</p>
+                        <p><strong>Exercise Count:</strong> ${data.exercises ? data.exercises.length : 0}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'test-section error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Exercises Retrieval Failed</h3>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        // Auto-run health check on load
+        window.onload = () => {
+            testApiHealth();
+        };
+    </script>
+</body>
+</html>

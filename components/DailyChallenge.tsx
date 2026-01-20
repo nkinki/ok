@@ -76,53 +76,68 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     try {
       let sessionFound = false;
 
-      // Primary: Try localStorage first (most reliable)
-      console.log('Checking localStorage for session...');
-      const sessionKey = `session_${code.toUpperCase()}`;
-      const sessionData = localStorage.getItem(sessionKey);
-      
-      if (sessionData) {
-        try {
-          const session = JSON.parse(sessionData);
-          if (session.isActive && session.exercises && session.exercises.length > 0) {
-            console.log('Session loaded from localStorage');
-            setPlaylist(session.exercises);
-            setCurrentIndex(0);
-            setCompletedCount(0);
-            setStep('PLAYING');
-            sessionFound = true;
+      // Primary: Try API first (for network access)
+      console.log('🌐 Checking API for session...');
+      try {
+        const response = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
+        console.log('📡 API check response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('📡 API check data:', data);
+          if (data.exists) {
+            // Get exercises from API
+            const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
+            console.log('📡 API exercises response status:', exercisesResponse.status);
+            if (exercisesResponse.ok) {
+              const exercisesData = await exercisesResponse.json();
+              console.log('📡 API exercises data:', exercisesData);
+              if (exercisesData.exercises && exercisesData.exercises.length > 0) {
+                console.log('✅ Session loaded from API (network access)');
+                console.log('📊 Exercise count:', exercisesData.exercises.length);
+                setPlaylist(exercisesData.exercises);
+                setCurrentIndex(0);
+                setCompletedCount(0);
+                setStep('PLAYING');
+                sessionFound = true;
+              } else {
+                console.log('❌ No exercises found in API response');
+              }
+            } else {
+              console.log('❌ API exercises request failed');
+            }
+          } else {
+            console.log('❌ Session not found in API');
           }
-        } catch (parseError) {
-          console.error('Error parsing session data:', parseError);
+        } else {
+          console.log('⚠️ API session check failed with status:', response.status);
         }
+      } catch (apiError) {
+        console.warn('⚠️ API session check failed:', apiError);
       }
 
-      // Secondary: Try API if localStorage didn't work
+      // Secondary: Try localStorage fallback (same device only)
       if (!sessionFound) {
-        try {
-          console.log('Trying API fallback...');
-          const response = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.exists) {
-              // Get exercises from API
-              const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
-              if (exercisesResponse.ok) {
-                const exercisesData = await exercisesResponse.json();
-                if (exercisesData.exercises && exercisesData.exercises.length > 0) {
-                  console.log('Session loaded from API fallback');
-                  setPlaylist(exercisesData.exercises);
-                  setCurrentIndex(0);
-                  setCompletedCount(0);
-                  setStep('PLAYING');
-                  sessionFound = true;
-                }
-              }
+        console.log('💾 Trying localStorage fallback...');
+        const sessionKey = `session_${code.toUpperCase()}`;
+        const sessionData = localStorage.getItem(sessionKey);
+        
+        if (sessionData) {
+          try {
+            const session = JSON.parse(sessionData);
+            if (session.isActive && session.exercises && session.exercises.length > 0) {
+              console.log('✅ Session loaded from localStorage (local access)');
+              setPlaylist(session.exercises);
+              setCurrentIndex(0);
+              setCompletedCount(0);
+              setStep('PLAYING');
+              sessionFound = true;
             }
+          } catch (parseError) {
+            console.error('❌ Error parsing session data:', parseError);
           }
-        } catch (apiError) {
-          console.warn('API fallback also failed:', apiError);
+        } else {
+          console.log('❌ Session not found in localStorage');
         }
       }
 
@@ -132,7 +147,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       }
       
     } catch (error) {
-      console.error('Error loading session exercises:', error);
+      console.error('❌ Error loading session exercises:', error);
       setError("Hibás tanári kód vagy a munkamenet nem aktív!");
     } finally {
       setLoading(false);
