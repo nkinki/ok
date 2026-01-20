@@ -1,4 +1,4 @@
-// Production API for fixed rooms system
+// Production API for fixed rooms system and teacher-student assignments
 import { VercelRequest, VercelResponse } from '@vercel/node'
 
 // In-memory storage (will reset on each function invocation)
@@ -9,7 +9,15 @@ let roomGameStates = new Map()
 let roomQuestions = new Map()
 let roomExercises = new Map()
 
-// Initialize fixed rooms
+// Teacher-Student Assignment System Storage
+let students = new Map()
+let exercises = new Map()
+let dailyAssignments = new Map()
+let studentSessions = new Map()
+let studentAnswers = new Map()
+let teachers = new Map()
+
+// Initialize fixed rooms and sample data
 function initializeFixedRooms() {
   if (rooms.size > 0) return // Already initialized
   
@@ -50,6 +58,28 @@ function initializeFixedRooms() {
       results: []
     })
   })
+
+  // Initialize sample teachers
+  if (teachers.size === 0) {
+    const sampleTeachers = [
+      { id: 'teacher_info', email: 'informatika@szenmihalyatisk.hu', fullName: 'Informatika Tanár', subject: 'Informatika' },
+      { id: 'teacher_matek', email: 'matematika@szenmihalyatisk.hu', fullName: 'Matematika Tanár', subject: 'Matematika' },
+      { id: 'teacher_tori', email: 'tortenelem@szenmihalyatisk.hu', fullName: 'Történelem Tanár', subject: 'Történelem' },
+      { id: 'teacher_magy', email: 'magyar@szenmihalyatisk.hu', fullName: 'Magyar Tanár', subject: 'Magyar nyelv' },
+      { id: 'teacher_angol', email: 'angol@szenmihalyatisk.hu', fullName: 'Angol Tanár', subject: 'Angol nyelv' },
+      { id: 'teacher_term', email: 'termeszet@szenmihalyatisk.hu', fullName: 'Természettudomány Tanár', subject: 'Természettudomány' }
+    ]
+    
+    sampleTeachers.forEach(teacher => {
+      teachers.set(teacher.id, {
+        ...teacher,
+        authProvider: 'code',
+        isActive: true,
+        createdAt: new Date(),
+        lastLogin: null
+      })
+    })
+  }
 }
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
@@ -233,11 +263,337 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
+    // ===== TEACHER-STUDENT ASSIGNMENT SYSTEM =====
+
+    // Student registration
+    if (path === '/api/simple-api/students/register' && method === 'POST') {
+      const { name, className } = req.body
+
+      if (!name || !className) {
+        return res.status(400).json({ error: 'Név és osztály megadása kötelező' })
+      }
+
+      const studentId = generateId()
+      const student = {
+        id: studentId,
+        name: name.trim(),
+        className: className.trim(),
+        createdAt: new Date(),
+        lastActive: new Date()
+      }
+
+      students.set(studentId, student)
+
+      return res.json({
+        success: true,
+        student,
+        message: 'Diák sikeresen regisztrálva'
+      })
+    }
+
+    // Get student by name and class
+    if (path === '/api/simple-api/students/find' && method === 'POST') {
+      const { name, className } = req.body
+
+      if (!name || !className) {
+        return res.status(400).json({ error: 'Név és osztály megadása kötelező' })
+      }
+
+      const student = Array.from(students.values()).find(s => 
+        s.name.toLowerCase() === name.toLowerCase() && 
+        s.className.toLowerCase() === className.toLowerCase()
+      )
+
+      if (!student) {
+        return res.status(404).json({ error: 'Diák nem található' })
+      }
+
+      // Update last active
+      student.lastActive = new Date()
+      students.set(student.id, student)
+
+      return res.json({
+        success: true,
+        student
+      })
+    }
+
+    // Create exercise (teacher)
+    if (path === '/api/simple-api/exercises' && method === 'POST') {
+      const teacher = getTeacherFromAuth(req)
+      if (!teacher) {
+        return res.status(401).json({ error: 'Bejelentkezés szükséges' })
+      }
+
+      const { title, imageUrl, exerciseData, subject, difficultyLevel, tags } = req.body
+
+      if (!title || !imageUrl || !exerciseData) {
+        return res.status(400).json({ error: 'Cím, kép és feladat adat megadása kötelező' })
+      }
+
+      const exerciseId = generateId()
+      const exercise = {
+        id: exerciseId,
+        teacherId: teacher.id,
+        title: title.trim(),
+        imageUrl,
+        exerciseData,
+        subject: subject || teacher.subject,
+        difficultyLevel: difficultyLevel || 1,
+        tags: tags || [],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+
+      exercises.set(exerciseId, exercise)
+
+      return res.json({
+        success: true,
+        exercise,
+        message: 'Feladat sikeresen létrehozva'
+      })
+    }
+
+    // Get teacher's exercises
+    if (path === '/api/simple-api/exercises' && method === 'GET') {
+      const teacher = getTeacherFromAuth(req)
+      if (!teacher) {
+        return res.status(401).json({ error: 'Bejelentkezés szükséges' })
+      }
+
+      const teacherExercises = Array.from(exercises.values())
+        .filter(ex => ex.teacherId === teacher.id && ex.isActive)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+      return res.json({
+        exercises: teacherExercises,
+        count: teacherExercises.length
+      })
+    }
+
+    // Create daily assignment (teacher)
+    if (path === '/api/simple-api/assignments' && method === 'POST') {
+      const teacher = getTeacherFromAuth(req)
+      if (!teacher) {
+        return res.status(401).json({ error: 'Bejelentkezés szükséges' })
+      }
+
+      const { title, description, targetClass, exerciseIds, startDate, endDate } = req.body
+
+      if (!title || !targetClass || !exerciseIds || !Array.isArray(exerciseIds) || exerciseIds.length === 0) {
+        return res.status(400).json({ error: 'Cím, célcsoport és feladatok megadása kötelező' })
+      }
+
+      // Validate exercises belong to teacher
+      const validExercises = exerciseIds.filter(id => {
+        const exercise = exercises.get(id)
+        return exercise && exercise.teacherId === teacher.id && exercise.isActive
+      })
+
+      if (validExercises.length === 0) {
+        return res.status(400).json({ error: 'Nem található érvényes feladat' })
+      }
+
+      const assignmentId = generateId()
+      const assignment = {
+        id: assignmentId,
+        teacherId: teacher.id,
+        title: title.trim(),
+        description: description?.trim() || '',
+        targetClass: targetClass.trim(),
+        exerciseIds: validExercises,
+        isActive: true,
+        startDate: startDate || new Date().toISOString().split('T')[0],
+        endDate: endDate || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+
+      dailyAssignments.set(assignmentId, assignment)
+
+      return res.json({
+        success: true,
+        assignment,
+        message: 'Napi feladat sikeresen létrehozva'
+      })
+    }
+
+    // Get assignments for a class (student)
+    if (path.includes('/api/simple-api/assignments/class/') && method === 'GET') {
+      const classMatch = path.match(/\/assignments\/class\/(.+)/)
+      if (!classMatch) {
+        return res.status(400).json({ error: 'Osztály megadása kötelező' })
+      }
+
+      const className = decodeURIComponent(classMatch[1])
+      const today = new Date().toISOString().split('T')[0]
+
+      const classAssignments = Array.from(dailyAssignments.values())
+        .filter(assignment => 
+          assignment.isActive && 
+          assignment.targetClass.toLowerCase() === className.toLowerCase() &&
+          assignment.startDate <= today &&
+          (!assignment.endDate || assignment.endDate >= today)
+        )
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+      // Include exercise details
+      const assignmentsWithExercises = classAssignments.map(assignment => ({
+        ...assignment,
+        exercises: assignment.exerciseIds.map(id => exercises.get(id)).filter(Boolean)
+      }))
+
+      return res.json({
+        assignments: assignmentsWithExercises,
+        count: assignmentsWithExercises.length
+      })
+    }
+
+    // Start student session
+    if (path === '/api/simple-api/sessions/start' && method === 'POST') {
+      const { studentId, assignmentId } = req.body
+
+      if (!studentId || !assignmentId) {
+        return res.status(400).json({ error: 'Diák és feladat azonosító megadása kötelező' })
+      }
+
+      const student = students.get(studentId)
+      const assignment = dailyAssignments.get(assignmentId)
+
+      if (!student) {
+        return res.status(404).json({ error: 'Diák nem található' })
+      }
+
+      if (!assignment || !assignment.isActive) {
+        return res.status(404).json({ error: 'Feladat nem található vagy nem aktív' })
+      }
+
+      const sessionId = generateId()
+      const session = {
+        id: sessionId,
+        studentId,
+        assignmentId,
+        startedAt: new Date(),
+        completedAt: null,
+        totalExercises: assignment.exerciseIds.length,
+        completedExercises: 0,
+        totalScore: 0,
+        status: 'in_progress'
+      }
+
+      studentSessions.set(sessionId, session)
+
+      return res.json({
+        success: true,
+        session,
+        assignment: {
+          ...assignment,
+          exercises: assignment.exerciseIds.map(id => exercises.get(id)).filter(Boolean)
+        }
+      })
+    }
+
+    // Submit student answer
+    if (path === '/api/simple-api/sessions/answer' && method === 'POST') {
+      const { sessionId, exerciseId, studentAnswer, isCorrect, score, timeSpentSeconds } = req.body
+
+      if (!sessionId || !exerciseId || studentAnswer === undefined) {
+        return res.status(400).json({ error: 'Munkamenet, feladat és válasz megadása kötelező' })
+      }
+
+      const session = studentSessions.get(sessionId)
+      if (!session) {
+        return res.status(404).json({ error: 'Munkamenet nem található' })
+      }
+
+      const answerId = generateId()
+      const answer = {
+        id: answerId,
+        sessionId,
+        exerciseId,
+        studentAnswer,
+        isCorrect: isCorrect || false,
+        score: score || 0,
+        timeSpentSeconds: timeSpentSeconds || 0,
+        answeredAt: new Date()
+      }
+
+      studentAnswers.set(answerId, answer)
+
+      // Update session progress
+      session.completedExercises += 1
+      session.totalScore += answer.score
+
+      if (session.completedExercises >= session.totalExercises) {
+        session.status = 'completed'
+        session.completedAt = new Date()
+      }
+
+      studentSessions.set(sessionId, session)
+
+      return res.json({
+        success: true,
+        answer,
+        session,
+        message: 'Válasz sikeresen rögzítve'
+      })
+    }
+
+    // Get teacher's assignments
+    if (path === '/api/simple-api/assignments' && method === 'GET') {
+      const teacher = getTeacherFromAuth(req)
+      if (!teacher) {
+        return res.status(401).json({ error: 'Bejelentkezés szükséges' })
+      }
+
+      const teacherAssignments = Array.from(dailyAssignments.values())
+        .filter(assignment => assignment.teacherId === teacher.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+      // Include exercise details and session stats
+      const assignmentsWithDetails = teacherAssignments.map(assignment => {
+        const assignmentSessions = Array.from(studentSessions.values())
+          .filter(session => session.assignmentId === assignment.id)
+        
+        return {
+          ...assignment,
+          exercises: assignment.exerciseIds.map(id => exercises.get(id)).filter(Boolean),
+          sessionCount: assignmentSessions.length,
+          completedSessions: assignmentSessions.filter(s => s.status === 'completed').length
+        }
+      })
+
+      return res.json({
+        assignments: assignmentsWithDetails,
+        count: assignmentsWithDetails.length
+      })
+    }
+
     // Default response for unmatched routes
     return res.status(404).json({ error: 'Endpoint not found' })
 
   } catch (error) {
     console.error('API Error:', error)
     return res.status(500).json({ error: 'Internal server error' })
+  }
+}
+
+// Helper functions for teacher-student system
+function generateId() {
+  return `id_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+}
+
+function getTeacherFromAuth(req: VercelRequest) {
+  // Simple auth check - in production, validate JWT token
+  const authHeader = req.headers.authorization
+  if (!authHeader) return null
+  
+  try {
+    const token = authHeader.replace('Bearer ', '')
+    const decoded = JSON.parse(atob(token))
+    return teachers.get(decoded.teacherId)
+  } catch {
+    return null
   }
 }

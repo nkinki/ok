@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BulkResultItem } from './BulkProcessor';
 import { ExerciseType, MatchingContent, CategorizationContent, QuizContent } from '../types';
 import { generateEmailData } from '../utils/emailUtils';
@@ -7,56 +7,178 @@ import ImageViewer from './ImageViewer';
 import MatchingExercise from './MatchingExercise';
 import CategorizationExercise from './CategorizationExercise';
 import QuizExercise from './QuizExercise';
+import StudentLoginForm from './auth/StudentLoginForm';
 
 interface Props {
   library: BulkResultItem[];
   onExit: () => void;
 }
 
-type DailyStep = 'LOGIN' | 'PLAYING' | 'RESULT';
+type DailyStep = 'LOGIN' | 'ASSIGNMENTS' | 'PLAYING' | 'RESULT';
+
+interface Student {
+  id: string;
+  name: string;
+  className: string;
+}
+
+interface Assignment {
+  id: string;
+  title: string;
+  description: string;
+  exercises: Array<{
+    id: string;
+    title: string;
+    imageUrl: string;
+    exerciseData: any;
+  }>;
+}
+
+interface Session {
+  id: string;
+  studentId: string;
+  assignmentId: string;
+  totalExercises: number;
+  completedExercises: number;
+  totalScore: number;
+  status: string;
+}
 
 const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
   const [step, setStep] = useState<DailyStep>('LOGIN');
-  const [studentName, setStudentName] = useState('');
-  const [studentClass, setStudentClass] = useState('');
+  const [student, setStudent] = useState<Student | null>(null);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [currentSession, setCurrentSession] = useState<Session | null>(null);
   
-  const [playlist, setPlaylist] = useState<BulkResultItem[]>([]);
+  const [playlist, setPlaylist] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   
   // Email Modal State
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailData, setEmailData] = useState<{link: string, body: string, subject: string} | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Helper to get teacher email
   const getTeacherEmail = () => localStorage.getItem('teacher_email') || '';
 
-  const handleStart = () => {
-      if (!studentName.trim() || !studentClass.trim()) {
-          alert("Kérlek add meg a neved és az osztályodat!");
-          return;
-      }
+  const handleStudentLogin = async (studentData: Student) => {
+    setStudent(studentData);
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Fetch assignments for student's class
+      const response = await fetch(`/api/simple-api/assignments/class/${encodeURIComponent(studentData.className)}`);
       
-      if (library.length === 0) {
-          alert("A könyvtár üres! A Napi Gyakorláshoz előbb generálj feladatokat az Egyesével vagy Tömeges menüben.");
-          return;
+      if (!response.ok) {
+        throw new Error('Nem sikerült betölteni a feladatokat');
       }
 
-      // 1. Shuffle entire library
-      const shuffled = [...library].sort(() => 0.5 - Math.random());
+      const data = await response.json();
+      setAssignments(data.assignments || []);
       
-      // 2. Select top 5 (or less if library is small)
-      const selected = shuffled.slice(0, 5);
+      if (data.assignments && data.assignments.length > 0) {
+        setStep('ASSIGNMENTS');
+      } else {
+        // Fallback to library mode if no assignments
+        handleFallbackToLibrary();
+      }
+    } catch (error) {
+      console.error('Error loading assignments:', error);
+      // Fallback to library mode on error
+      handleFallbackToLibrary();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFallbackToLibrary = () => {
+    if (library.length === 0) {
+      setError("Nincs elérhető feladat! Kérd meg a tanárt, hogy hozzon létre feladatokat.");
+      return;
+    }
+
+    // Use library as fallback (original behavior)
+    const shuffled = [...library].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 5);
+    
+    setPlaylist(selected);
+    setCurrentIndex(0);
+    setCompletedCount(0);
+    setStep('PLAYING');
+  };
+
+  const handleSelectAssignment = async (assignment: Assignment) => {
+    setSelectedAssignment(assignment);
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Start a new session
+      const response = await fetch('/api/simple-api/sessions/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          studentId: student?.id,
+          assignmentId: assignment.id
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Nem sikerült elindítani a munkamenetet');
+      }
+
+      const data = await response.json();
+      setCurrentSession(data.session);
       
-      // 3. Init state
-      setPlaylist(selected);
+      // Convert exercises to playlist format
+      const exercisePlaylist = assignment.exercises.map(exercise => ({
+        id: exercise.id,
+        imageUrl: exercise.imageUrl,
+        data: exercise.exerciseData,
+        fileName: exercise.title
+      }));
+
+      setPlaylist(exercisePlaylist);
       setCurrentIndex(0);
       setCompletedCount(0);
       setStep('PLAYING');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Ismeretlen hiba');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleExerciseComplete = () => {
+  const handleExerciseComplete = async (isCorrect: boolean = false, score: number = 0, timeSpent: number = 0) => {
       setCompletedCount(prev => prev + 1);
+      
+      // Submit answer if we have a session
+      if (currentSession && playlist[currentIndex]) {
+        try {
+          await fetch('/api/simple-api/sessions/answer', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              sessionId: currentSession.id,
+              exerciseId: playlist[currentIndex].id,
+              studentAnswer: { completed: true }, // Basic answer data
+              isCorrect,
+              score,
+              timeSpentSeconds: timeSpent
+            })
+          });
+        } catch (error) {
+          console.error('Error submitting answer:', error);
+        }
+      }
       
       if (currentIndex < playlist.length - 1) {
           setCurrentIndex(prev => prev + 1);
@@ -71,7 +193,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
           alert("A tanár email címe nincs beállítva! Kérd meg a tanárt, hogy állítsa be a Beállításokban (Fogaskerék ikon).");
           return;
       }
-      const data = generateEmailData(email, studentName, studentClass, completedCount, playlist.length);
+      const data = generateEmailData(email, student?.name || '', student?.className || '', completedCount, playlist.length);
       setEmailData(data);
       setShowEmailModal(true);
       
@@ -88,51 +210,85 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
 
   // --- RENDER: LOGIN ---
   if (step === 'LOGIN') {
+      return <StudentLoginForm onLoginSuccess={handleStudentLogin} onBack={onExit} />;
+  }
+
+  // --- RENDER: ASSIGNMENTS ---
+  if (step === 'ASSIGNMENTS') {
       return (
-          <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+          <div className="max-w-4xl mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
               <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-                      ⭐
+                  <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                      📚
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-800">Napi Gyakorlás</h2>
-                  <p className="text-slate-500">5 véletlenszerű feladat a könyvtárból.</p>
+                  <h2 className="text-2xl font-bold text-slate-800">Üdv, {student?.name}!</h2>
+                  <p className="text-slate-500">Válassz egy feladatsort a {student?.className} osztály számára</p>
               </div>
 
-              <div className="space-y-4">
-                  <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">Teljes név</label>
-                      <input 
-                        type="text" 
-                        value={studentName}
-                        onChange={(e) => setStudentName(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-slate-900"
-                        placeholder="Pl. Kiss Péter"
-                      />
+              {loading && (
+                  <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+                      <p className="text-slate-500 mt-2">Feladatok betöltése...</p>
                   </div>
-                  <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1">Osztály</label>
-                      <input 
-                        type="text" 
-                        value={studentClass}
-                        onChange={(e) => setStudentClass(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-slate-900"
-                        placeholder="Pl. 4.a"
-                      />
+              )}
+
+              {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
+                      {error}
                   </div>
-                  
-                  <div className="pt-4">
-                      <button 
-                        onClick={handleStart}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-bold shadow-lg transition-transform transform hover:scale-[1.02] mb-3"
+              )}
+
+              {!loading && assignments.length === 0 && (
+                  <div className="text-center py-12">
+                      <svg className="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                      <h3 className="text-lg font-medium text-slate-400 mb-2">Nincs elérhető feladat</h3>
+                      <p className="text-slate-400 mb-4">A tanár még nem hozott létre feladatokat a {student?.className} osztály számára.</p>
+                      <button
+                          onClick={handleFallbackToLibrary}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
                       >
-                          Indítás
+                          Próbálkozás a könyvtárral
                       </button>
-                      <div className="text-center">
-                        <button onClick={onExit} className="text-sm text-slate-500 hover:text-slate-700 underline">
-                            Vissza a főoldalra
-                        </button>
-                      </div>
                   </div>
+              )}
+
+              {!loading && assignments.length > 0 && (
+                  <div className="space-y-4">
+                      {assignments.map((assignment) => (
+                          <div key={assignment.id} className="border border-slate-200 rounded-lg p-6 hover:bg-slate-50 transition-colors">
+                              <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                      <h3 className="text-xl font-bold text-slate-800 mb-2">{assignment.title}</h3>
+                                      {assignment.description && (
+                                          <p className="text-slate-600 mb-4">{assignment.description}</p>
+                                      )}
+                                      <div className="flex items-center gap-4 text-sm text-slate-500">
+                                          <span>{assignment.exercises.length} feladat</span>
+                                          <span>Becsült idő: {assignment.exercises.length * 3} perc</span>
+                                      </div>
+                                  </div>
+                                  <button
+                                      onClick={() => handleSelectAssignment(assignment)}
+                                      disabled={loading}
+                                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                                  >
+                                      Kezdés
+                                  </button>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              )}
+
+              <div className="mt-8 text-center">
+                  <button
+                      onClick={onExit}
+                      className="text-slate-500 hover:text-slate-700 font-medium underline"
+                  >
+                      Vissza a főoldalra
+                  </button>
               </div>
           </div>
       );
@@ -179,7 +335,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
                       <div className="sticky top-0 z-20 bg-slate-50 p-6 pb-2 border-b border-slate-200 mb-4 shadow-sm opacity-95 backdrop-blur">
                           <div className="flex justify-between items-center mb-4">
                               <span className="font-bold text-purple-900">Napi Kihívás</span>
-                              <span className="text-sm font-medium text-slate-500">{studentName} - {studentClass}</span>
+                              <span className="text-sm font-medium text-slate-500">{student?.name} - {student?.className}</span>
                           </div>
                           
                           <div className="w-full bg-slate-200 rounded-full h-2 mb-4">
@@ -235,7 +391,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit }) => {
           <div className="w-24 h-24 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 text-5xl animate-bounce">
               🏆
           </div>
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">Szép munka, {studentName}!</h2>
+          <h2 className="text-3xl font-bold text-slate-800 mb-2">Szép munka, {student?.name}!</h2>
           <p className="text-slate-500 mb-8">A mai gyakorlás véget ért.</p>
 
           <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
