@@ -1,4 +1,139 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { imageEnhancementService, EnhancementResult, EnhancementOptions } from '../services/imageEnhancementService';
+
+interface CustomEnhancementFormProps {
+  onApply: (options: EnhancementOptions) => void;
+  onCancel: () => void;
+  isProcessing: boolean;
+}
+
+const CustomEnhancementForm: React.FC<CustomEnhancementFormProps> = ({ onApply, onCancel, isProcessing }) => {
+  const [options, setOptions] = useState<EnhancementOptions>({
+    autoStraighten: true,
+    enhanceContrast: true,
+    convertToGrayscale: true,
+    sharpenText: true,
+    removeNoise: true,
+    adjustBrightness: true,
+    quality: 0.9
+  });
+
+  const handleOptionChange = (key: keyof EnhancementOptions, value: boolean | number) => {
+    setOptions(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleApply = () => {
+    onApply(options);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3">
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={options.autoStraighten}
+            onChange={(e) => handleOptionChange('autoStraighten', e.target.checked)}
+            className="rounded"
+          />
+          <span className="text-sm">🔄 Automatikus kiegyenesítés</span>
+        </label>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={options.convertToGrayscale}
+            onChange={(e) => handleOptionChange('convertToGrayscale', e.target.checked)}
+            className="rounded"
+          />
+          <span className="text-sm">⚫ Fekete-fehér konverzió</span>
+        </label>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={options.enhanceContrast}
+            onChange={(e) => handleOptionChange('enhanceContrast', e.target.checked)}
+            className="rounded"
+          />
+          <span className="text-sm">🔆 Kontraszt fokozás</span>
+        </label>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={options.adjustBrightness}
+            onChange={(e) => handleOptionChange('adjustBrightness', e.target.checked)}
+            className="rounded"
+          />
+          <span className="text-sm">💡 Fényerő optimalizálás</span>
+        </label>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={options.sharpenText}
+            onChange={(e) => handleOptionChange('sharpenText', e.target.checked)}
+            className="rounded"
+          />
+          <span className="text-sm">📝 Szöveg élesítés</span>
+        </label>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={options.removeNoise}
+            onChange={(e) => handleOptionChange('removeNoise', e.target.checked)}
+            className="rounded"
+          />
+          <span className="text-sm">🧹 Zaj eltávolítás</span>
+        </label>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">📊 Képminőség: {Math.round((options.quality || 0.9) * 100)}%</label>
+          <input
+            type="range"
+            min="0.5"
+            max="1"
+            step="0.05"
+            value={options.quality || 0.9}
+            onChange={(e) => handleOptionChange('quality', parseFloat(e.target.value))}
+            className="w-full"
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-3 pt-4 border-t">
+        <button
+          onClick={handleApply}
+          disabled={isProcessing}
+          className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center gap-2"
+        >
+          {isProcessing ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Feldolgozás...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Javítás alkalmazása
+            </>
+          )}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={isProcessing}
+          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white rounded-lg font-medium"
+        >
+          Mégse
+        </button>
+      </div>
+    </div>
+  );
+};
 
 interface Props {
   src: string;
@@ -14,6 +149,8 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [enhancementResult, setEnhancementResult] = useState<EnhancementResult | null>(null);
+  const [showEnhancementOptions, setShowEnhancementOptions] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -49,61 +186,60 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
     
     setIsProcessing(true);
     try {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+      const result = await imageEnhancementService.enhanceDocument(src);
+      setEnhancementResult(result);
+      onImageUpdate(result.enhancedImageUrl);
       
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = src;
+      // Show success message
+      console.log('✅ Képjavítás befejezve:', {
+        alkalmazottJavítások: result.appliedEnhancements,
+        feldolgozásiIdő: `${Math.round(result.processingTime)}ms`,
+        eredetiMéret: `${result.originalSize.width}x${result.originalSize.height}`,
+        javítottMéret: `${result.enhancedSize.width}x${result.enhancedSize.height}`
       });
-
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      // Draw original image
-      ctx.drawImage(img, 0, 0);
-      
-      // Get image data for processing
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      
-      // Document enhancement algorithm
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        
-        // Convert to grayscale
-        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-        
-        // Increase contrast and brightness for document scanning effect
-        const enhanced = Math.min(255, Math.max(0, (gray - 128) * 1.5 + 128 + 20));
-        
-        // Apply threshold for black/white effect
-        const threshold = enhanced > 180 ? 255 : enhanced < 80 ? 0 : enhanced;
-        
-        data[i] = threshold;     // R
-        data[i + 1] = threshold; // G  
-        data[i + 2] = threshold; // B
-        // Alpha stays the same
-      }
-      
-      // Put enhanced image data back
-      ctx.putImageData(imageData, 0, 0);
-      
-      // Convert to base64 and update
-      const enhancedSrc = canvas.toDataURL('image/jpeg', 0.9);
-      onImageUpdate(enhancedSrc);
       
     } catch (error) {
-      console.error('Document enhancement failed:', error);
+      console.error('Képjavítás sikertelen:', error);
+      alert('Képjavítás sikertelen: ' + (error instanceof Error ? error.message : 'Ismeretlen hiba'));
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [src, onImageUpdate]);
+
+  const enhancePhoto = useCallback(async () => {
+    if (!onImageUpdate) return;
+    
+    setIsProcessing(true);
+    try {
+      const result = await imageEnhancementService.enhancePhoto(src);
+      setEnhancementResult(result);
+      onImageUpdate(result.enhancedImageUrl);
+      
+      console.log('✅ Fotó javítás befejezve:', result.appliedEnhancements);
+      
+    } catch (error) {
+      console.error('Fotó javítás sikertelen:', error);
+      alert('Fotó javítás sikertelen: ' + (error instanceof Error ? error.message : 'Ismeretlen hiba'));
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [src, onImageUpdate]);
+
+  const customEnhancement = useCallback(async (options: any) => {
+    if (!onImageUpdate) return;
+    
+    setIsProcessing(true);
+    try {
+      const result = await imageEnhancementService.enhanceImage(src, options);
+      setEnhancementResult(result);
+      onImageUpdate(result.enhancedImageUrl);
+      setShowEnhancementOptions(false);
+      
+      console.log('✅ Egyedi javítás befejezve:', result.appliedEnhancements);
+      
+    } catch (error) {
+      console.error('Egyedi javítás sikertelen:', error);
+      alert('Képjavítás sikertelen: ' + (error instanceof Error ? error.message : 'Ismeretlen hiba'));
     } finally {
       setIsProcessing(false);
     }
@@ -269,12 +405,12 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
             
             <div className="w-px h-6 bg-white/30 mx-1"></div>
             
-            {/* Document Enhancement */}
+            {/* AI Enhancement Controls */}
             <button
               onClick={enhanceDocument}
               disabled={isProcessing || !onImageUpdate}
               className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1"
-              title="Dokumentum olvashatóság javítása"
+              title="AI dokumentum javítás (kiegyenesítés, kontraszt, fekete-fehér)"
             >
               {isProcessing ? (
                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
@@ -283,7 +419,35 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               )}
-              Scanner
+              AI Dokumentum
+            </button>
+            
+            <button
+              onClick={enhancePhoto}
+              disabled={isProcessing || !onImageUpdate}
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1"
+              title="AI fotó javítás (kontraszt, zaj eltávolítás, élesítés)"
+            >
+              {isProcessing ? (
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+              ) : (
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              )}
+              AI Fotó
+            </button>
+            
+            <button
+              onClick={() => setShowEnhancementOptions(true)}
+              disabled={isProcessing || !onImageUpdate}
+              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1"
+              title="Egyedi AI javítási beállítások"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+              </svg>
+              Egyedi
             </button>
           </>
         )}
@@ -318,6 +482,36 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
       {zoom > 1 && (
         <div className="absolute top-4 left-4 bg-black/70 text-white text-xs px-3 py-2 rounded-lg">
           🖱️ Húzd a képet • 🖱️ Görgő: zoom
+        </div>
+      )}
+
+      {/* Enhancement Result Info */}
+      {enhancementResult && (
+        <div className="absolute top-4 right-4 bg-black/70 text-white text-xs px-3 py-2 rounded-lg max-w-xs">
+          <div className="font-bold text-green-400 mb-1">✅ AI Javítás alkalmazva</div>
+          <div className="space-y-1">
+            {enhancementResult.appliedEnhancements.map((enhancement, idx) => (
+              <div key={idx}>• {enhancement}</div>
+            ))}
+            <div className="text-gray-300 mt-2">
+              Idő: {Math.round(enhancementResult.processingTime)}ms
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Enhancement Options Modal */}
+      {showEnhancementOptions && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-20">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">AI Képjavítás beállítások</h3>
+            
+            <CustomEnhancementForm 
+              onApply={customEnhancement}
+              onCancel={() => setShowEnhancementOptions(false)}
+              isProcessing={isProcessing}
+            />
+          </div>
         </div>
       )}
     </div>
