@@ -170,6 +170,7 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
 function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
   const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'SINGLE' | 'LIBRARY'>('SESSION')
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
+  const [selectedExercise, setSelectedExercise] = useState<BulkResultItem | null>(null);
   const [isMemoryMode, setIsMemoryMode] = useState(false)
   
   // Modals
@@ -365,11 +366,14 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             onLibraryUpdate={handleLibraryUpdate}
           />
         )}
-        {viewMode === 'SINGLE' && (
-          <TeacherExerciseCreator 
-            library={library}
-            setLibrary={setLibrary}
-            onExit={() => setViewMode('BULK')}
+        {viewMode === 'SINGLE' && selectedExercise && (
+          <DailyChallenge 
+            library={[selectedExercise]}
+            onExit={() => {
+              setSelectedExercise(null);
+              setViewMode('LIBRARY');
+            }}
+            isStudentMode={false}
           />
         )}
         {viewMode === 'LIBRARY' && (
@@ -377,7 +381,10 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             library={library}
             setLibrary={setLibrary}
             onExit={() => setViewMode('BULK')}
-            onOpenSingle={() => setViewMode('SINGLE')}
+            onOpenSingle={(item) => {
+              setSelectedExercise(item);
+              setViewMode('SINGLE');
+            }}
             isMemoryMode={isMemoryMode}
           />
         )}

@@ -6,7 +6,7 @@ interface Props {
   library: BulkResultItem[]
   setLibrary: React.Dispatch<React.SetStateAction<BulkResultItem[]>>
   onExit: () => void
-  onOpenSingle: () => void
+  onOpenSingle: (item: BulkResultItem) => void
   isMemoryMode?: boolean
 }
 
@@ -129,8 +129,8 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
   }
 
   const handleOpenFromLibrary = (item: BulkResultItem) => {
-    // This would need to be implemented to open in single mode
-    onOpenSingle()
+    // Pass the selected item to the parent component
+    onOpenSingle(item)
   }
 
   const handleEditExercise = (item: BulkResultItem) => {
