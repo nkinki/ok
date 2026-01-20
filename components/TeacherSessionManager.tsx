@@ -4,6 +4,7 @@ import { BulkResultItem } from './BulkProcessor'
 interface Props {
   library: BulkResultItem[]
   onExit: () => void
+  onLibraryUpdate?: () => void
 }
 
 interface Session {
@@ -13,7 +14,7 @@ interface Session {
   isActive: boolean
 }
 
-export default function TeacherSessionManager({ library, onExit }: Props) {
+export default function TeacherSessionManager({ library, onExit, onLibraryUpdate }: Props) {
   const [selectedExercises, setSelectedExercises] = useState<string[]>([])
   const [activeSession, setActiveSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(false)
@@ -38,8 +39,9 @@ export default function TeacherSessionManager({ library, onExit }: Props) {
           )
           
           if (newExercises.length > 0) {
-            // Update library through parent component
+            // Update library through parent component - no page reload needed
             const updatedLibrary = [...library, ...newExercises]
+            
             // Save to localStorage
             try {
               localStorage.setItem('okosgyakorlo_library', JSON.stringify(updatedLibrary))
@@ -48,8 +50,10 @@ export default function TeacherSessionManager({ library, onExit }: Props) {
             }
             
             alert(`${newExercises.length} feldolgozott feladat importálva a könyvtárba!`)
-            // Refresh the page to show updated library
-            window.location.reload()
+            // Trigger library reload in parent component
+            if (onLibraryUpdate) {
+              onLibraryUpdate()
+            }
           } else {
             alert("Minden feladat már létezik a könyvtárban.")
           }

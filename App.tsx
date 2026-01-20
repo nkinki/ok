@@ -252,6 +252,20 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
     alert(`${results.length} új elem mentve a Könyvtárba!`);
   };
 
+  const handleLibraryUpdate = () => {
+    // Reload library from localStorage
+    const savedLibrary = localStorage.getItem('okosgyakorlo_library');
+    if (savedLibrary) {
+      try {
+        const parsed = JSON.parse(savedLibrary);
+        if (Array.isArray(parsed)) {
+          setLibrary(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to reload library", e);
+      }
+    }
+  };
   const handleBulkImport = (importedData: BulkResultItem[]) => {
     setLibrary((prev: any[]) => {
       const uniqueImported = importedData.filter((newItem: any) => 
@@ -362,6 +376,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
           <TeacherSessionManager 
             library={library} 
             onExit={onBackToRoleSelect}
+            onLibraryUpdate={handleLibraryUpdate}
           />
         )}
         {viewMode === 'SINGLE' && (
