@@ -339,6 +339,21 @@ const BulkProcessor: React.FC<Props> = ({ onAnalysisComplete, existingLibrary = 
       logger.success(`Teljes mentés letöltve (${mergedLibrary.length} elem).`);
   };
 
+  const handleClearStorage = () => {
+    if (confirm("⚠️ FIGYELEM!\n\nEz törölni fogja az ÖSSZES böngésző adatot ezen az oldalon:\n• Feladat könyvtár\n• Beállítások\n• Minden mentett adat\n\nBiztosan folytatod?")) {
+      try {
+        // Clear all localStorage for this domain
+        localStorage.clear();
+        alert("✅ Tárhely sikeresen törölve!\n\nAz oldal újratöltődik...");
+        // Reload page to reset everything
+        window.location.reload();
+      } catch (e) {
+        console.error("Error clearing storage:", e);
+        alert("❌ Hiba a tárhely törlésekor. Próbáld újra vagy használd a böngésző beállításait.");
+      }
+    }
+  };
+
   const doneCount = queue.filter(q => q.status === 'DONE').length;
   const errorCount = queue.filter(q => q.status === 'ERROR').length;
   const pendingCount = queue.filter(q => q.status === 'PENDING').length;
@@ -361,6 +376,14 @@ const BulkProcessor: React.FC<Props> = ({ onAnalysisComplete, existingLibrary = 
               )}
               <span className="text-slate-300">|</span>
               <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-sm text-brand-600 underline">API beszerzése</a>
+              <span className="text-slate-300">|</span>
+              <button 
+                onClick={handleClearStorage}
+                className="text-sm text-red-600 underline hover:text-red-800"
+                title="Teljes tárhely törlése"
+              >
+                Tárhely kiürítése
+              </button>
           </div>
         </div>
         <p className="text-slate-600 mb-6">
