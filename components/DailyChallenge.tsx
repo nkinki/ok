@@ -74,29 +74,29 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setError(null);
 
     try {
-      // First try to check session via API (for network access)
-      try {
-        const response = await fetch(`/api/simple-api/sessions/${code}/check`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.exists) {
-            // Get exercises from API
-            const exercisesResponse = await fetch(`/api/simple-api/sessions/${code}/exercises`);
-            if (exercisesResponse.ok) {
-              const exercisesData = await exercisesResponse.json();
-              if (exercisesData.exercises && exercisesData.exercises.length > 0) {
-                setPlaylist(exercisesData.exercises);
-                setCurrentIndex(0);
-                setCompletedCount(0);
-                setStep('PLAYING');
-                return;
-              }
+      // Try to check session via API (for network access)
+      const response = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.exists) {
+          // Get exercises from API
+          const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
+          if (exercisesResponse.ok) {
+            const exercisesData = await exercisesResponse.json();
+            if (exercisesData.exercises && exercisesData.exercises.length > 0) {
+              console.log('Session loaded from API for network access');
+              setPlaylist(exercisesData.exercises);
+              setCurrentIndex(0);
+              setCompletedCount(0);
+              setStep('PLAYING');
+              return;
             }
           }
+        } else {
+          // API returned exists: false, try localStorage as fallback
+          console.log('Session not found in API, trying localStorage fallback');
         }
-      } catch (apiError) {
-        console.warn('API session check failed, trying localStorage:', apiError);
       }
 
       // Fallback to localStorage (for same browser access)
@@ -107,6 +107,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         try {
           const session = JSON.parse(sessionData);
           if (session.isActive && session.exercises && session.exercises.length > 0) {
+            console.log('Session loaded from localStorage fallback');
             setPlaylist(session.exercises);
             setCurrentIndex(0);
             setCompletedCount(0);

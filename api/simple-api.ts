@@ -646,7 +646,10 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       const session = sessions.get(sessionCode)
 
       if (!session || !session.isActive) {
-        return res.status(404).json({ error: 'Hibás kód vagy a munkamenet nem aktív' })
+        return res.json({ 
+          exists: false, 
+          error: 'Hibás kód vagy a munkamenet nem aktív' 
+        })
       }
 
       return res.json({
@@ -706,7 +709,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 
       return res.json({
         exercises: session.exercises,
-        count: session.exercises.length
+        count: session.exercises.length,
+        sessionCode: session.code
       })
     }
 

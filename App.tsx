@@ -44,9 +44,6 @@ function AppContent() {
           <h1 className="text-4xl font-bold text-slate-800 mb-4">
             Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
           </h1>
-          <p className="text-xl text-slate-600">
-            Válaszd ki a szerepkört
-          </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
@@ -61,16 +58,7 @@ function AppContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">Tanár</h3>
-              <p className="text-slate-600 mb-4">
-                Feladatok létrehozása, szerkesztése és játékok vezetése
-              </p>
-              <div className="text-sm text-slate-500">
-                • Feladatok generálása<br/>
-                • Kahoot játékok<br/>
-                • Beállítások<br/>
-                • Teljes hozzáférés
-              </div>
+              <h3 className="text-2xl font-bold text-slate-800">Tanár</h3>
             </div>
           </div>
 
@@ -86,24 +74,9 @@ function AppContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">Diák</h3>
-              <p className="text-slate-600 mb-4">
-                Napi gyakorlás és játékokban való részvétel
-              </p>
-              <div className="text-sm text-slate-500">
-                • Napi gyakorló<br/>
-                • Játékokhoz csatlakozás<br/>
-                • Egyszerű felület<br/>
-                • Tanulásra fókuszálva
-              </div>
+              <h3 className="text-2xl font-bold text-slate-800">Diák</h3>
             </div>
           </div>
-        </div>
-
-        <div className="text-center mt-8">
-          <p className="text-sm text-slate-500">
-            A szerepkör bármikor megváltoztatható a beállításokban
-          </p>
         </div>
       </div>
     </div>

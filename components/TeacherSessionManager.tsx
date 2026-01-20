@@ -64,27 +64,26 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const sessionCode = generateSessionCode()
       const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
 
-      // Try to create session via API for network sharing
-      try {
-        const response = await fetch('/api/simple-api/sessions/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            code: sessionCode,
-            exercises: selectedExerciseData
-          })
+      // Create session via API for network sharing (primary method)
+      const response = await fetch('/api/simple-api/sessions/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          code: sessionCode,
+          exercises: selectedExerciseData
         })
+      })
 
-        if (response.ok) {
-          console.log('Session created via API for network sharing')
-        }
-      } catch (apiError) {
-        console.warn('API session creation failed, using localStorage only:', apiError)
+      if (!response.ok) {
+        throw new Error('Nem sikerült létrehozni a hálózati munkamenetet')
       }
 
-      // Always create session in localStorage as backup
+      const apiResult = await response.json()
+      console.log('Session created via API for network sharing:', apiResult)
+
+      // Create local session object
       const session: Session = {
         code: sessionCode,
         exercises: selectedExerciseData,
@@ -94,7 +93,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
 
       setActiveSession(session)
       
-      // Store session in localStorage for local access
+      // Also store in localStorage as backup for same-browser access
       try {
         const sessionData = {
           code: sessionCode,
@@ -105,10 +104,12 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionData))
       } catch (storageError) {
         console.warn('Could not save session to localStorage:', storageError)
+        // This is not critical since API session is created
       }
 
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Ismeretlen hiba')
+      console.error('Session creation error:', error)
+      setError(error instanceof Error ? error.message : 'Ismeretlen hiba a munkamenet létrehozásakor')
     } finally {
       setLoading(false)
     }
@@ -118,13 +119,29 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     if (!activeSession) return
 
     try {
+      // Stop session via API for network sharing
+      try {
+        const response = await fetch(`/api/simple-api/sessions/${activeSession.code}/stop`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (response.ok) {
+          console.log('Session stopped via API')
+        }
+      } catch (apiError) {
+        console.warn('API session stop failed:', apiError)
+      }
+
       // Remove session from localStorage
       localStorage.removeItem(`session_${activeSession.code}`)
       setActiveSession(null)
       setSelectedExercises([])
     } catch (error) {
       console.error('Error stopping session:', error)
-      // Still stop the session even if localStorage fails
+      // Still stop the session even if API fails
       setActiveSession(null)
       setSelectedExercises([])
     }
