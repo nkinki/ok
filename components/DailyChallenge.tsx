@@ -554,11 +554,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               {/* Right Side: Exercise */}
               <div className="lg:w-1/2 h-2/3 lg:h-full bg-slate-50 overflow-y-auto order-2 lg:order-2 relative">
                   <div className="max-w-2xl mx-auto">
-                      {/* Sticky Header */}
-                      <div className="sticky top-0 z-20 bg-slate-50 p-6 pb-2 border-b border-slate-200 mb-4 shadow-sm opacity-95 backdrop-blur">
-                          <div className="flex justify-between items-center mb-4">
-                              <div className="flex items-center gap-3">
-                                  <span className="font-bold text-purple-900">
+                      {/* Sticky Header - More Compact */}
+                      <div className="sticky top-0 z-20 bg-slate-50 p-4 pb-2 border-b border-slate-200 mb-3 shadow-sm opacity-95 backdrop-blur">
+                          <div className="flex justify-between items-center mb-3">
+                              <div className="flex items-center gap-2">
+                                  <span className="font-bold text-purple-900 text-sm">
                                       {isPreviewMode ? 'Feladat Előnézet' : 'Napi Kihívás'}
                                   </span>
                                   {isPreviewMode && (
@@ -567,8 +567,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                       </span>
                                   )}
                               </div>
-                              <div className="flex items-center gap-3">
-                                  <span className="text-sm font-medium text-slate-500">{student?.name} - {student?.className}</span>
+                              <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium text-slate-500">{student?.name} - {student?.className}</span>
                                   <button
                                       onClick={(e) => {
                                           e.preventDefault();
@@ -578,26 +578,43 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                       className="p-1 hover:bg-slate-200 rounded-full transition-colors"
                                       title="Bezárás"
                                   >
-                                      <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                       </svg>
                                   </button>
                               </div>
                           </div>
                           
-                          <div className="w-full bg-slate-200 rounded-full h-2 mb-4">
-                              <div className="bg-purple-600 h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                          <div className="w-full bg-slate-200 rounded-full h-1.5 mb-3">
+                              <div className="bg-purple-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
                           </div>
 
-                          <div className="mb-2">
-                              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Feladat {currentIndex + 1} / {playlist.length}</span>
-                              <h3 className="text-xl font-bold text-slate-800 line-clamp-2">{currentItem.data.title}</h3>
-                              <p className="text-sm text-slate-700 bg-white p-2 rounded border border-slate-200 mt-2 font-medium">{currentItem.data.instruction}</p>
+                          {/* Compact Exercise Info */}
+                          <div className="bg-white rounded-lg p-3 border border-slate-200">
+                              <div className="flex justify-between items-start mb-2">
+                                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Feladat {currentIndex + 1} / {playlist.length}</span>
+                                  <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">{currentItem.data.type}</span>
+                              </div>
+                              <h3 className="text-lg font-bold text-slate-800 mb-2 leading-tight">{currentItem.data.title}</h3>
+                              
+                              {/* Full instruction text - expandable */}
+                              <div className="text-sm text-slate-700 leading-relaxed">
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                      <div className="flex items-start gap-2">
+                                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                          </svg>
+                                          <div className="text-blue-800 font-medium text-sm leading-relaxed">
+                                              {currentItem.data.instruction}
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
                           </div>
                       </div>
 
-                      {/* Scrollable Content */}
-                      <div className="p-6 pt-0">
+                      {/* Scrollable Content - More Compact */}
+                      <div className="p-4 pt-0">
                           {/* Render Dynamic Component based on Type */}
                           {currentItem.data.type === ExerciseType.MATCHING && (
                               <MatchingExercise 

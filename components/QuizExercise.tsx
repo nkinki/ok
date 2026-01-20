@@ -167,27 +167,38 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Progress Bar - Compact */}
-      <div className="mb-4">
-        <div className="flex justify-between text-xs font-semibold text-gray-500 mb-1">
+    <div className="max-w-2xl mx-auto space-y-3">
+      {/* Progress Bar - More Compact */}
+      <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+        <div className="flex justify-between text-xs font-semibold text-gray-500 mb-2">
           <span>Kérdés {currentIndex + 1} / {content.questions.length}</span>
           <span>{score} pont</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-1.5">
           <div 
-            className="bg-brand-600 h-2 rounded-full transition-all duration-500 ease-out" 
+            className="bg-brand-600 h-1.5 rounded-full transition-all duration-500 ease-out" 
             style={{ width: `${progress}%` }}
           ></div>
         </div>
       </div>
 
-      {/* Question Card - Compact */}
-      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 mb-4">
-        <h3 className="text-base font-bold text-gray-800 mb-2 leading-tight">
-          {currentQuestion.question}
-        </h3>
-        {isMulti && <p className="text-xs text-brand-600 font-bold mb-3 uppercase tracking-wide">Több válasz is lehetséges</p>}
+      {/* Question Card - More Compact */}
+      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+        <div className="mb-3">
+          <h3 className="text-base font-bold text-gray-800 mb-2 leading-tight">
+            {currentQuestion.question}
+          </h3>
+          {isMulti && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3">
+              <p className="text-xs text-amber-800 font-bold flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                Több válasz is lehetséges
+              </p>
+            </div>
+          )}
+        </div>
 
         <div className="space-y-2">
           {currentQuestion.options.map((option, idx) => {
@@ -261,14 +272,14 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
         </div>
       </div>
 
-      {/* Actions - Compact */}
-      <div className="flex justify-end">
+      {/* Actions - More Compact */}
+      <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex justify-end">
         {!isAnswered ? (
           <button
             onClick={handleSubmit}
             disabled={selectedOption === null || (Array.isArray(selectedOption) && selectedOption.length === 0)}
             className={`
-              px-6 py-2 rounded-lg font-bold text-white shadow transition-all text-sm
+              px-5 py-2 rounded-lg font-bold text-white shadow transition-all text-sm
               ${(selectedOption !== null && (!Array.isArray(selectedOption) || selectedOption.length > 0)) ? 'bg-brand-600 hover:bg-brand-700' : 'bg-gray-300 cursor-not-allowed'}
             `}
           >
@@ -277,7 +288,7 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
         ) : (
           <button
             onClick={handleNext}
-            className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-bold shadow transition-all flex items-center gap-2 text-sm"
+            className="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg font-bold shadow transition-all flex items-center gap-2 text-sm"
           >
             {currentIndex === content.questions.length - 1 ? "Befejezés" : "Következő"}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

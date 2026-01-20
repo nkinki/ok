@@ -102,20 +102,20 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
   const bankItems = rightItems.filter(i => !placedRightIds.includes(i.id));
 
   return (
-    <div className="flex flex-col gap-8 relative">
+    <div className="max-w-4xl mx-auto space-y-4 relative">
       
-      {/* Word Bank (Sticky) */}
+      {/* Word Bank (Compact Sticky) */}
       <div className={`
-        bg-white p-4 rounded-xl border-2 border-brand-100 shadow-lg sticky top-0 z-20 transition-all
+        bg-white p-3 rounded-lg border border-brand-200 shadow-sm sticky top-0 z-20 transition-all
         ${isSubmitted ? 'opacity-50 pointer-events-none' : ''}
       `}>
-        <h3 className="text-xs font-bold text-brand-600 uppercase mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/></svg>
-            Választható elemek (Húzd a helyére)
+        <h3 className="text-xs font-bold text-brand-600 uppercase mb-2 flex items-center gap-2">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/></svg>
+            Választható elemek
         </h3>
-        <div className="flex flex-wrap gap-2 min-h-[50px]">
+        <div className="flex flex-wrap gap-2 min-h-[40px]">
             {bankItems.length === 0 && !isSubmitted && (
-                <div className="text-slate-800 font-medium text-sm italic w-full text-center py-2">
+                <div className="text-slate-600 text-xs italic w-full text-center py-1">
                     Minden elemet elhelyeztél. Ellenőrizd a megoldást!
                 </div>
             )}
@@ -126,8 +126,8 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
                     onDragStart={(e) => handleDragStart(e, item.id)}
                     onClick={() => handleItemClick(item.id)}
                     className={`
-                        px-3 py-2 rounded-lg shadow-sm cursor-grab active:cursor-grabbing select-none border transition-all
-                        ${selectedId === item.id ? 'bg-brand-600 text-white border-brand-600 ring-2 ring-brand-300' : 'bg-white text-brand-800 border-brand-200 hover:bg-brand-50'}
+                        px-2 py-1 rounded text-sm shadow-sm cursor-grab active:cursor-grabbing select-none border transition-all
+                        ${selectedId === item.id ? 'bg-brand-600 text-white border-brand-600 ring-1 ring-brand-300' : 'bg-white text-brand-800 border-brand-200 hover:bg-brand-50'}
                     `}
                 >
                     {item.text}
@@ -136,8 +136,8 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
         </div>
       </div>
 
-      {/* Pairs List */}
-      <div className="space-y-3 pb-24">
+      {/* Pairs List - More Compact */}
+      <div className="space-y-2 pb-16">
          {content.pairs.map(pair => {
              const matchedRightId = matches[pair.id];
              const matchedItem = rightItems.find(i => i.id === matchedRightId);

@@ -36,16 +36,15 @@ class ImageEnhancementService {
     const startTime = performance.now();
     const appliedEnhancements: string[] = [];
 
-    // Default options
+    // Use provided options, only set defaults for undefined values
     const opts: Required<EnhancementOptions> = {
-      autoStraighten: true,
-      enhanceContrast: true,
-      convertToGrayscale: true,
-      sharpenText: true,
-      removeNoise: true,
-      adjustBrightness: true,
-      quality: 0.9,
-      ...options
+      autoStraighten: options.autoStraighten ?? true,
+      enhanceContrast: options.enhanceContrast ?? true,
+      convertToGrayscale: options.convertToGrayscale ?? false, // Default to false to preserve colors
+      sharpenText: options.sharpenText ?? true,
+      removeNoise: options.removeNoise ?? true,
+      adjustBrightness: options.adjustBrightness ?? true,
+      quality: options.quality ?? 0.9
     };
 
     try {
@@ -281,36 +280,94 @@ class ImageEnhancementService {
   }
 
   /**
-   * Enhance contrast using histogram equalization
+   * Enhance contrast using histogram equalization (improved for color images)
    */
   private enhanceContrast(imageData: ImageData): ImageData {
     const { data } = imageData;
     
-    // Calculate histogram
-    const histogram = new Array(256).fill(0);
+    // Check if image is grayscale
+    let isGrayscale = true;
     for (let i = 0; i < data.length; i += 4) {
-      const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-      histogram[gray]++;
+      if (data[i] !== data[i + 1] || data[i + 1] !== data[i + 2]) {
+        isGrayscale = false;
+        break;
+      }
     }
     
-    // Calculate cumulative distribution
-    const cdf = new Array(256);
-    cdf[0] = histogram[0];
-    for (let i = 1; i < 256; i++) {
-      cdf[i] = cdf[i - 1] + histogram[i];
-    }
-    
-    // Normalize CDF
-    const totalPixels = data.length / 4;
-    const lookupTable = cdf.map(value => Math.round((value / totalPixels) * 255));
-    
-    // Apply histogram equalization
-    for (let i = 0; i < data.length; i += 4) {
-      const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-      const enhanced = lookupTable[gray];
-      data[i] = enhanced;     // Red
-      data[i + 1] = enhanced; // Green
-      data[i + 2] = enhanced; // Blue
+    if (isGrayscale) {
+      // Use luminance-based enhancement for grayscale
+      const histogram = new Array(256).fill(0);
+      for (let i = 0; i < data.length; i += 4) {
+        histogram[data[i]]++;
+      }
+      
+      // Calculate cumulative distribution
+      const cdf = new Array(256);
+      cdf[0] = histogram[0];
+      for (let i = 1; i < 256; i++) {
+        cdf[i] = cdf[i - 1] + histogram[i];
+      }
+      
+      // Normalize CDF
+      const totalPixels = data.length / 4;
+      const lookupTable = cdf.map(value => Math.round((value / totalPixels) * 255));
+      
+      // Apply histogram equalization
+      for (let i = 0; i < data.length; i += 4) {
+        const enhanced = lookupTable[data[i]];
+        data[i] = enhanced;     // Red
+        data[i + 1] = enhanced; // Green
+        data[i + 2] = enhanced; // Blue
+      }
+    } else {
+      // Use adaptive contrast for color images
+      for (let i = 0; i < data.length; i += 4) {
+        // Convert to HSV for better color preservation
+        const r = data[i] / 255;
+        const g = data[i + 1] / 255;
+        const b = data[i + 2] / 255;
+        
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const delta = max - min;
+        
+        // Enhance value (brightness) while preserving hue and saturation
+        let v = max;
+        v = Math.pow(v, 0.8); // Gamma correction for better contrast
+        
+        // Convert back to RGB
+        if (delta === 0) {
+          data[i] = data[i + 1] = data[i + 2] = Math.round(v * 255);
+        } else {
+          const s = delta / max;
+          let h = 0;
+          
+          if (max === r) h = ((g - b) / delta) % 6;
+          else if (max === g) h = (b - r) / delta + 2;
+          else h = (r - g) / delta + 4;
+          
+          h /= 6;
+          if (h < 0) h += 1;
+          
+          // HSV to RGB
+          const c = v * s;
+          const x = c * (1 - Math.abs((h * 6) % 2 - 1));
+          const m = v - c;
+          
+          let rNew = 0, gNew = 0, bNew = 0;
+          
+          if (h < 1/6) { rNew = c; gNew = x; bNew = 0; }
+          else if (h < 2/6) { rNew = x; gNew = c; bNew = 0; }
+          else if (h < 3/6) { rNew = 0; gNew = c; bNew = x; }
+          else if (h < 4/6) { rNew = 0; gNew = x; bNew = c; }
+          else if (h < 5/6) { rNew = x; gNew = 0; bNew = c; }
+          else { rNew = c; gNew = 0; bNew = x; }
+          
+          data[i] = Math.round((rNew + m) * 255);
+          data[i + 1] = Math.round((gNew + m) * 255);
+          data[i + 2] = Math.round((bNew + m) * 255);
+        }
+      }
     }
     
     return imageData;
@@ -419,17 +476,32 @@ class ImageEnhancementService {
   }
 
   /**
-   * Quick enhancement preset for photos
+   * Quick enhancement preset for photos (preserves colors)
    */
   async enhancePhoto(imageUrl: string): Promise<EnhancementResult> {
     return this.enhanceImage(imageUrl, {
       autoStraighten: true,
       enhanceContrast: true,
-      convertToGrayscale: false,
-      sharpenText: false,
+      convertToGrayscale: false, // Keep colors for photos
+      sharpenText: true, // Still useful for text in photos
       removeNoise: true,
       adjustBrightness: true,
-      quality: 0.9
+      quality: 0.95
+    });
+  }
+
+  /**
+   * Color-preserving enhancement for mixed content
+   */
+  async enhanceColor(imageUrl: string): Promise<EnhancementResult> {
+    return this.enhanceImage(imageUrl, {
+      autoStraighten: true,
+      enhanceContrast: true,
+      convertToGrayscale: false,
+      sharpenText: true,
+      removeNoise: true,
+      adjustBrightness: true,
+      quality: 0.95
     });
   }
 }
