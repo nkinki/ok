@@ -64,7 +64,27 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const sessionCode = generateSessionCode()
       const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
 
-      // Create session locally without API call for now
+      // Try to create session via API for network sharing
+      try {
+        const response = await fetch('/api/simple-api/sessions/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            code: sessionCode,
+            exercises: selectedExerciseData
+          })
+        })
+
+        if (response.ok) {
+          console.log('Session created via API for network sharing')
+        }
+      } catch (apiError) {
+        console.warn('API session creation failed, using localStorage only:', apiError)
+      }
+
+      // Always create session in localStorage as backup
       const session: Session = {
         code: sessionCode,
         exercises: selectedExerciseData,
@@ -74,7 +94,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
 
       setActiveSession(session)
       
-      // Store session in localStorage for student access
+      // Store session in localStorage for local access
       try {
         const sessionData = {
           code: sessionCode,
@@ -85,7 +105,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionData))
       } catch (storageError) {
         console.warn('Could not save session to localStorage:', storageError)
-        // Session still works, just won't persist across page reloads
       }
 
     } catch (error) {

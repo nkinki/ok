@@ -635,6 +635,30 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
+    // Check session exists (student)
+    if (path.includes('/api/simple-api/sessions/') && path.includes('/check') && method === 'GET') {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/check/)
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' })
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase()
+      const session = sessions.get(sessionCode)
+
+      if (!session || !session.isActive) {
+        return res.status(404).json({ error: 'Hibás kód vagy a munkamenet nem aktív' })
+      }
+
+      return res.json({
+        exists: true,
+        session: {
+          code: session.code,
+          exerciseCount: session.exercises.length,
+          isActive: session.isActive
+        }
+      })
+    }
+
     // Join session (student)
     if (path === '/api/simple-api/sessions/join' && method === 'POST') {
       const { name, className, sessionCode } = req.body

@@ -74,7 +74,32 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setError(null);
 
     try {
-      // First try to get session from localStorage (created by teacher)
+      // First try to check session via API (for network access)
+      try {
+        const response = await fetch(`/api/simple-api/sessions/${code}/check`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.exists) {
+            // Get exercises from API
+            const exercisesResponse = await fetch(`/api/simple-api/sessions/${code}/exercises`);
+            if (exercisesResponse.ok) {
+              const exercisesData = await exercisesResponse.json();
+              if (exercisesData.exercises && exercisesData.exercises.length > 0) {
+                setPlaylist(exercisesData.exercises);
+                setCurrentIndex(0);
+                setCompletedCount(0);
+                setStep('PLAYING');
+                return;
+              }
+            }
+          }
+        }
+      } catch (apiError) {
+        console.warn('API session check failed, trying localStorage:', apiError);
+      }
+
+      // Fallback to localStorage (for same browser access)
       const sessionKey = `session_${code.toUpperCase()}`;
       const sessionData = localStorage.getItem(sessionKey);
       
@@ -93,23 +118,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         }
       }
 
-      // Fallback to API if localStorage doesn't have the session
-      const response = await fetch(`/api/simple-api/sessions/${code}/exercises`);
+      // If both methods fail
+      throw new Error('Hibás tanári kód vagy a munkamenet nem aktív');
       
-      if (!response.ok) {
-        throw new Error('Hibás tanári kód vagy a munkamenet nem aktív');
-      }
-
-      const data = await response.json();
-      
-      if (data.exercises && data.exercises.length > 0) {
-        setPlaylist(data.exercises);
-        setCurrentIndex(0);
-        setCompletedCount(0);
-        setStep('PLAYING');
-      } else {
-        setError("Nincs elérhető feladat ehhez a kódhoz!");
-      }
     } catch (error) {
       console.error('Error loading session exercises:', error);
       setError("Hibás tanári kód vagy a munkamenet nem aktív!");

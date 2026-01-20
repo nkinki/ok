@@ -186,28 +186,6 @@ export default function TeacherExerciseCreator({ library, setLibrary, onExit }: 
     handleOpenFromLibrary(nextItem)
   }
 
-  const saveEditedData = (newData: ExerciseData, newImageUrl?: string) => {
-    setExerciseData(newData)
-    if (newImageUrl) {
-      setImageSrc(newImageUrl)
-    }
-
-    if (currentLibraryIndex !== null) {
-      setLibrary(prev => {
-        const next = [...prev]
-        if (next[currentLibraryIndex]) {
-          next[currentLibraryIndex] = { 
-            ...next[currentLibraryIndex], 
-            data: newData,
-            imageUrl: newImageUrl || next[currentLibraryIndex].imageUrl 
-          }
-        }
-        return next
-      })
-    }
-    setIsEditOpen(false)
-  }
-
   const renderSingleMode = () => {
     if (!imageSrc) {
       return (
@@ -309,11 +287,33 @@ export default function TeacherExerciseCreator({ library, setLibrary, onExit }: 
         onClose={() => setIsSettingsOpen(false)} 
       />
       <EditExerciseModal 
-        isOpen={isEditOpen} 
+        item={{
+          id: currentLibraryIndex?.toString() || 'temp',
+          fileName: 'Current Exercise',
+          data: exerciseData || { 
+            title: '', 
+            instruction: '', 
+            type: ExerciseType.QUIZ, 
+            content: { questions: [] } as any 
+          },
+          imageUrl: imageSrc || ''
+        }}
+        onSave={(updatedItem) => {
+          setExerciseData(updatedItem.data);
+          setImageSrc(updatedItem.imageUrl);
+          
+          if (currentLibraryIndex !== null) {
+            setLibrary(prev => {
+              const next = [...prev];
+              if (next[currentLibraryIndex]) {
+                next[currentLibraryIndex] = updatedItem;
+              }
+              return next;
+            });
+          }
+          setIsEditOpen(false);
+        }}
         onClose={() => setIsEditOpen(false)} 
-        exerciseData={exerciseData} 
-        imageSrc={imageSrc}
-        onSave={saveEditedData} 
       />
       <ReanalyzeModal isOpen={isReanalyzeOpen} onClose={() => setIsReanalyzeOpen(false)} onReanalyze={handleReanalyze} />
       
