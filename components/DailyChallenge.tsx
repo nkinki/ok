@@ -52,6 +52,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  const [currentSessionCode, setCurrentSessionCode] = useState<string | null>(sessionCode || null);
   
   const [playlist, setPlaylist] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,6 +69,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
   const handleStudentLogin = async (studentData: Student, code: string) => {
     setStudent(studentData);
+    setCurrentSessionCode(code);
     setLoading(true);
     setError(null);
 
@@ -199,11 +201,70 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         } catch (error) {
           console.error('Error submitting answer:', error);
         }
+      } else if (student && currentSessionCode) {
+        // Save result to localStorage-based session for teacher to see
+        try {
+          const resultData = {
+            studentName: student.name,
+            studentClass: student.className,
+            exerciseTitle: playlist[currentIndex].data.title,
+            exerciseType: playlist[currentIndex].data.type,
+            isCorrect,
+            score,
+            timeSpent,
+            completedAt: new Date().toISOString()
+          };
+          
+          // Get existing results for this session
+          const sessionKey = `session_${currentSessionCode}_results`;
+          const existingResults = localStorage.getItem(sessionKey);
+          const results = existingResults ? JSON.parse(existingResults) : [];
+          
+          // Add new result
+          results.push(resultData);
+          
+          // Save back to localStorage
+          localStorage.setItem(sessionKey, JSON.stringify(results));
+        } catch (error) {
+          console.error('Error saving result:', error);
+        }
       }
       
       if (currentIndex < playlist.length - 1) {
           setCurrentIndex(prev => prev + 1);
       } else {
+          // Session completed - save final summary
+          if (student && currentSessionCode) {
+            try {
+              const summaryData = {
+                studentName: student.name,
+                studentClass: student.className,
+                sessionCode: currentSessionCode,
+                totalExercises: playlist.length,
+                completedExercises: completedCount + 1,
+                completedAt: new Date().toISOString()
+              };
+              
+              const summaryKey = `session_${currentSessionCode}_summary`;
+              const existingSummaries = localStorage.getItem(summaryKey);
+              const summaries = existingSummaries ? JSON.parse(existingSummaries) : [];
+              
+              // Check if student already completed
+              const existingIndex = summaries.findIndex((s: any) => 
+                s.studentName === student.name && s.studentClass === student.className
+              );
+              
+              if (existingIndex >= 0) {
+                summaries[existingIndex] = summaryData;
+              } else {
+                summaries.push(summaryData);
+              }
+              
+              localStorage.setItem(summaryKey, JSON.stringify(summaries));
+            } catch (error) {
+              console.error('Error saving summary:', error);
+            }
+          }
           setStep('RESULT');
       }
   };
@@ -339,13 +400,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                    {currentItem.imageUrl ? (
                         <ImageViewer 
                           src={currentItem.imageUrl} 
-                          alt="Feladat forrása" 
-                          onImageUpdate={(newSrc) => {
-                            // Update the current item's image URL
-                            const updatedItem = { ...currentItem, imageUrl: newSrc };
-                            // You might want to save this back to the library
-                            console.log('Image updated:', newSrc);
-                          }}
+                          alt="Feladat forrása"
+                          // No onImageUpdate in student mode - students can't edit exercises
                         />
                    ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-500">Nincs elérhető kép</div>

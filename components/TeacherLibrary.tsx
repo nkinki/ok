@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { BulkResultItem } from './BulkProcessor'
+import EditExerciseModal from './EditExerciseModal'
 
 interface Props {
   library: BulkResultItem[]
@@ -11,6 +12,7 @@ interface Props {
 
 export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSingle, isMemoryMode = false }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [editingItem, setEditingItem] = useState<BulkResultItem | null>(null)
 
   const handleExportLibrary = () => {
     if (library.length === 0) return
@@ -131,6 +133,23 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
     onOpenSingle()
   }
 
+  const handleEditExercise = (item: BulkResultItem) => {
+    setEditingItem(item)
+  }
+
+  const handleSaveEdit = (updatedItem: BulkResultItem) => {
+    setLibrary(prev => prev.map(item => 
+      item.id === updatedItem.id ? updatedItem : item
+    ))
+    setEditingItem(null)
+  }
+
+  const handleDeleteExercise = (itemId: string) => {
+    if (confirm('Biztosan törölni szeretnéd ezt a feladatot?')) {
+      setLibrary(prev => prev.filter(item => item.id !== itemId))
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -202,13 +221,49 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
                 <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
                   {item.data.type}
                 </div>
+                {/* Edit button overlay */}
+                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleEditExercise(item)
+                    }}
+                    className="p-2 bg-white/90 hover:bg-white text-slate-700 hover:text-purple-600 rounded-full shadow-lg transition-all"
+                    title="Feladat szerkesztése"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div className="p-4">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-bold text-slate-800 truncate flex-1" title={item.data.title}>{item.data.title}</h3>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-1 text-slate-400 hover:text-brand-600 bg-slate-50 rounded border border-slate-200" title="Szerkesztés">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEditExercise(item)
+                      }}
+                      className="p-1 text-slate-400 hover:text-purple-600 bg-slate-50 rounded border border-slate-200" 
+                      title="Szerkesztés"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                      </svg>
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteExercise(item.id)
+                      }}
+                      className="p-1 text-slate-400 hover:text-red-600 bg-slate-50 rounded border border-slate-200" 
+                      title="Törlés"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -220,6 +275,15 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
             </div>
           ))}
         </div>
+      )}
+      
+      {/* Edit Exercise Modal */}
+      {editingItem && (
+        <EditExerciseModal
+          item={editingItem}
+          onSave={handleSaveEdit}
+          onClose={() => setEditingItem(null)}
+        />
       )}
     </div>
   )

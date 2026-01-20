@@ -19,6 +19,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [activeSession, setActiveSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showResults, setShowResults] = useState(false)
 
   const toggleExerciseSelection = (exerciseId: string) => {
     setSelectedExercises(prev => 
@@ -26,6 +27,24 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         ? prev.filter(id => id !== exerciseId)
         : [...prev, exerciseId]
     )
+  }
+
+  const getSessionResults = (sessionCode: string) => {
+    try {
+      const summaryKey = `session_${sessionCode}_summary`;
+      const resultsKey = `session_${sessionCode}_results`;
+      
+      const summaryData = localStorage.getItem(summaryKey);
+      const resultsData = localStorage.getItem(resultsKey);
+      
+      const summaries = summaryData ? JSON.parse(summaryData) : [];
+      const results = resultsData ? JSON.parse(resultsData) : [];
+      
+      return { summaries, results };
+    } catch (error) {
+      console.error('Error loading session results:', error);
+      return { summaries: [], results: [] };
+    }
   }
 
   const generateSessionCode = () => {
@@ -93,6 +112,107 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   }
 
   if (activeSession) {
+    const { summaries, results } = getSessionResults(activeSession.code);
+    
+    if (showResults) {
+      return (
+        <div className="max-w-6xl mx-auto p-6">
+          <div className="bg-white rounded-2xl p-8 shadow-lg">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">Munkamenet eredmények</h2>
+                <p className="text-slate-600">Kód: {activeSession.code}</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowResults(false)}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium"
+                >
+                  Vissza a munkamenethez
+                </button>
+                <button
+                  onClick={handleStopSession}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium"
+                >
+                  Munkamenet leállítása
+                </button>
+              </div>
+            </div>
+
+            {/* Student Summaries */}
+            <div className="mb-8">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">Résztvevő diákok ({summaries.length})</h3>
+              {summaries.length === 0 ? (
+                <p className="text-slate-500 italic">Még nincs befejezett munkamenet.</p>
+              ) : (
+                <div className="grid gap-4">
+                  {summaries.map((summary: any, idx: number) => (
+                    <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-bold text-slate-800">{summary.studentName}</h4>
+                          <p className="text-sm text-slate-600">{summary.studentClass}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-green-600">
+                            {summary.completedExercises}/{summary.totalExercises}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(summary.completedAt).toLocaleString('hu-HU')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Detailed Results */}
+            {results.length > 0 && (
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 mb-4">Részletes eredmények ({results.length})</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-100">
+                        <th className="text-left p-3 font-medium">Diák</th>
+                        <th className="text-left p-3 font-medium">Osztály</th>
+                        <th className="text-left p-3 font-medium">Feladat</th>
+                        <th className="text-left p-3 font-medium">Típus</th>
+                        <th className="text-center p-3 font-medium">Eredmény</th>
+                        <th className="text-center p-3 font-medium">Idő</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {results.map((result: any, idx: number) => (
+                        <tr key={idx} className="border-b border-slate-200">
+                          <td className="p-3">{result.studentName}</td>
+                          <td className="p-3">{result.studentClass}</td>
+                          <td className="p-3 max-w-xs truncate" title={result.exerciseTitle}>
+                            {result.exerciseTitle}
+                          </td>
+                          <td className="p-3">{result.exerciseType}</td>
+                          <td className="p-3 text-center">
+                            {result.isCorrect ? (
+                              <span className="text-green-600 font-bold">✓</span>
+                            ) : (
+                              <span className="text-red-600 font-bold">✗</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">{result.timeSpent}s</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
@@ -110,8 +230,22 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             A diákok ezzel a kóddal csatlakozhatnak a feladatokhoz.
             <br />
             Összesen {activeSession.exercises.length} feladat van kiválasztva.
+            <br />
+            {summaries.length > 0 && (
+              <span className="font-bold">
+                {summaries.length} diák fejezte be a munkamenetet.
+              </span>
+            )}
           </p>
           <div className="flex gap-4 justify-center">
+            {summaries.length > 0 && (
+              <button
+                onClick={() => setShowResults(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
+              >
+                Eredmények megtekintése ({summaries.length})
+              </button>
+            )}
             <button
               onClick={handleStopSession}
               className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium"

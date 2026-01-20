@@ -1,18 +1,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ExerciseData, ExerciseType, MatchingContent, CategorizationContent, QuizContent } from '../types';
+import { BulkResultItem } from './BulkProcessor';
 
 interface Props {
-  isOpen: boolean;
+  item: BulkResultItem;
+  onSave: (updatedItem: BulkResultItem) => void;
   onClose: () => void;
-  exerciseData: ExerciseData | null;
-  imageSrc?: string | null;
-  onSave: (data: ExerciseData, newImage?: string) => void;
 }
 
-const EditExerciseModal: React.FC<Props> = ({ isOpen, onClose, exerciseData, imageSrc, onSave }) => {
+const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
   const [activeTab, setActiveTab] = useState<'CONTENT' | 'IMAGE'>('CONTENT');
-  const [formData, setFormData] = useState<ExerciseData | null>(null);
+  const [formData, setFormData] = useState<ExerciseData>(item.data);
   
   // Crop state
   const [crop, setCrop] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
@@ -20,23 +19,21 @@ const EditExerciseModal: React.FC<Props> = ({ isOpen, onClose, exerciseData, ima
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (exerciseData) {
-      setFormData(JSON.parse(JSON.stringify(exerciseData))); // Deep copy
-    }
-  }, [exerciseData, isOpen]);
+    setFormData(item.data);
+  }, [item]);
 
   // Load image for cropping
   useEffect(() => {
-      if (imageSrc && isOpen) {
+      if (item.imageUrl) {
           const img = new Image();
-          img.src = imageSrc;
+          img.src = item.imageUrl;
           img.onload = () => {
               setOriginalImage(img);
               // Reset crop
               setCrop({ top: 0, bottom: 0, left: 0, right: 0 });
           };
       }
-  }, [imageSrc, isOpen]);
+  }, [item.imageUrl]);
 
   // Render crop preview
   useEffect(() => {
@@ -81,7 +78,7 @@ const EditExerciseModal: React.FC<Props> = ({ isOpen, onClose, exerciseData, ima
       }
   }, [activeTab, crop, originalImage]);
 
-  if (!isOpen || !formData) return null;
+  if (!formData) return null;
 
   const handleSave = () => {
     if (formData) {
@@ -100,12 +97,29 @@ const EditExerciseModal: React.FC<Props> = ({ isOpen, onClose, exerciseData, ima
                  
                  ctx.drawImage(originalImage, finalX, finalY, finalW, finalH, 0, 0, finalW, finalH);
                  const newImageUrl = canvas.toDataURL('image/jpeg', 0.9);
-                 onSave(formData, newImageUrl);
+                 
+                 // Create updated item with new image
+                 const updatedItem: BulkResultItem = {
+                   ...item,
+                   data: formData,
+                   imageUrl: newImageUrl
+                 };
+                 onSave(updatedItem);
              } else {
-                 onSave(formData);
+                 // Create updated item without image change
+                 const updatedItem: BulkResultItem = {
+                   ...item,
+                   data: formData
+                 };
+                 onSave(updatedItem);
              }
         } else {
-            onSave(formData);
+            // Create updated item with only data changes
+            const updatedItem: BulkResultItem = {
+              ...item,
+              data: formData
+            };
+            onSave(updatedItem);
         }
         onClose();
     }
@@ -293,7 +307,7 @@ const EditExerciseModal: React.FC<Props> = ({ isOpen, onClose, exerciseData, ima
               >
                   Tartalom
               </button>
-              {imageSrc && (
+              {item.imageUrl && (
                 <button 
                     onClick={() => setActiveTab('IMAGE')}
                     className={`px-4 py-2 font-bold text-xs rounded-t-lg transition-colors ${activeTab === 'IMAGE' ? 'bg-white text-brand-900 border-t-2 border-brand-600 shadow-sm' : 'text-brand-700 hover:bg-brand-200'}`}
