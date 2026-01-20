@@ -175,6 +175,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<BulkResultItem | null>(null);
   const [isMemoryMode, setIsMemoryMode] = useState(false)
+  const [showPreview, setShowPreview] = useState(false);
   
   // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -335,7 +336,18 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
       </nav>
 
       <main>
-        {viewMode === 'BULK' && (
+        {showPreview && selectedExercise && (
+          <DailyChallenge 
+            library={[selectedExercise]}
+            onExit={() => {
+              setShowPreview(false);
+              setSelectedExercise(null);
+            }}
+            isStudentMode={false}
+            isPreviewMode={true}
+          />
+        )}
+        {!showPreview && viewMode === 'BULK' && (
           <BulkProcessor 
             onAnalysisComplete={handleBulkComplete} 
             existingLibrary={library} 
@@ -343,21 +355,21 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             onExit={() => setViewMode('LIBRARY')} 
           />
         )}
-        {viewMode === 'SESSION' && (
+        {!showPreview && viewMode === 'SESSION' && (
           <TeacherSessionManager 
             library={library} 
             onExit={onBackToRoleSelect}
             onLibraryUpdate={handleLibraryUpdate}
           />
         )}
-        {viewMode === 'LIBRARY' && (
+        {!showPreview && viewMode === 'LIBRARY' && (
           <TeacherLibrary 
             library={library}
             setLibrary={setLibrary}
             onExit={() => setViewMode('BULK')}
             onOpenSingle={(item) => {
               setSelectedExercise(item);
-              setViewMode('SINGLE');
+              setShowPreview(true);
             }}
             isMemoryMode={isMemoryMode}
           />
