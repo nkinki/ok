@@ -48,6 +48,20 @@ interface Session {
 const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = false, sessionCode }) => {
   const [step, setStep] = useState<DailyStep>(isStudentMode ? 'LOGIN' : 'ASSIGNMENTS');
   const [student, setStudent] = useState<Student | null>(null);
+
+  // ESC key handler for closing
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onExit();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onExit]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
@@ -515,7 +529,22 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       <div className="sticky top-0 z-20 bg-slate-50 p-6 pb-2 border-b border-slate-200 mb-4 shadow-sm opacity-95 backdrop-blur">
                           <div className="flex justify-between items-center mb-4">
                               <span className="font-bold text-purple-900">Napi Kihívás</span>
-                              <span className="text-sm font-medium text-slate-500">{student?.name} - {student?.className}</span>
+                              <div className="flex items-center gap-3">
+                                  <span className="text-sm font-medium text-slate-500">{student?.name} - {student?.className}</span>
+                                  <button
+                                      onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          onExit();
+                                      }}
+                                      className="p-1 hover:bg-slate-200 rounded-full transition-colors"
+                                      title="Bezárás"
+                                  >
+                                      <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                  </button>
+                              </div>
                           </div>
                           
                           <div className="w-full bg-slate-200 rounded-full h-2 mb-4">
