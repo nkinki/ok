@@ -240,12 +240,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
       // If both methods failed
       if (!sessionFound) {
-        throw new Error('Hibás tanári kód vagy a munkamenet nem aktív');
+        throw new Error('A megadott tanári kód nem található vagy a munkamenet nem aktív. Kérj új kódot a tanártól!');
       }
       
     } catch (error) {
       console.error('❌ Error loading session exercises:', error);
-      setError("Hibás tanári kód vagy a munkamenet nem aktív!");
+      setError("A megadott tanári kód nem található vagy a munkamenet nem aktív. Kérj új kódot a tanártól!");
     } finally {
       setLoading(false);
     }
