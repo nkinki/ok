@@ -6,6 +6,7 @@ import AuthPage from './components/auth/AuthPage';
 import TeacherSessionManager from './components/TeacherSessionManager';
 // TeacherExerciseCreator removed - not used in current implementation
 import TeacherLibrary from './components/TeacherLibrary';
+import AdvancedLibraryManager from './components/AdvancedLibraryManager';
 import DailyChallenge from './components/DailyChallenge';
 import BulkProcessor, { BulkResultItem } from './components/BulkProcessor';
 import SettingsModal from './components/SettingsModal';
@@ -176,7 +177,7 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
 
 // Teacher App Component (full functionality with session manager first to show history)
 function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
-  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'LIBRARY'>('BULK')
+  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'LIBRARY' | 'ADVANCED_LIBRARY'>('BULK')
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<BulkResultItem | null>(null);
   const [isMemoryMode, setIsMemoryMode] = useState(false)
@@ -318,6 +319,15 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
               Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-bold">{library.length}</span>}
             </button>
             
+            <button 
+              onClick={() => setViewMode('ADVANCED_LIBRARY')} 
+              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                viewMode === 'ADVANCED_LIBRARY' ? 'bg-green-50 text-green-800' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              📚 Fejlett Könyvtár
+            </button>
+            
             <div className="h-8 w-px bg-slate-200 mx-1"></div>
             
             <button 
@@ -373,6 +383,18 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
         )}
         {!showPreview && viewMode === 'LIBRARY' && (
           <TeacherLibrary 
+            library={library}
+            setLibrary={setLibrary}
+            onExit={() => setViewMode('BULK')}
+            onOpenSingle={(item) => {
+              setSelectedExercise(item);
+              setShowPreview(true);
+            }}
+            isMemoryMode={isMemoryMode}
+          />
+        )}
+        {!showPreview && viewMode === 'ADVANCED_LIBRARY' && (
+          <AdvancedLibraryManager 
             library={library}
             setLibrary={setLibrary}
             onExit={() => setViewMode('BULK')}
