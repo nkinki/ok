@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     const path = url?.split('?')[0] || '';
 
     // Health check
-    if (method === 'GET' && path === '/api/test') {
+    if (method === 'GET' && (path === '/api/test' || path === '/api/simple-api')) {
       return res.status(200).json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
