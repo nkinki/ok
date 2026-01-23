@@ -452,7 +452,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                       <p className="text-slate-500 italic text-sm">Nincs befejezett munkamenet</p>
                     ) : (
                       <div className="space-y-2">
-                        {session.summaries.map((summary: any, idx: number) => (
+                        {(session.summaries || []).map((summary: any, idx: number) => (
                           <div key={idx} className="bg-slate-50 rounded p-3 text-sm">
                             <div className="flex justify-between items-center">
                               <div>
@@ -488,13 +488,13 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                         <div className="flex justify-between">
                           <span>Helyes válaszok:</span>
                           <span className="font-bold text-green-600">
-                            {session.results.filter((r: any) => r.isCorrect).length}
+                            {(session.results || []).filter((r: any) => r.isCorrect).length}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Hibás válaszok:</span>
                           <span className="font-bold text-red-600">
-                            {session.results.filter((r: any) => !r.isCorrect).length}
+                            {(session.results || []).filter((r: any) => !r.isCorrect).length}
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -550,7 +550,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                 <p className="text-slate-500 italic">Még nincs befejezett munkamenet.</p>
               ) : (
                 <div className="grid gap-4">
-                  {summaries.map((summary: any, idx: number) => (
+                  {(summaries || []).map((summary: any, idx: number) => (
                     <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                       <div className="flex justify-between items-center">
                         <div>
@@ -589,7 +589,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                       </tr>
                     </thead>
                     <tbody>
-                      {results.map((result: any, idx: number) => (
+                      {(results || []).map((result: any, idx: number) => (
                         <tr key={idx} className="border-b border-slate-200">
                           <td className="p-3">{result.studentName}</td>
                           <td className="p-3">{result.studentClass}</td>

@@ -92,7 +92,7 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
             student.currentExercise = summary.completedExercises;
           }
 
-          if (studentResults.length > 0) {
+          if ((studentResults || []).length > 0) {
             student.results = studentResults.map((r: any) => ({
               exerciseIndex: 0,
               exerciseTitle: r.exerciseTitle,
@@ -102,7 +102,7 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
               completedAt: r.completedAt
             }));
             student.totalScore = (studentResults || []).reduce((sum: number, r: any) => sum + (r.score || 0), 0);
-            student.completedExercises = Math.max(student.completedExercises, studentResults.length);
+            student.completedExercises = Math.max(student.completedExercises, (studentResults || []).length);
           }
         });
 
@@ -141,12 +141,12 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
           }
         });
 
-        sessionData.totalStudents = students.length;
+        sessionData.totalStudents = (students || []).length;
         setSessionStatus(sessionData);
       } else {
         // Fallback: create session status from localStorage only
         const sessionData = localStorage.getItem(`session_${sessionCode}`);
-        if (sessionData || summaries.length > 0) {
+        if (sessionData || (summaries || []).length > 0) {
           const session = sessionData ? JSON.parse(sessionData) : null;
           
           const fallbackStatus: SessionStatus = {
@@ -180,7 +180,7 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
               };
             }),
             onlineCount: 0,
-            totalStudents: summaries.length
+            totalStudents: (summaries || []).length
           };
           
           setSessionStatus(fallbackStatus);
@@ -216,7 +216,7 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
     csvData.push(['Diák neve', 'Osztály', 'Csatlakozás', 'Online', 'Jelenlegi feladat', 'Befejezett', 'Pontszám', 'Feladat címe', 'Helyes', 'Pont', 'Idő (mp)', 'Befejezve']);
 
     sessionStatus.students.forEach(student => {
-      if (student.results.length === 0) {
+      if ((student.results || []).length === 0) {
         csvData.push([
           student.name,
           student.className,
@@ -364,9 +364,9 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
 
         {/* Students List */}
         <div className="flex-1 overflow-y-auto p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Diákok ({sessionStatus.students.length})</h3>
+          <h3 className="text-lg font-bold text-gray-800 mb-4">Diákok ({(sessionStatus.students || []).length})</h3>
           
-          {sessionStatus.students.length === 0 ? (
+          {(sessionStatus.students || []).length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <div className="text-4xl mb-2">👥</div>
               <p>Még nincs csatlakozott diák</p>
@@ -408,7 +408,7 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
                   </div>
 
                   {/* Recent Results */}
-                  {student.results.length > 0 && (
+                  {(student.results || []).length > 0 && (
                     <div className="mt-3">
                       <h5 className="text-sm font-bold text-gray-700 mb-2">Legutóbbi eredmények:</h5>
                       <div className="flex gap-2 flex-wrap">
