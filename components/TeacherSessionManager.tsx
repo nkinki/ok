@@ -18,7 +18,7 @@ interface Session {
 }
 
 export default function TeacherSessionManager({ library, onExit, onLibraryUpdate }: Props) {
-  const { currentSubject, subjectDisplayName, subjectTheme, isAuthenticated: isSubjectAuthenticated } = useSubject()
+  const { currentSubject, subjectDisplayName, subjectTheme, isAuthenticated: isSubjectAuthenticated, login } = useSubject()
   const [selectedExercises, setSelectedExercises] = useState<string[]>([])
   const [activeSession, setActiveSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(false)
@@ -52,21 +52,18 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
               ].map((subj) => (
                 <button
                   key={subj.subject}
-                  onClick={() => {
-                    // Auto-login with subject password
-                    fetch('/api/simple-api/auth/subject', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ password: subj.password })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                      if (data.success) {
-                        // Update subject context
-                        window.location.reload(); // Simple reload for now
+                  onClick={async () => {
+                    // Use the SubjectContext login function
+                    try {
+                      const success = await login(subj.password);
+                      if (!success) {
+                        alert(`Bejelentkezési hiba: ${subj.name}`);
                       }
-                    })
-                    .catch(console.error);
+                      // If successful, the component will re-render automatically
+                    } catch (error) {
+                      console.error('Subject login error:', error);
+                      alert('Hálózati hiba történt. Próbáld újra!');
+                    }
                   }}
                   className={`w-full p-4 rounded-xl border-2 hover:shadow-md transition-all text-left bg-${subj.color}-50 border-${subj.color}-200 hover:border-${subj.color}-300`}
                 >
