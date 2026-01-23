@@ -1,6 +1,30 @@
 // Production API for fixed rooms system and teacher-student assignments
 import { VercelRequest, VercelResponse } from '@vercel/node'
 
+// Import Supabase - database-only storage
+let supabase: any = null;
+let supabaseError: string | null = null;
+
+try {
+  const { createClient } = require('@supabase/supabase-js');
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  
+  if (!supabaseUrl || !supabaseKey) {
+    supabaseError = 'Supabase credentials missing in environment variables';
+    console.error('❌ Supabase credentials missing:', { 
+      hasUrl: !!supabaseUrl, 
+      hasKey: !!supabaseKey 
+    });
+  } else {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('✅ Supabase client initialized');
+  }
+} catch (error) {
+  supabaseError = `Supabase initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+  console.error('❌ Supabase initialization failed:', error);
+}
+
 // In-memory storage (will reset on each function invocation)
 // For production, consider using a database or external storage
 let rooms = new Map()
@@ -17,8 +41,7 @@ let studentSessions = new Map()
 let studentAnswers = new Map()
 let teachers = new Map()
 
-// Session management storage
-let sessions = new Map()
+// Session management now uses Supabase instead of in-memory storage
 
 // Initialize fixed rooms and sample data
 function initializeFixedRooms() {
@@ -85,7 +108,7 @@ function initializeFixedRooms() {
   }
 }
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
@@ -93,6 +116,16 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
+  }
+
+  // Check Supabase availability for database operations
+  if (!supabase && supabaseError) {
+    console.error('Supabase not available:', supabaseError);
+    return res.status(500).json({ 
+      error: 'Adatbázis nem elérhető', 
+      details: supabaseError,
+      timestamp: new Date().toISOString()
+    });
   }
 
   // Initialize rooms on first request
@@ -610,7 +643,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 
     // === SESSION MANAGEMENT ENDPOINTS ===
 
-    // Create session (teacher)
+    // Create session (teacher) - Database only with fallback
     if (path === '/api/simple-api/sessions/create' && method === 'POST') {
       const { code, exercises } = req.body
 
@@ -618,24 +651,74 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Kód és feladatok megadása kötelező' })
       }
 
-      const session = {
-        code: code.toUpperCase(),
-        exercises,
-        createdAt: new Date(),
-        isActive: true,
-        students: []
+      if (!supabase) {
+        return res.status(500).json({ 
+          error: 'Adatbázis nem elérhető',
+          details: supabaseError || 'Supabase client not initialized',
+          solution: 'Ellenőrizd a Supabase beállításokat a .env.local fájlban'
+        })
       }
 
-      sessions.set(code.toUpperCase(), session)
+      try {
+        console.log('🗄️ Creating session in database with code:', code.toUpperCase());
+        
+        // Create session in database
+        const { data, error } = await supabase
+          .from('teacher_sessions')
+          .insert({
+            session_code: code.toUpperCase(),
+            exercises: exercises,
+            is_active: true,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          })
+          .select()
+          .single()
 
-      return res.json({
-        success: true,
-        session,
-        message: 'Munkamenet sikeresen létrehozva'
-      })
+        if (error) {
+          console.error('❌ Database error:', error)
+          
+          // If table doesn't exist, provide helpful error
+          if (error.code === 'PGRST205') {
+            return res.status(500).json({ 
+              error: 'A teacher_sessions tábla nem létezik az adatbázisban',
+              details: 'Futtasd le a create-missing-tables.sql fájlt a Supabase SQL Editor-ban',
+              sqlFile: 'create-missing-tables.sql',
+              code: error.code
+            })
+          }
+          
+          return res.status(500).json({ 
+            error: 'Adatbázis hiba a munkamenet létrehozásakor',
+            details: error.message,
+            code: error.code
+          })
+        }
+
+        console.log('✅ Session created successfully:', data.session_code);
+
+        return res.json({
+          success: true,
+          session: {
+            id: data.id,
+            code: data.session_code,
+            exercises: data.exercises,
+            isActive: data.is_active,
+            createdAt: data.created_at,
+            expiresAt: data.expires_at
+          },
+          message: 'Munkamenet sikeresen létrehozva az adatbázisban'
+        })
+
+      } catch (error) {
+        console.error('❌ Session creation error:', error)
+        return res.status(500).json({ 
+          error: 'Szerver hiba a munkamenet létrehozásakor',
+          details: error instanceof Error ? error.message : 'Ismeretlen hiba'
+        })
+      }
     }
 
-    // Check session exists (student)
+    // Check session exists (student) - Database only
     if (path.includes('/api/simple-api/sessions/') && path.includes('/check') && method === 'GET') {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/check/)
       if (!codeMatch) {
@@ -643,26 +726,58 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const sessionCode = codeMatch[1].toUpperCase()
-      const session = sessions.get(sessionCode)
-
-      if (!session || !session.isActive) {
-        return res.json({ 
-          exists: false, 
-          error: 'Hibás kód vagy a munkamenet nem aktív' 
+      
+      if (!supabase) {
+        return res.status(500).json({ 
+          error: 'Adatbázis nem elérhető',
+          details: supabaseError || 'Supabase client not initialized'
         })
       }
+      
+      try {
+        console.log('🔍 Checking session in database:', sessionCode);
+        
+        const { data, error } = await supabase
+          .from('teacher_sessions')
+          .select('*')
+          .eq('session_code', sessionCode)
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .single()
 
-      return res.json({
-        exists: true,
-        session: {
-          code: session.code,
-          exerciseCount: session.exercises.length,
-          isActive: session.isActive
+        if (error || !data) {
+          console.log('❌ Session not found in database:', error?.message || 'No data');
+          return res.json({ 
+            exists: false, 
+            error: 'Hibás kód vagy a munkamenet nem aktív',
+            hint: 'A munkamenet lehet, hogy lejárt (24 óra után). Kérj új kódot a tanártól!'
+          })
         }
-      })
+
+        console.log('✅ Session found in database:', data.session_code);
+        
+        return res.json({
+          exists: true,
+          session: {
+            id: data.id,
+            code: data.session_code,
+            exerciseCount: data.exercises.length,
+            isActive: data.is_active,
+            expiresAt: data.expires_at
+          },
+          storage: 'database'
+        })
+        
+      } catch (error) {
+        console.error('❌ Session check error:', error)
+        return res.status(500).json({ 
+          error: 'Szerver hiba a munkamenet ellenőrzésekor',
+          details: error instanceof Error ? error.message : 'Ismeretlen hiba'
+        })
+      }
     }
 
-    // Join session (student)
+    // Join session (student) - Database only
     if (path === '/api/simple-api/sessions/join' && method === 'POST') {
       const { name, className, sessionCode } = req.body
 
@@ -670,55 +785,95 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Név, osztály és kód megadása kötelező' })
       }
 
-      const session = sessions.get(sessionCode.toUpperCase())
-      if (!session || !session.isActive) {
-        return res.status(404).json({ error: 'Hibás kód vagy a munkamenet nem aktív' })
-      }
-
-      // Check if student already joined
-      const existingStudent = session.students.find(s => 
-        s.name.toLowerCase() === name.toLowerCase() && 
-        s.className.toLowerCase() === className.toLowerCase()
-      )
-
-      if (existingStudent) {
-        // Update last seen time
-        existingStudent.lastSeen = new Date()
-        existingStudent.isOnline = true
-        sessions.set(sessionCode.toUpperCase(), session)
-        
-        return res.json({
-          success: true,
-          student: existingStudent,
-          message: 'Újracsatlakozás sikeres'
+      if (!supabase) {
+        return res.status(500).json({ 
+          error: 'Adatbázis nem elérhető',
+          details: supabaseError || 'Supabase client not initialized'
         })
       }
 
-      const student = {
-        id: generateId(),
-        name: name.trim(),
-        className: className.trim(),
-        joinedAt: new Date(),
-        lastSeen: new Date(),
-        isOnline: true,
-        currentExercise: 0,
-        completedExercises: 0,
-        totalScore: 0,
-        results: []
+      try {
+        console.log('🚪 Student joining session:', { name, className, sessionCode: sessionCode.toUpperCase() });
+        
+        // First check if session exists and is active
+        const { data: session, error: sessionError } = await supabase
+          .from('teacher_sessions')
+          .select('*')
+          .eq('session_code', sessionCode.toUpperCase())
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .single()
+
+        if (sessionError || !session) {
+          console.log('❌ Session not found for join:', sessionError?.message);
+          return res.status(404).json({ error: 'Hibás kód vagy a munkamenet nem aktív' })
+        }
+
+        // Check if student already joined
+        const { data: existingParticipant, error: participantError } = await supabase
+          .from('session_participants')
+          .select('*')
+          .eq('session_id', session.id)
+          .eq('student_name', name.trim())
+          .eq('student_class', className.trim())
+          .single()
+
+        if (existingParticipant) {
+          console.log('🔄 Student rejoining session:', existingParticipant.id);
+          
+          // Update last seen time
+          await supabase
+            .from('session_participants')
+            .update({ 
+              last_seen: new Date().toISOString(),
+              is_online: true 
+            })
+            .eq('id', existingParticipant.id)
+          
+          return res.json({
+            success: true,
+            student: existingParticipant,
+            message: 'Újracsatlakozás sikeres'
+          })
+        }
+
+        // Create new participant
+        const { data: newParticipant, error: createError } = await supabase
+          .from('session_participants')
+          .insert({
+            session_id: session.id,
+            student_name: name.trim(),
+            student_class: className.trim(),
+            joined_at: new Date().toISOString(),
+            last_seen: new Date().toISOString(),
+            is_online: true,
+            current_exercise: 0,
+            completed_exercises: 0,
+            total_score: 0,
+            results: []
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('❌ Participant creation error:', createError)
+          return res.status(500).json({ error: 'Hiba a csatlakozáskor' })
+        }
+
+        console.log('✅ New participant created:', newParticipant.id);
+
+        return res.json({
+          success: true,
+          student: newParticipant,
+          message: 'Sikeresen csatlakoztál a munkamenethez'
+        })
+      } catch (error) {
+        console.error('❌ Session join error:', error)
+        return res.status(500).json({ error: 'Szerver hiba a csatlakozáskor' })
       }
-
-      // Add student to session
-      session.students.push(student)
-      sessions.set(sessionCode.toUpperCase(), session)
-
-      return res.json({
-        success: true,
-        student,
-        message: 'Sikeresen csatlakoztál a munkamenethez'
-      })
     }
 
-    // Get session exercises (student)
+    // Get session exercises (student) - Database only
     if (path.includes('/api/simple-api/sessions/') && path.includes('/exercises') && method === 'GET') {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/exercises/)
       if (!codeMatch) {
@@ -726,20 +881,64 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const sessionCode = codeMatch[1].toUpperCase()
-      const session = sessions.get(sessionCode)
-
-      if (!session || !session.isActive) {
-        return res.status(404).json({ error: 'Munkamenet nem található vagy nem aktív' })
+      
+      if (!supabase) {
+        return res.status(500).json({ 
+          error: 'Adatbázis nem elérhető',
+          details: supabaseError || 'Supabase client not initialized'
+        })
       }
+      
+      try {
+        console.log('📚 Getting exercises for session:', sessionCode);
+        
+        const { data, error } = await supabase
+          .from('teacher_sessions')
+          .select('*')
+          .eq('session_code', sessionCode)
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .single()
 
-      return res.json({
-        exercises: session.exercises,
-        count: session.exercises.length,
-        sessionCode: session.code
-      })
+        if (error || !data) {
+          console.log('❌ Session not found for exercises:', error?.message);
+          return res.status(404).json({ 
+            error: 'Munkamenet nem található vagy nem aktív',
+            hint: 'A munkamenet lehet, hogy lejárt. Kérj új kódot a tanártól!'
+          })
+        }
+
+        console.log('✅ Exercises found:', data.exercises.length);
+
+        return res.json({
+          exercises: data.exercises,
+          count: data.exercises.length,
+          sessionCode: data.session_code,
+          storage: 'database'
+        })
+        
+      } catch (error) {
+        console.error('❌ Session exercises error:', error)
+        return res.status(500).json({ 
+          error: 'Szerver hiba a feladatok lekérésekor',
+          details: error instanceof Error ? error.message : 'Ismeretlen hiba'
+        })
+      }
+    }
+            count: session.exercises.length,
+            sessionCode: session.code,
+            storage: 'memory'
+          })
+        }
+
+        return res.status(404).json({ 
+          error: 'Munkamenet nem található vagy nem aktív',
+          hint: 'Adatbázis nem elérhető és memóriában sem található session'
+        })
+      }
     }
 
-    // Stop session (teacher)
+    // Stop session (teacher) - Now using Supabase
     if (path.includes('/api/simple-api/sessions/') && path.includes('/stop') && method === 'POST') {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/stop/)
       if (!codeMatch) {
@@ -747,23 +946,30 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const sessionCode = codeMatch[1].toUpperCase()
-      const session = sessions.get(sessionCode)
 
-      if (!session) {
-        return res.status(404).json({ error: 'Munkamenet nem található' })
+      try {
+        const { data, error } = await supabase
+          .from('teacher_sessions')
+          .update({ is_active: false })
+          .eq('session_code', sessionCode)
+          .select()
+          .single()
+
+        if (error || !data) {
+          return res.status(404).json({ error: 'Munkamenet nem található' })
+        }
+
+        return res.json({
+          success: true,
+          message: 'Munkamenet leállítva'
+        })
+      } catch (error) {
+        console.error('Session stop error:', error)
+        return res.status(500).json({ error: 'Hiba a munkamenet leállításakor' })
       }
-
-      session.isActive = false
-      session.endedAt = new Date()
-      sessions.set(sessionCode, session)
-
-      return res.json({
-        success: true,
-        message: 'Munkamenet leállítva'
-      })
     }
 
-    // Delete session (teacher)
+    // Delete session (teacher) - Now using Supabase
     if (path.includes('/api/simple-api/sessions/') && path.includes('/delete') && method === 'DELETE') {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/delete/)
       if (!codeMatch) {
@@ -771,34 +977,52 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const sessionCode = codeMatch[1].toUpperCase()
-      const session = sessions.get(sessionCode)
 
-      if (!session) {
-        return res.status(404).json({ error: 'Munkamenet nem található' })
+      try {
+        const { error } = await supabase
+          .from('teacher_sessions')
+          .delete()
+          .eq('session_code', sessionCode)
+
+        if (error) {
+          console.error('Session delete error:', error)
+          return res.status(500).json({ error: 'Hiba a munkamenet törlésekor' })
+        }
+
+        return res.json({
+          success: true,
+          message: 'Munkamenet törölve'
+        })
+      } catch (error) {
+        console.error('Session delete error:', error)
+        return res.status(500).json({ error: 'Szerver hiba a munkamenet törlésekor' })
       }
-
-      // Remove session from memory
-      sessions.delete(sessionCode)
-
-      return res.json({
-        success: true,
-        message: 'Munkamenet törölve'
-      })
     }
 
-    // Delete all sessions (teacher)
+    // Delete all sessions (teacher) - Now using Supabase
     if (path === '/api/simple-api/sessions/delete-all' && method === 'DELETE') {
-      // Clear all sessions from memory
-      sessions.clear()
+      try {
+        const { error } = await supabase
+          .from('teacher_sessions')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all
 
-      return res.json({
-        success: true,
-        message: 'Összes munkamenet törölve',
-        deletedCount: sessions.size
-      })
+        if (error) {
+          console.error('All sessions delete error:', error)
+          return res.status(500).json({ error: 'Hiba az összes munkamenet törlésekor' })
+        }
+
+        return res.json({
+          success: true,
+          message: 'Összes munkamenet törölve az adatbázisból'
+        })
+      } catch (error) {
+        console.error('All sessions delete error:', error)
+        return res.status(500).json({ error: 'Szerver hiba az összes munkamenet törlésekor' })
+      }
     }
 
-    // Get session status (teacher)
+    // Get session status (teacher) - Now using Supabase
     if (path.includes('/api/simple-api/sessions/') && path.includes('/status') && method === 'GET') {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/status/)
       if (!codeMatch) {
@@ -806,35 +1030,51 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const sessionCode = codeMatch[1].toUpperCase()
-      const session = sessions.get(sessionCode)
 
-      if (!session) {
-        return res.status(404).json({ error: 'Munkamenet nem található' })
-      }
+      try {
+        // Get session with participants
+        const { data: session, error: sessionError } = await supabase
+          .from('teacher_sessions')
+          .select(`
+            *,
+            session_participants (*)
+          `)
+          .eq('session_code', sessionCode)
+          .single()
 
-      // Update online status (consider offline if not seen in last 30 seconds)
-      const now = new Date()
-      session.students.forEach(student => {
-        const timeSinceLastSeen = now.getTime() - new Date(student.lastSeen).getTime()
-        student.isOnline = timeSinceLastSeen < 30000 // 30 seconds
-      })
-
-      return res.json({
-        success: true,
-        session: {
-          code: session.code,
-          isActive: session.isActive,
-          createdAt: session.createdAt,
-          endedAt: session.endedAt || null,
-          totalExercises: session.exercises.length,
-          students: session.students,
-          onlineCount: session.students.filter(s => s.isOnline).length,
-          totalStudents: session.students.length
+        if (sessionError || !session) {
+          return res.status(404).json({ error: 'Munkamenet nem található' })
         }
-      })
+
+        // Update online status (consider offline if not seen in last 30 seconds)
+        const now = new Date()
+        const participants = session.session_participants || []
+        
+        participants.forEach((participant: any) => {
+          const timeSinceLastSeen = now.getTime() - new Date(participant.last_seen).getTime()
+          participant.is_online = timeSinceLastSeen < 30000 // 30 seconds
+        })
+
+        return res.json({
+          success: true,
+          session: {
+            code: session.session_code,
+            isActive: session.is_active,
+            createdAt: session.created_at,
+            expiresAt: session.expires_at,
+            totalExercises: session.exercises.length,
+            students: participants,
+            onlineCount: participants.filter((s: any) => s.is_online).length,
+            totalStudents: participants.length
+          }
+        })
+      } catch (error) {
+        console.error('Session status error:', error)
+        return res.status(500).json({ error: 'Hiba a munkamenet állapotának lekérésekor' })
+      }
     }
 
-    // Submit exercise result (student)
+    // Submit exercise result (student) - Now using Supabase
     if (path.includes('/api/simple-api/sessions/') && path.includes('/result') && method === 'POST') {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/result/)
       if (!codeMatch) {
@@ -848,53 +1088,81 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Diák ID és feladat index megadása kötelező' })
       }
 
-      const session = sessions.get(sessionCode)
-      if (!session || !session.isActive) {
-        return res.status(404).json({ error: 'Munkamenet nem található vagy nem aktív' })
-      }
+      try {
+        // Get session and participant
+        const { data: session, error: sessionError } = await supabase
+          .from('teacher_sessions')
+          .select('*')
+          .eq('session_code', sessionCode)
+          .eq('is_active', true)
+          .single()
 
-      const student = session.students.find(s => s.id === studentId)
-      if (!student) {
-        return res.status(404).json({ error: 'Diák nem található' })
-      }
-
-      // Update student progress
-      student.lastSeen = new Date()
-      student.isOnline = true
-      student.currentExercise = Math.max(student.currentExercise, exerciseIndex + 1)
-      
-      if (isCorrect) {
-        student.completedExercises += 1
-        student.totalScore += score || 1
-      }
-
-      // Add result
-      const result = {
-        exerciseIndex,
-        exerciseTitle: session.exercises[exerciseIndex]?.data?.title || `Feladat ${exerciseIndex + 1}`,
-        isCorrect: isCorrect || false,
-        score: score || 0,
-        timeSpent: timeSpent || 0,
-        answer: answer || null,
-        completedAt: new Date()
-      }
-
-      student.results.push(result)
-      sessions.set(sessionCode, session)
-
-      return res.json({
-        success: true,
-        message: 'Eredmény mentve',
-        student: {
-          currentExercise: student.currentExercise,
-          completedExercises: student.completedExercises,
-          totalScore: student.totalScore,
-          progress: Math.round((student.currentExercise / session.exercises.length) * 100)
+        if (sessionError || !session) {
+          return res.status(404).json({ error: 'Munkamenet nem található vagy nem aktív' })
         }
-      })
+
+        const { data: participant, error: participantError } = await supabase
+          .from('session_participants')
+          .select('*')
+          .eq('id', studentId)
+          .eq('session_id', session.id)
+          .single()
+
+        if (participantError || !participant) {
+          return res.status(404).json({ error: 'Diák nem található' })
+        }
+
+        // Create result object
+        const result = {
+          exerciseIndex,
+          exerciseTitle: session.exercises[exerciseIndex]?.data?.title || `Feladat ${exerciseIndex + 1}`,
+          isCorrect: isCorrect || false,
+          score: score || 0,
+          timeSpent: timeSpent || 0,
+          answer: answer || null,
+          completedAt: new Date().toISOString()
+        }
+
+        // Update participant progress
+        const updatedResults = [...(participant.results || []), result]
+        const newCompletedExercises = participant.completed_exercises + (isCorrect ? 1 : 0)
+        const newTotalScore = participant.total_score + (score || 0)
+        const newCurrentExercise = Math.max(participant.current_exercise, exerciseIndex + 1)
+
+        const { error: updateError } = await supabase
+          .from('session_participants')
+          .update({
+            last_seen: new Date().toISOString(),
+            is_online: true,
+            current_exercise: newCurrentExercise,
+            completed_exercises: newCompletedExercises,
+            total_score: newTotalScore,
+            results: updatedResults
+          })
+          .eq('id', studentId)
+
+        if (updateError) {
+          console.error('Participant update error:', updateError)
+          return res.status(500).json({ error: 'Hiba az eredmény mentésekor' })
+        }
+
+        return res.json({
+          success: true,
+          message: 'Eredmény mentve',
+          student: {
+            currentExercise: newCurrentExercise,
+            completedExercises: newCompletedExercises,
+            totalScore: newTotalScore,
+            progress: Math.round((newCurrentExercise / session.exercises.length) * 100)
+          }
+        })
+      } catch (error) {
+        console.error('Result submission error:', error)
+        return res.status(500).json({ error: 'Szerver hiba az eredmény mentésekor' })
+      }
     }
 
-    // Update student heartbeat (keep alive)
+    // Update student heartbeat (keep alive) - Now using Supabase
     if (path.includes('/api/simple-api/sessions/') && path.includes('/heartbeat') && method === 'POST') {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/heartbeat/)
       if (!codeMatch) {
@@ -908,19 +1176,24 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Diák ID megadása kötelező' })
       }
 
-      const session = sessions.get(sessionCode)
-      if (!session) {
-        return res.status(404).json({ error: 'Munkamenet nem található' })
-      }
+      try {
+        const { error } = await supabase
+          .from('session_participants')
+          .update({ 
+            last_seen: new Date().toISOString(),
+            is_online: true 
+          })
+          .eq('id', studentId)
 
-      const student = session.students.find(s => s.id === studentId)
-      if (student) {
-        student.lastSeen = new Date()
-        student.isOnline = true
-        sessions.set(sessionCode, session)
-      }
+        if (error) {
+          console.error('Heartbeat update error:', error)
+        }
 
-      return res.json({ success: true })
+        return res.json({ success: true })
+      } catch (error) {
+        console.error('Heartbeat error:', error)
+        return res.json({ success: false })
+      }
     }
 
     // Default response for unmatched routes

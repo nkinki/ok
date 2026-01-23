@@ -219,26 +219,21 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     try {
       const sessionKeys: string[] = [];
       const now = new Date().getTime();
-      const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000); // 1 week ago
+      const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000); // 1 week ago (more conservative)
       
       // Find all session-related keys
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('session_')) {
+        if (key && key.startsWith('session_') && !key.includes('_summary') && !key.includes('_results')) {
           sessionKeys.push(key);
         }
       }
       
       let deletedCount = 0;
       
-      // Check each session and delete old ones
+      // Check each session and delete only very old ones
       sessionKeys.forEach(key => {
         try {
-          if (key.includes('_summary') || key.includes('_results')) {
-            // Skip summary/results, check the main session
-            return;
-          }
-          
           const sessionData = localStorage.getItem(key);
           if (sessionData) {
             const session = JSON.parse(sessionData);
@@ -253,14 +248,14 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             }
           }
         } catch (e) {
-          // If parsing fails, delete the corrupted key
-          localStorage.removeItem(key);
-          deletedCount++;
+          // If parsing fails, delete the corrupted key only if it's very old
+          // Don't delete recent corrupted keys as they might be recoverable
+          console.warn('Corrupted session key found:', key);
         }
       });
       
       if (deletedCount > 0) {
-        console.log(`🧹 Cleaned up ${deletedCount} old sessions`);
+        console.log(`🧹 Cleaned up ${deletedCount} old sessions (older than 1 week)`);
       }
       
       return deletedCount;
@@ -283,48 +278,43 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     setLoading(true)
     setError(null)
 
+    const sessionCode = generateSessionCode()
+    const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
+
     try {
-      // Clean up old sessions first to free up space
-      const cleanedCount = cleanupOldSessions();
-      if (cleanedCount > 0) {
-        console.log(`🧹 Freed up space by cleaning ${cleanedCount} old sessions`);
-      }
-
-      const sessionCode = generateSessionCode()
-      const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
-
-      // Try API first for network sharing
-      let apiSuccess = false
-      try {
-        console.log('🌐 Creating session via API...');
-        console.log('📊 Session data:', { code: sessionCode, exerciseCount: selectedExerciseData.length });
-        
-        const response = await fetch('/api/simple-api/sessions/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            code: sessionCode,
-            exercises: selectedExerciseData
-          })
+      console.log('🗄️ Creating session in database...');
+      console.log('📊 Session data:', { code: sessionCode, exerciseCount: selectedExerciseData.length });
+      
+      const response = await fetch('/api/simple-api/sessions/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          code: sessionCode,
+          exercises: selectedExerciseData
         })
+      })
 
-        console.log('📡 API create response status:', response.status);
+      console.log('📡 API create response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Ismeretlen hiba' }))
+        console.error('❌ API Error:', errorData)
         
-        if (response.ok) {
-          const apiResult = await response.json()
-          console.log('✅ Session created via API for network sharing:', apiResult)
-          apiSuccess = true
+        // Show specific error messages
+        if (errorData.sqlFile) {
+          setError(`Adatbázis hiba: ${errorData.error}. Futtasd le a ${errorData.sqlFile} fájlt a Supabase SQL Editor-ban.`)
         } else {
-          const errorText = await response.text();
-          console.warn('⚠️ API session creation failed with status:', response.status, errorText)
+          setError(`Hiba a munkamenet létrehozásakor: ${errorData.error || 'Ismeretlen hiba'}`)
         }
-      } catch (apiError) {
-        console.warn('⚠️ API session creation failed:', apiError)
+        return
       }
 
-      // Create local session object
+      const apiResult = await response.json()
+      console.log('✅ Session created in database:', apiResult)
+
+      // Create session object for UI
       const session: Session = {
         code: sessionCode,
         exercises: selectedExerciseData,
@@ -333,82 +323,11 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       }
 
       setActiveSession(session)
-      
-      // Always also store in localStorage as backup
-      const sessionDataForStorage = {
-        code: sessionCode,
-        exercises: selectedExerciseData,
-        createdAt: new Date().toISOString(),
-        isActive: true
-      }
-      
-      try {
-        localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionDataForStorage))
-        console.log('💾 Session saved to localStorage as backup')
-      } catch (storageError) {
-        console.warn('⚠️ Could not save session to localStorage:', storageError)
-        
-        // If quota exceeded, try to clean up more aggressively
-        if (storageError instanceof DOMException && storageError.code === 22) {
-          console.log('🧹 Quota exceeded, trying aggressive cleanup...');
-          
-          // Delete all old sessions (older than 1 day)
-          const oneDayAgo = new Date().getTime() - (24 * 60 * 60 * 1000);
-          let aggressiveCleanCount = 0;
-          
-          for (let i = localStorage.length - 1; i >= 0; i--) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('session_')) {
-              try {
-                if (key.includes('_summary') || key.includes('_results')) {
-                  continue;
-                }
-                
-                const data = localStorage.getItem(key);
-                if (data) {
-                  const session = JSON.parse(data);
-                  const sessionDate = new Date(session.createdAt).getTime();
-                  
-                  if (sessionDate < oneDayAgo) {
-                    localStorage.removeItem(key);
-                    localStorage.removeItem(`${key}_summary`);
-                    localStorage.removeItem(`${key}_results`);
-                    aggressiveCleanCount++;
-                  }
-                }
-              } catch (e) {
-                localStorage.removeItem(key);
-                aggressiveCleanCount++;
-              }
-            }
-          }
-          
-          console.log(`🧹 Aggressive cleanup removed ${aggressiveCleanCount} sessions`);
-          
-          // Try to save again
-          try {
-            localStorage.setItem(`session_${sessionCode}`, JSON.stringify(sessionDataForStorage));
-            console.log('💾 Session saved after cleanup');
-          } catch (retryError) {
-            console.warn('⚠️ Still could not save after cleanup');
-            if (!apiSuccess) {
-              throw new Error('Tárhely megtelt és nem sikerült felszabadítani helyet. Használd a "Teljes előzmények törlése" gombot.');
-            }
-          }
-        } else if (!apiSuccess) {
-          throw new Error('Nem sikerült menteni a munkamenetet')
-        }
-      }
-
-      if (apiSuccess) {
-        console.log('🌐 Session available for network access with code:', sessionCode)
-      } else {
-        console.log('💻 Session available locally only with code:', sessionCode)
-      }
+      console.log('🚀 Session created successfully with code:', sessionCode)
 
     } catch (error) {
       console.error('❌ Session creation error:', error)
-      setError(error instanceof Error ? error.message : 'Ismeretlen hiba a munkamenet létrehozásakor')
+      setError(`Hálózati hiba: ${error instanceof Error ? error.message : 'Ismeretlen hiba'}`)
     } finally {
       setLoading(false)
     }
@@ -713,13 +632,14 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           </div>
           
           {/* Network Access Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <h3 className="font-bold text-blue-800 mb-2">🌐 Hálózati Hozzáférés</h3>
-            <p className="text-sm text-blue-700">
-              <strong>Ugyanazon gép:</strong> Minden böngésző működik<br/>
-              <strong>Más gépek:</strong> API-n keresztül (ha elérhető)<br/>
-              <strong>Helyi hálózat:</strong> Használd a <code className="bg-blue-100 px-1 rounded">npm run dev:network</code> parancsot
-            </p>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <h3 className="font-bold text-green-800 mb-2">🗄️ Adatbázis Alapú Munkamenetek</h3>
+            <div className="text-sm text-green-700 space-y-1">
+              <p><strong>✅ Tartós tárolás:</strong> Munkamenetek 24 óráig aktívak</p>
+              <p><strong>🌐 Hálózati használat:</strong> Bármely eszközről elérhető</p>
+              <p><strong>📊 Automatikus mentés:</strong> Eredmények biztonságosan tárolva</p>
+              <p><strong>🔄 Nincs időlimit:</strong> Diákok bármikor csatlakozhatnak</p>
+            </div>
           </div>
           
           <p className="text-green-700 mb-6">

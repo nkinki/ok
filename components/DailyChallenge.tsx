@@ -213,34 +213,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         console.warn('⚠️ API session check failed:', apiError);
       }
 
-      // Secondary: Try localStorage fallback (same device only)
+      // Secondary: Database-only approach - no localStorage fallback
       if (!sessionFound) {
-        console.log('💾 Trying localStorage fallback...');
-        const sessionKey = `session_${code.toUpperCase()}`;
-        const sessionData = localStorage.getItem(sessionKey);
-        
-        if (sessionData) {
-          try {
-            const session = JSON.parse(sessionData);
-            if (session.isActive && session.exercises && session.exercises.length > 0) {
-              console.log('✅ Session loaded from localStorage (local access)');
-              setPlaylist(session.exercises);
-              setCurrentIndex(0);
-              setCompletedCount(0);
-              setStep('PLAYING');
-              sessionFound = true;
-            }
-          } catch (parseError) {
-            console.error('❌ Error parsing session data:', parseError);
-          }
-        } else {
-          console.log('❌ Session not found in localStorage');
-        }
-      }
-
-      // If both methods failed
-      if (!sessionFound) {
-        throw new Error('A megadott tanári kód nem található vagy a munkamenet nem aktív. Kérj új kódot a tanártól!');
+        throw new Error('A megadott tanári kód nem található vagy a munkamenet nem aktív.\n\n🔄 Lehetséges okok:\n• A munkamenet lejárt (24 óra után)\n• Hibás kód\n• Hálózati probléma\n• Adatbázis nem elérhető\n\n💡 Megoldás: Kérj új kódot a tanártól!');
       }
       
     } catch (error) {

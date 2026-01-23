@@ -221,3 +221,55 @@ $$ LANGUAGE plpgsql;
 -- INSERT INTO teachers (username, email, full_name, auth_provider, google_id) VALUES
 -- ('teszt.tanar', 'teszt.tanar@szenmihalyatisk.hu', 'Teszt Tanár', 'google', 'google_123456789'),
 -- ('kovacs.anna', 'kovacs.anna@szenmihalyatisk.hu', 'Kovács Anna', 'google', 'google_987654321');
+
+-- Teacher sessions table (for code-based sessions)
+CREATE TABLE IF NOT EXISTS teacher_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_code VARCHAR(8) UNIQUE NOT NULL,
+    exercises JSONB NOT NULL, -- Array of exercise objects
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE DEFAULT (CURRENT_TIMESTAMP + INTERVAL '24 hours'),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Session participants table (students who joined sessions)
+CREATE TABLE IF NOT EXISTS session_participants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES teacher_sessions(id) ON DELETE CASCADE,
+    student_name VARCHAR(255) NOT NULL,
+    student_class VARCHAR(100) NOT NULL,
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_online BOOLEAN NOT NULL DEFAULT true,
+    current_exercise INTEGER NOT NULL DEFAULT 0,
+    completed_exercises INTEGER NOT NULL DEFAULT 0,
+    total_score INTEGER NOT NULL DEFAULT 0,
+    results JSONB DEFAULT '[]'::jsonb
+);
+
+-- Indexes for session tables
+CREATE INDEX IF NOT EXISTS idx_teacher_sessions_code ON teacher_sessions(session_code);
+CREATE INDEX IF NOT EXISTS idx_teacher_sessions_active ON teacher_sessions(is_active);
+CREATE INDEX IF NOT EXISTS idx_teacher_sessions_expires ON teacher_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_session_participants_session ON session_participants(session_id);
+CREATE INDEX IF NOT EXISTS idx_session_participants_student ON session_participants(student_name, student_class);
+
+-- Update trigger for teacher_sessions
+CREATE TRIGGER update_teacher_sessions_updated_at BEFORE UPDATE ON teacher_sessions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Room code generation function
+CREATE OR REPLACE FUNCTION generate_room_code()
+RETURNS TEXT AS $
+DECLARE
+    chars TEXT := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    result TEXT := '';
+    i INTEGER;
+BEGIN
+    FOR i IN 1..6 LOOP
+        result := result || substr(chars, floor(random() * length(chars) + 1)::integer, 1);
+    END LOOP;
+    RETURN result;
+END;
+$ LANGUAGE plpgsql;

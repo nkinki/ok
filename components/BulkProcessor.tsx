@@ -340,17 +340,55 @@ const BulkProcessor: React.FC<Props> = ({ onAnalysisComplete, existingLibrary = 
   };
 
   const handleClearStorage = () => {
-    if (confirm("⚠️ FIGYELEM!\n\nEz törölni fogja az ÖSSZES böngésző adatot ezen az oldalon:\n• Feladat könyvtár\n• Beállítások\n• Minden mentett adat\n\nBiztosan folytatod?")) {
+    if (confirm("⚠️ FIGYELEM!\n\nEz törölni fogja az ÖSSZES böngésző adatot ezen az oldalon:\n• Feladat könyvtár\n• Munkamenet előzmények\n• Beállítások\n• Minden mentett adat\n\nBiztosan folytatod?")) {
       try {
+        // Get storage info before clearing
+        const storageInfo = getStorageInfo();
+        
         // Clear all localStorage for this domain
         localStorage.clear();
-        alert("✅ Tárhely sikeresen törölve!\n\nAz oldal újratöltődik...");
+        
+        alert(`✅ Tárhely sikeresen törölve!\n\nFelszabadított hely: ${storageInfo.usedMB.toFixed(1)} MB\n\nAz oldal újratöltődik...`);
+        
         // Reload page to reset everything
         window.location.reload();
       } catch (e) {
         console.error("Error clearing storage:", e);
         alert("❌ Hiba a tárhely törlésekor. Próbáld újra vagy használd a böngésző beállításait.");
       }
+    }
+  };
+
+  const getStorageInfo = () => {
+    try {
+      let totalSize = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          totalSize += localStorage[key].length + key.length;
+        }
+      }
+      
+      // Estimate in bytes (each character is roughly 2 bytes in UTF-16)
+      const usedBytes = totalSize * 2;
+      const usedMB = usedBytes / (1024 * 1024);
+      
+      // Most browsers have 5-10MB localStorage limit
+      const estimatedLimitMB = 10;
+      const usagePercent = (usedMB / estimatedLimitMB) * 100;
+      
+      return {
+        usedBytes,
+        usedMB,
+        estimatedLimitMB,
+        usagePercent: Math.min(usagePercent, 100)
+      };
+    } catch (e) {
+      return {
+        usedBytes: 0,
+        usedMB: 0,
+        estimatedLimitMB: 10,
+        usagePercent: 0
+      };
     }
   };
 
