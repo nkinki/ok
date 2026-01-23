@@ -101,7 +101,7 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
               timeSpent: r.timeSpent,
               completedAt: r.completedAt
             }));
-            student.totalScore = studentResults.reduce((sum: number, r: any) => sum + (r.score || 0), 0);
+            student.totalScore = (studentResults || []).reduce((sum: number, r: any) => sum + (r.score || 0), 0);
             student.completedExercises = Math.max(student.completedExercises, studentResults.length);
           }
         });
@@ -126,8 +126,8 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
               isOnline: false,
               currentExercise: summary.completedExercises,
               completedExercises: summary.completedExercises,
-              totalScore: studentResults.reduce((sum: number, r: any) => sum + (r.score || 0), 0),
-              results: studentResults.map((r: any) => ({
+              totalScore: (studentResults || []).reduce((sum: number, r: any) => sum + (r.score || 0), 0),
+              results: (studentResults || []).map((r: any) => ({
                 exerciseIndex: 0,
                 exerciseTitle: r.exerciseTitle,
                 isCorrect: r.isCorrect,
@@ -168,8 +168,8 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
                 isOnline: false,
                 currentExercise: summary.completedExercises,
                 completedExercises: summary.completedExercises,
-                totalScore: studentResults.reduce((sum: number, r: any) => sum + (r.score || 0), 0),
-                results: studentResults.map((r: any) => ({
+                totalScore: (studentResults || []).reduce((sum: number, r: any) => sum + (r.score || 0), 0),
+                results: (studentResults || []).map((r: any) => ({
                   exerciseIndex: 0,
                   exerciseTitle: r.exerciseTitle,
                   isCorrect: r.isCorrect,
@@ -355,7 +355,7 @@ export default function SessionMonitor({ sessionCode, onClose }: Props) {
             </div>
             <div className="bg-yellow-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-yellow-600">
-                {sessionStatus.students.reduce((sum, s) => sum + s.completedExercises, 0)}
+                {(sessionStatus.students || []).reduce((sum, s) => sum + s.completedExercises, 0)}
               </div>
               <div className="text-sm text-yellow-800">Befejezett feladatok</div>
             </div>

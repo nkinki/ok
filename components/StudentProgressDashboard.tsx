@@ -63,7 +63,7 @@ export default function StudentProgressDashboard({ onClose }: Props) {
                 r.studentName === summary.studentName && r.studentClass === summary.studentClass
               );
               
-              const totalScore = studentResults.reduce((sum: number, r: any) => sum + (r.score || 0), 0);
+              const totalScore = (studentResults || []).reduce((sum: number, r: any) => sum + (r.score || 0), 0);
               
               allStudentData[studentKey].push({
                 sessionCode,
@@ -208,7 +208,7 @@ export default function StudentProgressDashboard({ onClose }: Props) {
                   {studentKeys.map(studentKey => {
                     const sessions = studentData[studentKey];
                     const totalSessions = sessions.length;
-                    const totalScore = sessions.reduce((sum, s) => sum + s.totalScore, 0);
+                    const totalScore = (sessions || []).reduce((sum, s) => sum + s.totalScore, 0);
                     const avgScore = totalSessions > 0 ? Math.round(totalScore / totalSessions) : 0;
                     
                     return (
