@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase Connection</title>
+</head>
+<body>
+    <h1>Test Supabase Connection</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <div id="result"></div>
+
+    <script>
+        async function testConnection() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                console.log('Testing API health check...');
+                const healthResponse = await fetch('/api/simple-api');
+                console.log('Health response status:', healthResponse.status);
+                
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
+                    console.log('Health data:', healthData);
+                    resultDiv.innerHTML += '<p>✅ API Health: OK</p>';
+                } else {
+                    resultDiv.innerHTML += '<p>❌ API Health: Failed</p>';
+                }
+                
+                console.log('Testing session creation...');
+                const sessionResponse = await fetch('/api/simple-api/sessions/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: 'TEST123',
+                        exercises: [
+                            { id: 'test1', title: 'Test Exercise 1', data: { type: 'quiz' } }
+                        ]
+                    })
+                });
+                
+                console.log('Session response status:', sessionResponse.status);
+                const responseText = await sessionResponse.text();
+                console.log('Session response text:', responseText);
+                
+                if (sessionResponse.ok) {
+                    const sessionData = JSON.parse(responseText);
+                    console.log('Session data:', sessionData);
+                    resultDiv.innerHTML += '<p>✅ Session Creation: OK</p>';
+                    resultDiv.innerHTML += '<p>Session Code: ' + sessionData.session.code + '</p>';
+                } else {
+                    resultDiv.innerHTML += '<p>❌ Session Creation: Failed</p>';
+                    resultDiv.innerHTML += '<p>Status: ' + sessionResponse.status + '</p>';
+                    resultDiv.innerHTML += '<p>Response: ' + responseText + '</p>';
+                    
+                    // Try to parse as JSON for better error info
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        resultDiv.innerHTML += '<p>Error Details: ' + JSON.stringify(errorData, null, 2) + '</p>';
+                    } catch (e) {
+                        resultDiv.innerHTML += '<p>Raw Response: ' + responseText + '</p>';
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Test failed:', error);
+                resultDiv.innerHTML += '<p>❌ Test Failed: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>
