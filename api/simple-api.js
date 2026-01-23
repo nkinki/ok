@@ -72,7 +72,109 @@ export default async function handler(req, res) {
       });
     }
 
-    // Session creation
+    // Session check endpoint (student)
+    if (method === 'GET' && path.includes('/sessions/') && path.includes('/check')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/check/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data, error } = await supabase
+          .from('teacher_sessions')
+          .select('*')
+          .eq('session_code', sessionCode)
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (error || !data) {
+          return res.status(404).json({ 
+            exists: false, 
+            error: 'Hibás kód vagy a munkamenet nem aktív',
+            hint: 'A munkamenet lehet, hogy lejárt (24 óra után). Kérj új kódot a tanártól!'
+          });
+        }
+
+        return res.status(200).json({
+          exists: true,
+          session: {
+            id: data.id,
+            code: data.session_code,
+            exerciseCount: data.exercises.length,
+            isActive: data.is_active,
+            expiresAt: data.expires_at
+          }
+        });
+        
+      } catch (err) {
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
+    // Get session exercises (student)
+    if (method === 'GET' && path.includes('/sessions/') && path.includes('/exercises')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/exercises/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data, error } = await supabase
+          .from('teacher_sessions')
+          .select('*')
+          .eq('session_code', sessionCode)
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (error || !data) {
+          return res.status(404).json({ 
+            error: 'Munkamenet nem található vagy nem aktív',
+            hint: 'A munkamenet lehet, hogy lejárt. Kérj új kódot a tanártól!'
+          });
+        }
+
+        return res.status(200).json({
+          exercises: data.exercises,
+          count: data.exercises.length,
+          sessionCode: data.session_code
+        });
+        
+      } catch (err) {
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
     if (method === 'POST' && path.includes('/sessions/create')) {
       const { code, exercises } = req.body;
 
@@ -141,9 +243,11 @@ export default async function handler(req, res) {
       path: path,
       method: method,
       availableEndpoints: [
-        'GET /api/test - Health check',
-        'POST /api/test with action=test_connection - Environment test',
-        'POST /api/test/sessions/create - Create session'
+        'GET /api/simple-api - Health check',
+        'POST /api/simple-api with action=test_connection - Environment test',
+        'POST /api/simple-api/sessions/create - Create session',
+        'GET /api/simple-api/sessions/{code}/check - Check session exists',
+        'GET /api/simple-api/sessions/{code}/exercises - Get session exercises'
       ]
     });
 
