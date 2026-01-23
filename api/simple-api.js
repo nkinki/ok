@@ -14,6 +14,53 @@ export default async function handler(req, res) {
     const { url, method } = req;
     const path = url?.split('?')[0] || '';
 
+    // Subject Authentication
+    if (method === 'POST' && path.includes('/auth/subject')) {
+      const { password } = req.body;
+
+      if (!password) {
+        return res.status(400).json({ error: 'Jelszó megadása kötelező' });
+      }
+
+      try {
+        // Tantárgyi jelszavak (egyszerű megoldás)
+        const SUBJECT_CREDENTIALS = {
+          'infoxxx': { subject: 'info', displayName: 'Informatika', theme: 'blue' },
+          'matekxxx': { subject: 'matek', displayName: 'Matematika', theme: 'green' },
+          'magyxxx': { subject: 'magy', displayName: 'Magyar nyelv', theme: 'red' },
+          'torixxx': { subject: 'tori', displayName: 'Történelem', theme: 'purple' },
+          'termxxx': { subject: 'termeszet', displayName: 'Természetismeret', theme: 'orange' }
+        };
+
+        const credential = SUBJECT_CREDENTIALS[password.toLowerCase()];
+        
+        if (!credential) {
+          return res.status(401).json({ 
+            error: 'Hibás jelszó',
+            hint: 'Használd a tantárgyi jelszavakat: infoxxx, matekxxx, magyxxx, torixxx, termxxx'
+          });
+        }
+
+        // Egyszerű token generálás (session alapú)
+        const token = Buffer.from(`${credential.subject}:${Date.now()}`).toString('base64');
+
+        return res.status(200).json({
+          success: true,
+          subject: credential.subject,
+          displayName: credential.displayName,
+          theme: credential.theme,
+          token: token,
+          message: `Sikeres bejelentkezés: ${credential.displayName}`
+        });
+
+      } catch (err) {
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Health check
     if (method === 'GET' && (path === '/api/test' || path === '/api/simple-api')) {
       return res.status(200).json({ 
@@ -243,7 +290,7 @@ export default async function handler(req, res) {
     }
     // Create session
     if (method === 'POST' && path.includes('/sessions/create')) {
-      const { code, exercises } = req.body;
+      const { code, exercises, subject = 'general', maxScore } = req.body;
 
       if (!code || !exercises) {
         return res.status(400).json({ error: 'Kód és feladatok megadása kötelező' });
@@ -263,12 +310,17 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         
+        // Számítsuk ki a maximális pontszámot ha nincs megadva
+        const calculatedMaxScore = maxScore || exercises.length * 10; // Alapértelmezett: 10 pont/feladat
+        
         // Create session in database
         const { data, error } = await supabase
           .from('teacher_sessions')
           .insert({
             session_code: code.toUpperCase(),
             exercises: exercises,
+            subject: subject,
+            max_possible_score: calculatedMaxScore,
             is_active: true,
             expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
           })
@@ -288,6 +340,8 @@ export default async function handler(req, res) {
             id: data.id,
             code: data.session_code,
             exercises: data.exercises,
+            subject: data.subject,
+            maxPossibleScore: data.max_possible_score,
             isActive: data.is_active,
             createdAt: data.created_at,
             expiresAt: data.expires_at
@@ -303,7 +357,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Get all sessions (history and active)
+    // Get all sessions (history and active) with subject filtering
     if (method === 'GET' && path.includes('/sessions/list')) {
       try {
         const { createClient } = await import('@supabase/supabase-js');
@@ -316,11 +370,21 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        // Get all sessions with participant counts
-        const { data: sessions, error } = await supabase
+        // Get subject filter from query params
+        const urlParams = new URLSearchParams(url.split('?')[1] || '');
+        const subjectFilter = urlParams.get('subject');
+        
+        // Build query with optional subject filter
+        let query = supabase
           .from('teacher_sessions')
           .select('*')
           .order('created_at', { ascending: false });
+          
+        if (subjectFilter && subjectFilter !== 'all') {
+          query = query.eq('subject', subjectFilter);
+        }
+
+        const { data: sessions, error } = await query;
 
         if (error) {
           return res.status(500).json({ 
@@ -329,19 +393,36 @@ export default async function handler(req, res) {
           });
         }
 
-        // Get participant counts for each session
+        // Get participant counts and performance stats for each session
         const sessionsWithStats = await Promise.all(
           sessions.map(async (session) => {
             const { data: participants } = await supabase
               .from('session_participants')
-              .select('id')
+              .select('id, percentage, performance_category')
               .eq('session_code', session.session_code);
+
+            // Calculate performance statistics
+            const participantCount = participants?.length || 0;
+            const avgPercentage = participantCount > 0 
+              ? Math.round(participants.reduce((sum, p) => sum + (p.percentage || 0), 0) / participantCount)
+              : 0;
+              
+            const categoryCount = {
+              excellent: participants?.filter(p => p.performance_category === 'excellent').length || 0,
+              good: participants?.filter(p => p.performance_category === 'good').length || 0,
+              average: participants?.filter(p => p.performance_category === 'average').length || 0,
+              poor: participants?.filter(p => p.performance_category === 'poor').length || 0
+            };
 
             return {
               id: session.id,
               code: session.session_code,
+              subject: session.subject || 'general',
               exerciseCount: session.exercises.length,
-              participantCount: participants?.length || 0,
+              maxPossibleScore: session.max_possible_score || 0,
+              participantCount: participantCount,
+              averagePercentage: avgPercentage,
+              performanceDistribution: categoryCount,
               isActive: session.is_active,
               createdAt: session.created_at,
               expiresAt: session.expires_at,
@@ -350,8 +431,26 @@ export default async function handler(req, res) {
           })
         );
 
+        // Calculate subject-wide statistics
+        const subjectStats = {
+          totalSessions: sessionsWithStats.length,
+          activeSessions: sessionsWithStats.filter(s => s.isActive).length,
+          totalParticipants: sessionsWithStats.reduce((sum, s) => sum + s.participantCount, 0),
+          averagePerformance: sessionsWithStats.length > 0 
+            ? Math.round(sessionsWithStats.reduce((sum, s) => sum + s.averagePercentage, 0) / sessionsWithStats.length)
+            : 0,
+          performanceDistribution: {
+            excellent: sessionsWithStats.reduce((sum, s) => sum + s.performanceDistribution.excellent, 0),
+            good: sessionsWithStats.reduce((sum, s) => sum + s.performanceDistribution.good, 0),
+            average: sessionsWithStats.reduce((sum, s) => sum + s.performanceDistribution.average, 0),
+            poor: sessionsWithStats.reduce((sum, s) => sum + s.performanceDistribution.poor, 0)
+          }
+        };
+
         return res.status(200).json({
           sessions: sessionsWithStats,
+          statistics: subjectStats,
+          subject: subjectFilter || 'all',
           total: sessionsWithStats.length,
           active: sessionsWithStats.filter(s => s.isActive).length,
           expired: sessionsWithStats.filter(s => !s.isActive || new Date(s.expiresAt) < new Date()).length
@@ -485,6 +584,151 @@ export default async function handler(req, res) {
       }
     }
 
+    // Performance Analytics endpoint
+    if (method === 'GET' && path.includes('/performance/analytics')) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Get query parameters
+        const urlParams = new URLSearchParams(url.split('?')[1] || '');
+        const subjectFilter = urlParams.get('subject');
+        const period = urlParams.get('period') || 'week'; // week, month, all
+        
+        // Calculate date range
+        const now = new Date();
+        let dateFilter = null;
+        
+        switch (period) {
+          case 'week':
+            dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'month':
+            dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          default:
+            dateFilter = null; // All time
+        }
+        
+        // Build sessions query
+        let sessionsQuery = supabase
+          .from('teacher_sessions')
+          .select('*');
+          
+        if (subjectFilter && subjectFilter !== 'all') {
+          sessionsQuery = sessionsQuery.eq('subject', subjectFilter);
+        }
+        
+        if (dateFilter) {
+          sessionsQuery = sessionsQuery.gte('created_at', dateFilter.toISOString());
+        }
+        
+        const { data: sessions, error: sessionsError } = await sessionsQuery;
+        
+        if (sessionsError) {
+          return res.status(500).json({ 
+            error: 'Database error',
+            details: sessionsError.message
+          });
+        }
+        
+        // Get all participants for these sessions
+        const sessionCodes = sessions.map(s => s.session_code);
+        const { data: participants, error: participantsError } = await supabase
+          .from('session_participants')
+          .select('*')
+          .in('session_code', sessionCodes);
+          
+        if (participantsError) {
+          return res.status(500).json({ 
+            error: 'Database error',
+            details: participantsError.message
+          });
+        }
+        
+        // Calculate analytics
+        const totalStudents = participants.length;
+        const averagePerformance = totalStudents > 0 
+          ? Math.round(participants.reduce((sum, p) => sum + (p.percentage || 0), 0) / totalStudents)
+          : 0;
+          
+        const categoryDistribution = {
+          excellent: participants.filter(p => p.performance_category === 'excellent').length,
+          good: participants.filter(p => p.performance_category === 'good').length,
+          average: participants.filter(p => p.performance_category === 'average').length,
+          poor: participants.filter(p => p.performance_category === 'poor').length
+        };
+        
+        // Top performers (top 10)
+        const topPerformers = participants
+          .sort((a, b) => (b.percentage || 0) - (a.percentage || 0))
+          .slice(0, 10)
+          .map(p => ({
+            studentName: p.student_name || 'Névtelen',
+            studentClass: p.student_class || '',
+            percentage: p.percentage || 0,
+            category: p.performance_category || 'poor',
+            sessionCode: p.session_code
+          }));
+          
+        // Performance trends (by day for the period)
+        const trends = [];
+        if (dateFilter) {
+          const days = Math.ceil((now - dateFilter) / (24 * 60 * 60 * 1000));
+          for (let i = 0; i < days; i++) {
+            const day = new Date(dateFilter.getTime() + i * 24 * 60 * 60 * 1000);
+            const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+            const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+            
+            const dayParticipants = participants.filter(p => {
+              const pDate = new Date(p.created_at);
+              return pDate >= dayStart && pDate < dayEnd;
+            });
+            
+            const dayAverage = dayParticipants.length > 0
+              ? Math.round(dayParticipants.reduce((sum, p) => sum + (p.percentage || 0), 0) / dayParticipants.length)
+              : 0;
+              
+            trends.push({
+              date: dayStart.toISOString().split('T')[0],
+              averagePerformance: dayAverage,
+              studentCount: dayParticipants.length
+            });
+          }
+        }
+
+        return res.status(200).json({
+          overview: {
+            totalSessions: sessions.length,
+            totalStudents: totalStudents,
+            averagePerformance: averagePerformance,
+            categoryDistribution: categoryDistribution
+          },
+          trends: trends,
+          topPerformers: topPerformers,
+          period: period,
+          subject: subjectFilter || 'all',
+          dateRange: {
+            from: dateFilter ? dateFilter.toISOString() : null,
+            to: now.toISOString()
+          }
+        });
+
+      } catch (err) {
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Get session statistics
     if (method === 'GET' && path.includes('/sessions/stats')) {
       try {
@@ -564,9 +808,11 @@ export default async function handler(req, res) {
       availableEndpoints: [
         'GET /api/simple-api - Health check',
         'POST /api/simple-api with action=test_connection - Environment test',
-        'POST /api/simple-api/sessions/create - Create session',
-        'GET /api/simple-api/sessions/list - Get all sessions with stats',
+        'POST /api/simple-api/auth/subject - Subject authentication',
+        'POST /api/simple-api/sessions/create - Create session (with subject)',
+        'GET /api/simple-api/sessions/list?subject=info - Get sessions with subject filter',
         'GET /api/simple-api/sessions/stats - Get session statistics',
+        'GET /api/simple-api/performance/analytics?subject=info&period=week - Performance analytics',
         'GET /api/simple-api/sessions/{code}/check - Check session exists',
         'GET /api/simple-api/sessions/{code}/status - Get session status (real-time)',
         'GET /api/simple-api/sessions/{code}/exercises - Get session exercises',

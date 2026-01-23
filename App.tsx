@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SubjectProvider } from './contexts/SubjectContext';
 import AuthPage from './components/auth/AuthPage';
 import TeacherSessionManager from './components/TeacherSessionManager';
 // TeacherExerciseCreator removed - not used in current implementation
@@ -392,11 +393,13 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
   );
 }
 
-// Main App wrapper with AuthProvider
+// Main App wrapper with AuthProvider and SubjectProvider
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <SubjectProvider>
+        <AppContent />
+      </SubjectProvider>
     </AuthProvider>
   )
 }

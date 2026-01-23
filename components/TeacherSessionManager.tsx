@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { BulkResultItem } from './BulkProcessor'
 import SessionMonitor from './SessionMonitor'
 import StudentProgressDashboard from './StudentProgressDashboard'
+import { useSubject } from '../contexts/SubjectContext'
 
 interface Props {
   library: BulkResultItem[]
@@ -17,6 +18,7 @@ interface Session {
 }
 
 export default function TeacherSessionManager({ library, onExit, onLibraryUpdate }: Props) {
+  const { currentSubject, isAuthenticated: isSubjectAuthenticated } = useSubject()
   const [selectedExercises, setSelectedExercises] = useState<string[]>([])
   const [activeSession, setActiveSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(false)
@@ -25,6 +27,68 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [showMonitor, setShowMonitor] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showStudentDashboard, setShowStudentDashboard] = useState(false)
+
+  // Show subject login if not authenticated
+  if (!isSubjectAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="text-center mb-8">
+            <div className="bg-purple-100 text-purple-900 w-16 h-16 flex items-center justify-center rounded-2xl shadow-lg font-bold text-2xl mx-auto mb-4 border border-purple-200">
+              🎯
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Tantárgyi Bejelentkezés</h2>
+            <p className="text-slate-600">Válaszd ki a tantárgyad a munkamenet kezeléshez</p>
+          </div>
+          
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
+            <div className="space-y-3">
+              {[
+                { subject: 'info', name: 'Informatika', password: 'infoxxx', color: 'blue' },
+                { subject: 'matek', name: 'Matematika', password: 'matekxxx', color: 'green' },
+                { subject: 'magy', name: 'Magyar nyelv', password: 'magyxxx', color: 'red' },
+                { subject: 'tori', name: 'Történelem', password: 'torixxx', color: 'purple' },
+                { subject: 'termeszet', name: 'Természetismeret', password: 'termxxx', color: 'orange' }
+              ].map((subj) => (
+                <button
+                  key={subj.subject}
+                  onClick={() => {
+                    // Auto-login with subject password
+                    fetch('/api/simple-api/auth/subject', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ password: subj.password })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                      if (data.success) {
+                        // Update subject context
+                        window.location.reload(); // Simple reload for now
+                      }
+                    })
+                    .catch(console.error);
+                  }}
+                  className={`w-full p-4 rounded-xl border-2 hover:shadow-md transition-all text-left bg-${subj.color}-50 border-${subj.color}-200 hover:border-${subj.color}-300`}
+                >
+                  <div className="font-bold text-slate-800">{subj.name}</div>
+                  <div className="text-sm text-slate-600">Kattints a bejelentkezéshez</div>
+                </button>
+              ))}
+            </div>
+            
+            <div className="mt-6 pt-4 border-t border-slate-200">
+              <button
+                onClick={onExit}
+                className="w-full px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+              >
+                ← Vissza a főoldalra
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const toggleExerciseSelection = (exerciseId: string) => {
     setSelectedExercises(prev => 
