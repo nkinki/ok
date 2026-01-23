@@ -1,4 +1,4 @@
-// Minimális API - csak a legalapvetőbb funkciók
+// Ultra minimális API - csak environment variables tesztelése
 
 module.exports = async function handler(req, res) {
   // CORS headers
@@ -16,61 +16,46 @@ module.exports = async function handler(req, res) {
       return res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
-        message: 'API működik'
+        message: 'Ultra minimális API működik',
+        nodeVersion: process.version
       });
     }
 
-    // Test connection
+    // Test connection - csak environment variables ellenőrzése
     if (req.method === 'POST' && req.body?.action === 'test_connection') {
       const envCheck = {
         hasSupabaseUrl: !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
         hasSupabaseKey: !!(process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-        nodeEnv: process.env.NODE_ENV || 'unknown'
+        supabaseUrl: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'missing',
+        supabaseKeyLength: (process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').length,
+        nodeEnv: process.env.NODE_ENV || 'unknown',
+        vercelEnv: process.env.VERCEL_ENV || 'unknown',
+        allEnvKeys: Object.keys(process.env).filter(key => key.includes('SUPABASE'))
       };
-
-      // Próbáljuk meg a Supabase kapcsolatot
-      let supabaseTest = { canConnect: false, error: null };
-      
-      try {
-        const { createClient } = require('@supabase/supabase-js');
-        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        
-        if (supabaseUrl && supabaseKey) {
-          const supabase = createClient(supabaseUrl, supabaseKey);
-          const { data, error } = await supabase
-            .from('teacher_sessions')
-            .select('count')
-            .limit(1);
-          
-          if (error) {
-            supabaseTest.error = error.message;
-          } else {
-            supabaseTest.canConnect = true;
-          }
-        } else {
-          supabaseTest.error = 'Missing credentials';
-        }
-      } catch (err) {
-        supabaseTest.error = err.message;
-      }
 
       return res.json({
         success: true,
+        message: 'Environment variables check completed',
         environment: envCheck,
-        supabase: supabaseTest,
         timestamp: new Date().toISOString()
       });
     }
 
     // Default response
-    return res.status(404).json({ error: 'Endpoint not found' });
+    return res.status(404).json({ 
+      error: 'Endpoint not found',
+      availableEndpoints: [
+        'GET /api/simple-api - Health check',
+        'POST /api/simple-api with action=test_connection - Environment test'
+      ]
+    });
 
   } catch (error) {
     console.error('API Error:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
       details: error.message,
+      stack: error.stack,
       timestamp: new Date().toISOString()
     });
   }
