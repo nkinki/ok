@@ -1,9 +1,9 @@
 // Production API for fixed rooms system and teacher-student assignments
-import { VercelRequest, VercelResponse } from '@vercel/node'
+const { VercelRequest, VercelResponse } = require('@vercel/node');
 
 // Import Supabase - database-only storage
-let supabase: any = null;
-let supabaseError: string | null = null;
+let supabase = null;
+let supabaseError = null;
 
 try {
   const { createClient } = require('@supabase/supabase-js');
@@ -108,7 +108,7 @@ function initializeFixedRooms() {
   }
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
@@ -141,6 +141,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         status: 'ok', 
         roomsCount: rooms.size,
         timestamp: new Date() 
+      })
+    }
+
+    // Test connection endpoint
+    if (path === '/api/simple-api' && method === 'POST' && req.body?.action === 'test_connection') {
+      const envVars = {
+        SUPABASE_URL: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+        NODE_ENV: process.env.NODE_ENV || 'unknown',
+        VERCEL_ENV: process.env.VERCEL_ENV || 'unknown'
+      }
+
+      const result = {
+        timestamp: new Date().toISOString(),
+        environment: {
+          hasSupabaseUrl: !!envVars.SUPABASE_URL,
+          hasSupabaseKey: !!envVars.SUPABASE_ANON_KEY,
+          supabaseUrlLength: envVars.SUPABASE_URL.length,
+          supabaseKeyLength: envVars.SUPABASE_ANON_KEY.length,
+          nodeEnv: envVars.NODE_ENV,
+          vercelEnv: envVars.VERCEL_ENV
+        },
+        supabase: {
+          clientInitialized: !!supabase,
+          initializationError: supabaseError,
+          canConnect: false,
+          connectionError: null
+        }
+      }
+
+      // Test actual connection if client is initialized
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('teacher_sessions')
+            .select('count')
+            .limit(1)
+
+          if (error) {
+            result.supabase.connectionError = error.message
+            result.supabase.canConnect = false
+          } else {
+            result.supabase.canConnect = true
+          }
+        } catch (error) {
+          result.supabase.connectionError = error instanceof Error ? error.message : 'Unknown error'
+          result.supabase.canConnect = false
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: 'Connection test completed',
+        result
       })
     }
 
@@ -1210,7 +1264,7 @@ function generateId() {
   return `id_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
 }
 
-function getTeacherFromAuth(req: VercelRequest) {
+function getTeacherFromAuth(req) {
   // Simple auth check - in production, validate JWT token
   const authHeader = req.headers.authorization
   if (!authHeader) return null
