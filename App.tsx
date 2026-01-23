@@ -127,7 +127,11 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
       <nav className="bg-white border-b border-purple-200 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200">
+            <div 
+              onClick={onBackToRoleSelect}
+              className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200 cursor-pointer hover:bg-purple-200 transition-colors"
+              title="Vissza a főoldalra"
+            >
               OK
             </div>
             <div className="font-bold text-purple-900 text-xs md:text-sm leading-tight">
@@ -263,7 +267,11 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
       <nav className="bg-white border-b border-purple-200 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200">
+            <div 
+              onClick={onBackToRoleSelect}
+              className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200 cursor-pointer hover:bg-purple-200 transition-colors"
+              title="Vissza a főoldalra"
+            >
               OK
             </div>
             <div className="font-bold text-purple-900 text-sm md:text-base leading-tight">
