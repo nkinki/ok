@@ -446,9 +446,9 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                       </svg>
-                      Résztvevők ({session.summaries.length})
+                      Résztvevők ({(session.summaries || []).length})
                     </h4>
-                    {session.summaries.length === 0 ? (
+                    {(session.summaries || []).length === 0 ? (
                       <p className="text-slate-500 italic text-sm">Nincs befejezett munkamenet</p>
                     ) : (
                       <div className="space-y-2">
@@ -477,13 +477,13 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                       </svg>
                       Statisztikák
                     </h4>
-                    {session.results.length === 0 ? (
+                    {(session.results || []).length === 0 ? (
                       <p className="text-slate-500 italic text-sm">Nincs részletes eredmény</p>
                     ) : (
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span>Összes válasz:</span>
-                          <span className="font-bold">{session.results.length}</span>
+                          <span className="font-bold">{(session.results || []).length}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Helyes válaszok:</span>
@@ -500,7 +500,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                         <div className="flex justify-between">
                           <span>Sikerességi arány:</span>
                           <span className="font-bold">
-                            {Math.round((session.results.filter((r: any) => r.isCorrect).length / session.results.length) * 100)}%
+                            {(session.results || []).length > 0 ? Math.round(((session.results || []).filter((r: any) => r.isCorrect).length / (session.results || []).length) * 100) : 0}%
                           </span>
                         </div>
                       </div>
@@ -645,11 +645,11 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           <p className="text-green-700 mb-6">
             A diákok ezzel a kóddal csatlakozhatnak a feladatokhoz.
             <br />
-            Összesen {activeSession.exercises.length} feladat van kiválasztva.
+            Összesen {(activeSession.exercises || []).length} feladat van kiválasztva.
             <br />
-            {summaries.length > 0 && (
+            {(summaries || []).length > 0 && (
               <span className="font-bold">
-                {summaries.length} diák fejezte be a munkamenetet.
+                {(summaries || []).length} diák fejezte be a munkamenetet.
               </span>
             )}
           </p>
@@ -660,12 +660,12 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             >
               📊 Valós idejű monitor
             </button>
-            {summaries.length > 0 && (
+            {(summaries || []).length > 0 && (
               <button
                 onClick={() => setShowResults(true)}
                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium"
               >
-                Eredmények megtekintése ({summaries.length})
+                Eredmények megtekintése ({(summaries || []).length})
               </button>
             )}
             <button
