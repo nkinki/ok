@@ -1,6 +1,6 @@
-// Ultra minimális API - csak environment variables tesztelése
+// Javított API - ES6 export használatával
 
-module.exports = async function handler(req, res) {
+export default function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -13,11 +13,11 @@ module.exports = async function handler(req, res) {
   try {
     // Health check
     if (req.method === 'GET') {
-      return res.json({ 
+      return res.status(200).json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
-        message: 'Ultra minimális API működik',
-        nodeVersion: process.version
+        message: 'API működik',
+        roomsCount: 6
       });
     }
 
@@ -33,11 +33,62 @@ module.exports = async function handler(req, res) {
         allEnvKeys: Object.keys(process.env).filter(key => key.includes('SUPABASE'))
       };
 
-      return res.json({
+      // Próbáljuk meg a Supabase kapcsolatot
+      let supabaseTest = { canConnect: false, error: null };
+      
+      try {
+        // Dinamikus import a Supabase-hez
+        const { createClient } = require('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          const { data, error } = await supabase
+            .from('teacher_sessions')
+            .select('count')
+            .limit(1);
+          
+          if (error) {
+            supabaseTest.error = error.message;
+          } else {
+            supabaseTest.canConnect = true;
+          }
+        } else {
+          supabaseTest.error = 'Missing credentials';
+        }
+      } catch (err) {
+        supabaseTest.error = err.message;
+      }
+
+      return res.status(200).json({
         success: true,
-        message: 'Environment variables check completed',
+        message: 'Connection test completed',
         environment: envCheck,
+        supabase: supabaseTest,
         timestamp: new Date().toISOString()
+      });
+    }
+
+    // Session creation endpoint
+    if (req.method === 'POST' && req.url?.includes('/sessions/create')) {
+      const { code, exercises } = req.body;
+
+      if (!code || !exercises) {
+        return res.status(400).json({ error: 'Kód és feladatok megadása kötelező' });
+      }
+
+      // Egyszerű válasz Supabase nélkül egyelőre
+      return res.status(200).json({
+        success: true,
+        session: {
+          id: `session_${Date.now()}`,
+          code: code.toUpperCase(),
+          exercises: exercises,
+          isActive: true,
+          createdAt: new Date().toISOString()
+        },
+        message: 'Munkamenet létrehozva (teszt módban)'
       });
     }
 
@@ -46,7 +97,8 @@ module.exports = async function handler(req, res) {
       error: 'Endpoint not found',
       availableEndpoints: [
         'GET /api/simple-api - Health check',
-        'POST /api/simple-api with action=test_connection - Environment test'
+        'POST /api/simple-api with action=test_connection - Environment test',
+        'POST /api/simple-api/sessions/create - Create session'
       ]
     });
 
@@ -55,8 +107,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ 
       error: 'Internal server error',
       details: error.message,
-      stack: error.stack,
       timestamp: new Date().toISOString()
     });
   }
-};
+}
