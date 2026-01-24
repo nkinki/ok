@@ -159,7 +159,7 @@ export default async function handler(req, res) {
         const { data: participants, error: participantError } = await supabase
           .from('session_participants')
           .select('id')
-          .eq('session_code', sessionCode);
+          .eq('session_id', data.id); // Use session_id instead of session_code
 
         const participantCount = participantError ? 0 : (participants?.length || 0);
 
@@ -275,20 +275,19 @@ export default async function handler(req, res) {
           });
         }
 
-        // Add participant to session
+        // Add participant to session using session_id (not session_code)
         const { data: participant, error: participantError } = await supabase
           .from('session_participants')
           .insert({
-            session_code: sessionCode.toUpperCase(),
+            session_id: session.id, // Use session.id instead of session_code
             student_name: name,
             student_class: className || '',
             joined_at: new Date().toISOString(),
             is_online: true,
             current_exercise: 0,
             completed_exercises: 0,
-            total_score: 0,
-            percentage: 0,
-            performance_category: 'poor'
+            total_score: 0
+            // Remove percentage and performance_category for now - they may not exist
           })
           .select()
           .single();
@@ -307,7 +306,8 @@ export default async function handler(req, res) {
           success: true,
           student: {
             id: participant.id,
-            sessionCode: participant.session_code,
+            sessionCode: sessionCode.toUpperCase(),
+            sessionId: session.id,
             studentName: participant.student_name,
             studentClass: participant.student_class,
             joinedAt: participant.joined_at
@@ -493,7 +493,7 @@ export default async function handler(req, res) {
             const { data: participants } = await supabase
               .from('session_participants')
               .select('id, percentage, performance_category')
-              .eq('session_code', session.session_code);
+              .eq('session_id', session.id); // Use session_id instead of session_code
 
             // Calculate performance statistics
             const participantCount = participants?.length || 0;
@@ -646,11 +646,19 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        // Delete participants first
-        await supabase
-          .from('session_participants')
-          .delete()
-          .eq('session_code', sessionCode);
+        // Delete participants first (using session_id)
+        const { data: session } = await supabase
+          .from('teacher_sessions')
+          .select('id')
+          .eq('session_code', sessionCode)
+          .single();
+
+        if (session) {
+          await supabase
+            .from('session_participants')
+            .delete()
+            .eq('session_id', session.id);
+        }
 
         // Delete session
         const { error } = await supabase
