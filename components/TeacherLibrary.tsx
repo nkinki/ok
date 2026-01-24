@@ -87,8 +87,25 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string
-        const importedData = JSON.parse(content) as BulkResultItem[]
-        if (Array.isArray(importedData) && importedData.length > 0 && importedData[0].data) {
+        const parsedData = JSON.parse(content)
+        
+        let importedData: BulkResultItem[] = []
+        
+        // Handle different JSON formats
+        if (Array.isArray(parsedData)) {
+          // Direct array of BulkResultItem
+          if (parsedData.length > 0 && parsedData[0].data) {
+            importedData = parsedData as BulkResultItem[]
+          }
+        } else if (parsedData.exercises && Array.isArray(parsedData.exercises)) {
+          // Collection format from Advanced Library Manager
+          importedData = parsedData.exercises as BulkResultItem[]
+        } else if (parsedData.collection && parsedData.exercises) {
+          // Full collection export format
+          importedData = parsedData.exercises as BulkResultItem[]
+        }
+        
+        if (importedData.length > 0) {
           // Filter out duplicates
           const uniqueImported = importedData.filter((newItem: any) => 
             !library.some((existing: any) => existing.id === newItem.id)
@@ -117,7 +134,7 @@ export default function TeacherLibrary({ library, setLibrary, onExit, onOpenSing
             alert("Minden feladat már létezik a könyvtárban.")
           }
         } else {
-          alert("Hibás fájlformátum. Csak feldolgozott feladat JSON fájlokat lehet importálni.")
+          alert("Hibás fájlformátum. Csak feldolgozott feladat JSON fájlokat lehet importálni.\n\nTámogatott formátumok:\n• Könyvtár export (BulkResultItem[])\n• Gyűjtemény export\n• Fejlett könyvtár export")
         }
       } catch (err) {
         console.error(err)

@@ -178,6 +178,66 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
     URL.revokeObjectURL(url)
   }
 
+  // Import JSON file
+  const handleImportClick = () => fileInputRef.current?.click()
+
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string
+        const parsedData = JSON.parse(content)
+        
+        let importedData: BulkResultItem[] = []
+        
+        // Handle different JSON formats
+        if (Array.isArray(parsedData)) {
+          // Direct array of BulkResultItem
+          if (parsedData.length > 0 && parsedData[0].data) {
+            importedData = parsedData as BulkResultItem[]
+          }
+        } else if (parsedData.exercises && Array.isArray(parsedData.exercises)) {
+          // Collection format
+          importedData = parsedData.exercises as BulkResultItem[]
+        } else if (parsedData.collection && parsedData.exercises) {
+          // Full collection export format
+          importedData = parsedData.exercises as BulkResultItem[]
+        }
+        
+        if (importedData.length > 0) {
+          // Filter out duplicates
+          const uniqueImported = importedData.filter((newItem: any) => 
+            !library.some((existing: any) => existing.id === newItem.id)
+          )
+          
+          if (uniqueImported.length > 0) {
+            try {
+              const updatedLibrary = [...library, ...uniqueImported]
+              localStorage.setItem('okosgyakorlo_library', JSON.stringify(updatedLibrary))
+              setLibrary(updatedLibrary)
+              alert(`${uniqueImported.length} feladat sikeresen importálva!`)
+            } catch (storageError) {
+              console.error("Storage error:", storageError)
+              alert("Hiba a mentés során. Próbáld újra vagy töröld a régi feladatokat.")
+            }
+          } else {
+            alert("Minden feladat már létezik a könyvtárban.")
+          }
+        } else {
+          alert("Hibás fájlformátum. Csak érvényes feladat JSON fájlokat lehet importálni.")
+        }
+      } catch (err) {
+        console.error(err)
+        alert("Hiba a fájl beolvasásakor. Ellenőrizd, hogy érvényes JSON fájl-e.")
+      }
+    }
+    reader.readAsText(file)
+    event.target.value = ''
+  }
+
   // Filter exercises based on search and type
   const getFilteredExercises = () => {
     return library.filter(item => {
@@ -276,6 +336,16 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
 
         {/* Action buttons */}
         <div className="flex flex-wrap gap-3">
+          <button
+            onClick={handleImportClick}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+            </svg>
+            JSON Import
+          </button>
+
           <button
             onClick={selectAllExercises}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
@@ -503,6 +573,15 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
           }}
         />
       )}
+
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileImport}
+        className="hidden"
+      />
     </div>
   )
 }
