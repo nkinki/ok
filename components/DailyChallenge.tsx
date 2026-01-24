@@ -216,9 +216,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               const joinData = await joinResponse.json();
               console.log('✅ Joined session:', joinData);
               
-              // Store student ID for later use
+              // Store student ID for later use and session metadata
               if (studentData && joinData.student?.id) {
-                setStudent(prev => prev ? { ...prev, id: joinData.student.id } : null);
+                setStudent(prev => prev ? { 
+                  ...prev, 
+                  id: joinData.student.id,
+                  sessionId: joinData.student.sessionId 
+                } : null);
               }
 
               // Start heartbeat to keep connection alive
@@ -257,13 +261,6 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 
                 // Store session metadata for result submission
                 setCurrentSessionCode(code.toUpperCase());
-                if (joinData.student?.id) {
-                  setStudent(prev => prev ? { 
-                    ...prev, 
-                    id: joinData.student.id,
-                    sessionId: sessionData.metadata?.sessionId 
-                  } : null);
-                }
                 
                 setStep('PLAYING');
                 sessionFound = true;
