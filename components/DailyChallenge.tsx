@@ -54,6 +54,21 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     isPreviewMode ? { id: 'preview', name: 'Tanári előnézet', className: 'Előnézet' } : null
   );
 
+  // Helper function to safely access exercise data (handles both old and new formats)
+  const getExerciseData = (item: any) => {
+    // New optimized format (flat structure)
+    if (item.type && item.title && item.content) {
+      return {
+        type: item.type,
+        title: item.title,
+        instruction: item.instruction,
+        content: item.content
+      };
+    }
+    // Old format (nested under data property)
+    return item.data || {};
+  };
+
   // ESC key handler for closing
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
@@ -162,9 +177,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
+                sessionCode: code.toUpperCase(),
                 name: studentData.name,
-                className: studentData.className,
-                sessionCode: code.toUpperCase()
+                className: studentData.className
               })
             });
 
@@ -192,7 +207,28 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               if (exercisesData.exercises && exercisesData.exercises.length > 0) {
                 console.log('✅ Session loaded from API (network access)');
                 console.log('📊 Exercise count:', exercisesData.exercises.length);
-                setPlaylist(exercisesData.exercises);
+                
+                // Normalize exercise format to handle both old and new structures
+                const normalizedExercises = exercisesData.exercises.map((exercise: any) => {
+                  // Check if it's the new optimized format (flat structure)
+                  if (exercise.type && exercise.title && exercise.content) {
+                    return {
+                      id: exercise.id,
+                      fileName: exercise.fileName,
+                      imageUrl: exercise.imageUrl || '', // May be missing in optimized format
+                      data: {
+                        type: exercise.type,
+                        title: exercise.title,
+                        instruction: exercise.instruction,
+                        content: exercise.content
+                      }
+                    };
+                  }
+                  // Otherwise assume it's the old format (already has data property)
+                  return exercise;
+                });
+                
+                setPlaylist(normalizedExercises);
                 setCurrentIndex(0);
                 setCompletedCount(0);
                 setStep('PLAYING');
@@ -330,12 +366,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         // Save result to localStorage-based session for teacher to see (legacy method)
         try {
           const currentExercise = playlist[currentIndex];
+          const exerciseData = getExerciseData(currentExercise);
           const resultData = {
             studentName: student.name,
             studentClass: student.className,
-            exerciseTitle: currentExercise.data.title,
-            exerciseType: currentExercise.data.type,
-            exerciseContent: currentExercise.data.content, // Save the questions/content
+            exerciseTitle: exerciseData.title,
+            exerciseType: exerciseData.type,
+            exerciseContent: exerciseData.content, // Save the questions/content
             studentAnswer: answer, // Save the student's actual answer
             isCorrect,
             score,
@@ -504,6 +541,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           return <div className="p-8 text-center text-red-500">Hiba: A feladat nem tölthető be.</div>;
       }
 
+      const exerciseData = getExerciseData(currentItem);
       const progress = ((currentIndex + 1) / playlist.length) * 100;
       const uniqueKey = `${currentItem.id}-${currentIndex}`; // Force re-render on change
 
@@ -568,9 +606,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                           <div className="bg-white rounded-lg p-3 border border-slate-200">
                               <div className="flex justify-between items-start mb-2">
                                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Feladat {currentIndex + 1} / {playlist.length}</span>
-                                  <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">{currentItem.data.type}</span>
+                                  <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">{exerciseData.type}</span>
                               </div>
-                              <h3 className="text-lg font-bold text-slate-800 mb-2 leading-tight">{currentItem.data.title}</h3>
+                              <h3 className="text-lg font-bold text-slate-800 mb-2 leading-tight">{exerciseData.title}</h3>
                               
                               {/* Full instruction text - expandable */}
                               <div className="text-sm text-slate-700 leading-relaxed">
@@ -580,7 +618,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                           </svg>
                                           <div className="text-blue-800 font-medium text-sm leading-relaxed">
-                                              {currentItem.data.instruction}
+                                              {exerciseData.instruction}
                                           </div>
                                       </div>
                                   </div>
@@ -591,28 +629,28 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       {/* Scrollable Content - More Compact */}
                       <div className="p-4 pt-0">
                           {/* Render Dynamic Component based on Type */}
-                          {currentItem.data.type === ExerciseType.MATCHING && (
+                          {exerciseData.type === ExerciseType.MATCHING && (
                               <MatchingExercise 
                                 key={uniqueKey}
-                                content={currentItem.data.content as MatchingContent}
+                                content={exerciseData.content as MatchingContent}
                                 onComplete={() => {}} // Handled by Next button
                                 onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)} 
                               />
                           )}
                           
-                          {currentItem.data.type === ExerciseType.CATEGORIZATION && (
+                          {exerciseData.type === ExerciseType.CATEGORIZATION && (
                               <CategorizationExercise
                                 key={uniqueKey}
-                                content={currentItem.data.content as CategorizationContent}
+                                content={exerciseData.content as CategorizationContent}
                                 onComplete={() => {}} 
                                 onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)}
                               />
                           )}
 
-                          {currentItem.data.type === ExerciseType.QUIZ && (
+                          {exerciseData.type === ExerciseType.QUIZ && (
                               <QuizExercise
                                 key={uniqueKey}
-                                content={currentItem.data.content as QuizContent}
+                                content={exerciseData.content as QuizContent}
                                 onComplete={() => {}}
                                 onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)}
                               />

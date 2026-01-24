@@ -240,6 +240,90 @@ export default async function handler(req, res) {
       }
     }
 
+    // Join session (student)
+    if (method === 'POST' && path.includes('/sessions/join')) {
+      const { sessionCode, name, className } = req.body;
+
+      if (!sessionCode || !name) {
+        return res.status(400).json({ error: 'Session kód és diák név megadása kötelező' });
+      }
+
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Check if session exists and is active
+        const { data: session, error: sessionError } = await supabase
+          .from('teacher_sessions')
+          .select('*')
+          .eq('session_code', sessionCode.toUpperCase())
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (sessionError || !session) {
+          return res.status(404).json({ 
+            error: 'Munkamenet nem található vagy nem aktív',
+            hint: 'Ellenőrizd a kódot vagy kérj új kódot a tanártól!'
+          });
+        }
+
+        // Add participant to session
+        const { data: participant, error: participantError } = await supabase
+          .from('session_participants')
+          .insert({
+            session_code: sessionCode.toUpperCase(),
+            student_name: name,
+            student_class: className || '',
+            joined_at: new Date().toISOString(),
+            is_online: true,
+            current_exercise: 0,
+            completed_exercises: 0,
+            total_score: 0,
+            percentage: 0,
+            performance_category: 'poor'
+          })
+          .select()
+          .single();
+
+        if (participantError) {
+          console.error('Participant join error:', participantError);
+          return res.status(500).json({ 
+            error: 'Hiba a csatlakozáskor',
+            details: participantError.message
+          });
+        }
+
+        console.log('✅ Student joined session:', name, 'to', sessionCode);
+
+        return res.status(200).json({
+          success: true,
+          student: {
+            id: participant.id,
+            sessionCode: participant.session_code,
+            studentName: participant.student_name,
+            studentClass: participant.student_class,
+            joinedAt: participant.joined_at
+          },
+          message: 'Sikeresen csatlakoztál a munkamenethez!'
+        });
+
+      } catch (err) {
+        console.error('Session join error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Get session exercises (student)
     if (method === 'GET' && path.includes('/sessions/') && path.includes('/exercises')) {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/exercises/);
@@ -820,6 +904,7 @@ export default async function handler(req, res) {
         'POST /api/simple-api with action=test_connection - Environment test',
         'POST /api/simple-api/auth/subject - Subject authentication',
         'POST /api/simple-api/sessions/create - Create session (with subject)',
+        'POST /api/simple-api/sessions/join - Join session (student)',
         'GET /api/simple-api/sessions/list?subject=info - Get sessions with subject filter',
         'GET /api/simple-api/sessions/stats - Get session statistics',
         'GET /api/simple-api/performance/analytics?subject=info&period=week - Performance analytics',
