@@ -313,33 +313,42 @@ export default async function handler(req, res) {
         // Számítsuk ki a maximális pontszámot ha nincs megadva
         const calculatedMaxScore = maxScore || exercises.length * 10; // Alapértelmezett: 10 pont/feladat
         
+        // Optimize: Prepare minimal data for database
+        const sessionData = {
+          session_code: code.toUpperCase(),
+          exercises: exercises, // Already optimized from frontend
+          subject: subject,
+          max_possible_score: calculatedMaxScore,
+          is_active: true,
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        };
+
+        console.log('💾 Inserting session with', exercises.length, 'exercises, subject:', subject);
+        
         // Create session in database
         const { data, error } = await supabase
           .from('teacher_sessions')
-          .insert({
-            session_code: code.toUpperCase(),
-            exercises: exercises,
-            subject: subject,
-            max_possible_score: calculatedMaxScore,
-            is_active: true,
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-          })
-          .select()
+          .insert(sessionData)
+          .select('id, session_code, subject, max_possible_score, is_active, created_at, expires_at')
           .single();
 
         if (error) {
+          console.error('Database error:', error);
           return res.status(500).json({ 
             error: 'Database error',
             details: error.message
           });
         }
 
+        console.log('✅ Session created successfully:', data.session_code);
+
+        // Return minimal response for speed
         return res.status(200).json({
           success: true,
           session: {
             id: data.id,
             code: data.session_code,
-            exercises: data.exercises,
+            exerciseCount: exercises.length,
             subject: data.subject,
             maxPossibleScore: data.max_possible_score,
             isActive: data.is_active,
@@ -350,6 +359,7 @@ export default async function handler(req, res) {
         });
 
       } catch (err) {
+        console.error('Session creation error:', err);
         return res.status(500).json({ 
           error: 'Server error',
           details: err.message

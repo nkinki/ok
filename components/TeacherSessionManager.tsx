@@ -118,6 +118,17 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         exerciseCount: selectedExerciseData.length,
         subject: currentSubject || 'general'
       });
+
+      // Optimize: Send only essential data to API
+      const optimizedExercises = selectedExerciseData.map(item => ({
+        id: item.id,
+        fileName: item.fileName,
+        title: item.data.title,
+        instruction: item.data.instruction,
+        type: item.data.type,
+        content: item.data.content
+        // Skip imageUrl and other heavy data
+      }))
       
       const response = await fetch('/api/simple-api/sessions/create', {
         method: 'POST',
@@ -126,7 +137,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         },
         body: JSON.stringify({
           code: sessionCode,
-          exercises: selectedExerciseData,
+          exercises: optimizedExercises,
           subject: currentSubject || 'general',
           maxScore: selectedExerciseData.length * 10 // 10 pont per feladat
         })
@@ -150,10 +161,10 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const apiResult = await response.json()
       console.log('✅ Session created in database:', apiResult)
 
-      // Create session object for UI
+      // Create session object for UI (use full data locally)
       const session: Session = {
         code: sessionCode,
-        exercises: selectedExerciseData,
+        exercises: selectedExerciseData, // Keep full data for local use
         createdAt: new Date(),
         isActive: true
       }
