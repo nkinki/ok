@@ -324,6 +324,31 @@ export default async function handler(req, res) {
       }
     }
 
+    // Get exercise image by ID (for lazy loading)
+    if (method === 'GET' && path.includes('/exercises/') && path.includes('/image')) {
+      const idMatch = path.match(/\/exercises\/([^\/]+)\/image/);
+      if (!idMatch) {
+        return res.status(400).json({ error: 'Exercise ID megadása kötelező' });
+      }
+
+      const exerciseId = idMatch[1];
+      
+      try {
+        // For now, return a placeholder or redirect to a static image service
+        // In a real implementation, you'd fetch from a proper image storage
+        return res.status(200).json({
+          imageUrl: `/images/placeholder-${exerciseId}.jpg`, // Placeholder for now
+          message: 'Image endpoint - implement proper image storage'
+        });
+        
+      } catch (err) {
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Get session exercises (student)
     if (method === 'GET' && path.includes('/sessions/') && path.includes('/exercises')) {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/exercises/);

@@ -69,6 +69,33 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     return item.data || {};
   };
 
+  // Helper function to get image URL (with lazy loading support)
+  const getImageUrl = (item: any) => {
+    // If imageUrl is directly available, use it
+    if (item.imageUrl) {
+      return item.imageUrl;
+    }
+    
+    // For optimized format without imageUrl, try to construct from localStorage
+    // This is a fallback for exercises that were created before the optimization
+    const libraryKey = 'exerciseLibrary';
+    try {
+      const savedLibrary = localStorage.getItem(libraryKey);
+      if (savedLibrary) {
+        const library = JSON.parse(savedLibrary);
+        const foundItem = library.find((libItem: any) => libItem.id === item.id);
+        if (foundItem && foundItem.imageUrl) {
+          return foundItem.imageUrl;
+        }
+      }
+    } catch (error) {
+      console.warn('Could not load image from localStorage:', error);
+    }
+    
+    // Return empty string if no image found
+    return '';
+  };
+
   // ESC key handler for closing
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
@@ -549,15 +576,21 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row overflow-hidden">
               {/* Left Side: Original Image */}
               <div className="lg:w-1/2 h-1/3 lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
-                   {currentItem.imageUrl ? (
+                   {getImageUrl(currentItem) ? (
                         <ImageViewer 
-                          src={currentItem.imageUrl} 
+                          src={getImageUrl(currentItem)} 
                           alt="Feladat forrása"
                           studentMode={true}
                           // No onImageUpdate in student mode - students can't edit exercises
                         />
                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500">Nincs elérhető kép</div>
+                        <div className="w-full h-full flex items-center justify-center text-slate-500">
+                          <div className="text-center">
+                            <div className="text-4xl mb-2">📷</div>
+                            <div>Kép betöltése...</div>
+                            <div className="text-xs mt-1">Próbáld újra később</div>
+                          </div>
+                        </div>
                    )}
                    <div className="absolute top-4 left-4 z-10 bg-black/50 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
                         Forrás: {currentItem.fileName}
