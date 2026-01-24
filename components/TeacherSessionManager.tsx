@@ -119,15 +119,16 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         subject: currentSubject || 'general'
       });
 
-      // Optimize: Send only essential data to API
+      // Optimize: Send only essential data to API (including imageUrl for students)
       const optimizedExercises = selectedExerciseData.map(item => ({
         id: item.id,
         fileName: item.fileName,
+        imageUrl: item.imageUrl, // Include imageUrl for student display
         title: item.data.title,
         instruction: item.data.instruction,
         type: item.data.type,
         content: item.data.content
-        // Skip imageUrl and other heavy data
+        // Skip other heavy metadata but keep imageUrl for students
       }))
       
       const response = await fetch('/api/simple-api/sessions/create', {
