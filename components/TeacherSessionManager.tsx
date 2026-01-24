@@ -3,6 +3,7 @@ import { BulkResultItem } from './BulkProcessor'
 import SessionMonitor from './SessionMonitor'
 import StudentProgressDashboard from './StudentProgressDashboard'
 import { useSubject } from '../contexts/SubjectContext'
+import { SessionTransferService } from '../services/sessionTransferService'
 
 interface Props {
   library: BulkResultItem[]
@@ -97,6 +98,44 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
 
   const generateSessionCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
+  }
+
+  // Export selected exercises as JSON for offline use
+  const exportSelectedAsJson = () => {
+    if (selectedExercises.length === 0) {
+      alert('Válassz ki legalább egy feladatot az exportáláshoz!')
+      return
+    }
+
+    const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
+    const sessionCode = generateSessionCode()
+    
+    // Use the same format as AdvancedLibraryManager
+    const exportData = {
+      sessionCode: sessionCode,
+      subject: currentSubject || 'general',
+      createdAt: new Date().toISOString(),
+      exercises: selectedExerciseData,
+      metadata: {
+        version: '1.0.0',
+        exportedBy: 'Okos Gyakorló Tanári Felület',
+        totalExercises: selectedExerciseData.length,
+        estimatedTime: selectedExerciseData.length * 3
+      }
+    }
+    
+    const dataStr = JSON.stringify(exportData, null, 2)
+    const blob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `munkamenet_${sessionCode}_${new Date().toISOString().slice(0,10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+    console.log('📁 JSON munkamenet exportálva:', sessionCode, selectedExerciseData.length, 'feladat')
   }
 
   const handleStartSession = async () => {
@@ -384,6 +423,24 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                 Munkamenet indítása
               </>
             )}
+          </button>
+          
+          {/* JSON Export Button */}
+          <button
+            onClick={() => exportSelectedAsJson()}
+            disabled={selectedExercises.length === 0}
+            className={`px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+              subjectTheme === 'blue' ? 'bg-green-600 hover:bg-green-700' :
+              subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :
+              subjectTheme === 'red' ? 'bg-green-600 hover:bg-green-700' :
+              subjectTheme === 'purple' ? 'bg-green-600 hover:bg-green-700' :
+              'bg-green-600 hover:bg-green-700'
+            } text-white`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            JSON Export ({selectedExercises.length})
           </button>
         </div>
 

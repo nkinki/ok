@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BulkResultItem } from './BulkProcessor';
 import { ExerciseType, MatchingContent, CategorizationContent, QuizContent } from '../types';
 import ImageViewer from './ImageViewer';
@@ -53,6 +53,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [student, setStudent] = useState<Student | null>(
     isPreviewMode ? { id: 'preview', name: 'Tanári előnézet', className: 'Előnézet' } : null
   );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper function to safely access exercise data (handles both old and new formats)
   const getExerciseData = (item: any) => {
@@ -305,6 +306,72 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setStep('PLAYING');
   };
 
+  // JSON import for offline sessions
+  const handleJsonImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const parsedData = JSON.parse(content);
+        
+        let importedExercises: BulkResultItem[] = [];
+        
+        // Handle different JSON formats (same as AdvancedLibraryManager)
+        if (Array.isArray(parsedData)) {
+          // Direct array of BulkResultItem
+          if (parsedData.length > 0 && parsedData[0].data) {
+            importedExercises = parsedData as BulkResultItem[];
+          }
+        } else if (parsedData.exercises && Array.isArray(parsedData.exercises)) {
+          // Collection format
+          importedExercises = parsedData.exercises as BulkResultItem[];
+        } else if (parsedData.collection && parsedData.exercises) {
+          // Full collection export format
+          importedExercises = parsedData.exercises as BulkResultItem[];
+        }
+        
+        if (importedExercises.length > 0) {
+          console.log('📁 JSON munkamenet betöltve:', importedExercises.length, 'feladat');
+          
+          // Set up offline session
+          setPlaylist(importedExercises);
+          setCurrentIndex(0);
+          setCompletedCount(0);
+          
+          // Set student info for offline mode
+          setStudent({
+            id: 'offline-' + Date.now(),
+            name: 'Offline Diák',
+            className: 'JSON Import'
+          });
+          
+          setStep('PLAYING');
+        } else {
+          setError("Hibás fájlformátum. Csak érvényes feladat JSON fájlokat lehet importálni.");
+        }
+      } catch (err) {
+        console.error('JSON import error:', err);
+        setError("Hiba a fájl beolvasásakor. Ellenőrizd, hogy érvényes JSON fájl-e.");
+      }
+    };
+    
+    reader.onerror = () => {
+      setError("Fájl olvasási hiba");
+    };
+    
+    reader.readAsText(file);
+    
+    // Reset file input
+    event.target.value = '';
+  };
+
   const handleSelectAssignment = async (assignment: Assignment) => {
     setSelectedAssignment(assignment);
     setLoading(true);
@@ -472,10 +539,40 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   if (step === 'LOGIN') {
       if (isStudentMode) {
           // In student mode, show the login form with session code input
-          return <StudentLoginForm onLoginSuccess={handleStudentLogin} onBack={onExit} />;
+          return (
+            <>
+              <StudentLoginForm 
+                onLoginSuccess={handleStudentLogin} 
+                onBack={onExit} 
+                onJsonImport={handleJsonImport}
+              />
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileImport}
+                accept=".json"
+                style={{ display: 'none' }}
+              />
+            </>
+          );
       } else {
           // In teacher mode, also show login form
-          return <StudentLoginForm onLoginSuccess={handleStudentLogin} onBack={onExit} />;
+          return (
+            <>
+              <StudentLoginForm 
+                onLoginSuccess={handleStudentLogin} 
+                onBack={onExit} 
+                onJsonImport={handleJsonImport}
+              />
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileImport}
+                accept=".json"
+                style={{ display: 'none' }}
+              />
+            </>
+          );
       }
   }
 
