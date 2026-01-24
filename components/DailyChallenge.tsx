@@ -22,6 +22,7 @@ interface Student {
   id: string;
   name: string;
   className: string;
+  sessionId?: string; // For API result submission
 }
 
 interface Assignment {
@@ -226,39 +227,44 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               }
             }
 
-            // Get exercises from API
+            // Get exercises from API (now returns full JSON)
             const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
             console.log('📡 API exercises response status:', exercisesResponse.status);
             if (exercisesResponse.ok) {
-              const exercisesData = await exercisesResponse.json();
-              console.log('📡 API exercises data:', exercisesData);
-              if (exercisesData.exercises && exercisesData.exercises.length > 0) {
-                console.log('✅ Session loaded from API (network access)');
-                console.log('📊 Exercise count:', exercisesData.exercises.length);
+              const sessionData = await exercisesResponse.json();
+              console.log('📡 API session data:', sessionData);
+              
+              if (sessionData.exercises && sessionData.exercises.length > 0) {
+                console.log('✅ Session JSON loaded from API');
+                console.log('📊 Exercise count:', sessionData.exercises.length);
                 
-                // Normalize exercise format to handle both old and new structures
-                const normalizedExercises = exercisesData.exercises.map((exercise: any) => {
-                  // Check if it's the new optimized format (flat structure)
-                  if (exercise.type && exercise.title && exercise.content) {
-                    return {
-                      id: exercise.id,
-                      fileName: exercise.fileName,
-                      imageUrl: exercise.imageUrl || '', // May be missing in optimized format
-                      data: {
-                        type: exercise.type,
-                        title: exercise.title,
-                        instruction: exercise.instruction,
-                        content: exercise.content
-                      }
-                    };
+                // Convert API JSON to playlist format
+                const playlist = sessionData.exercises.map((exercise: any) => ({
+                  id: exercise.id,
+                  fileName: exercise.fileName,
+                  imageUrl: exercise.imageUrl || '',
+                  data: {
+                    type: exercise.type,
+                    title: exercise.title,
+                    instruction: exercise.instruction,
+                    content: exercise.content
                   }
-                  // Otherwise assume it's the old format (already has data property)
-                  return exercise;
-                });
+                }));
                 
-                setPlaylist(normalizedExercises);
+                setPlaylist(playlist);
                 setCurrentIndex(0);
                 setCompletedCount(0);
+                
+                // Store session metadata for result submission
+                setCurrentSessionCode(code.toUpperCase());
+                if (joinData.student?.id) {
+                  setStudent(prev => prev ? { 
+                    ...prev, 
+                    id: joinData.student.id,
+                    sessionId: sessionData.metadata?.sessionId 
+                  } : null);
+                }
+                
                 setStep('PLAYING');
                 sessionFound = true;
               } else {
@@ -493,18 +499,50 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       if (currentIndex < playlist.length - 1) {
           setCurrentIndex(prev => prev + 1);
       } else {
-          // Session completed - save final summary
+          // Session completed - save final summary and send results to API
           if (student && currentSessionCode) {
             try {
-              const summaryData = {
+              // Prepare results for API
+              const sessionKey = `session_${currentSessionCode}_results`;
+              const existingResults = localStorage.getItem(sessionKey);
+              const results = existingResults ? JSON.parse(existingResults) : [];
+              
+              const summary = {
                 studentName: student.name,
                 studentClass: student.className,
                 sessionCode: currentSessionCode,
                 totalExercises: playlist.length,
                 completedExercises: completedCount + 1,
+                totalScore: results.reduce((sum: number, r: any) => sum + (r.score || 0), 0),
                 completedAt: new Date().toISOString()
               };
               
+              // Send results to API for teacher statistics
+              if (student.id && student.id !== 'offline-' && !student.id.startsWith('student_')) {
+                try {
+                  const resultResponse = await fetch(`/api/simple-api/sessions/${currentSessionCode}/results`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      studentId: student.id,
+                      results: results,
+                      summary: summary
+                    })
+                  });
+                  
+                  if (resultResponse.ok) {
+                    console.log('📊 Results sent to teacher successfully');
+                  } else {
+                    console.warn('⚠️ Failed to send results to teacher');
+                  }
+                } catch (apiError) {
+                  console.warn('⚠️ API result submission failed:', apiError);
+                }
+              }
+              
+              // Also save locally (fallback)
               const summaryKey = `session_${currentSessionCode}_summary`;
               const existingSummaries = localStorage.getItem(summaryKey);
               const summaries = existingSummaries ? JSON.parse(existingSummaries) : [];
@@ -515,9 +553,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               );
               
               if (existingIndex >= 0) {
-                summaries[existingIndex] = summaryData;
+                summaries[existingIndex] = summary;
               } else {
-                summaries.push(summaryData);
+                summaries.push(summary);
               }
               
               localStorage.setItem(summaryKey, JSON.stringify(summaries));

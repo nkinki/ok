@@ -324,6 +324,82 @@ export default async function handler(req, res) {
       }
     }
 
+    // Submit exercise results (student)
+    if (method === 'POST' && path.includes('/sessions/') && path.includes('/results')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/results/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      const { studentId, results, summary } = req.body;
+
+      if (!studentId || !results || !summary) {
+        return res.status(400).json({ error: 'Student ID, eredmények és összesítő megadása kötelező' });
+      }
+
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Check if session exists
+        const { data: session, error: sessionError } = await supabase
+          .from('teacher_sessions')
+          .select('id')
+          .eq('session_code', sessionCode)
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (sessionError || !session) {
+          return res.status(404).json({ 
+            error: 'Munkamenet nem található vagy nem aktív'
+          });
+        }
+
+        // Update participant results
+        const { error: updateError } = await supabase
+          .from('session_participants')
+          .update({
+            completed_exercises: summary.completedExercises,
+            total_score: summary.totalScore,
+            results: results,
+            last_seen: new Date().toISOString(),
+            is_online: false // Mark as completed
+          })
+          .eq('id', studentId);
+
+        if (updateError) {
+          console.error('Results update error:', updateError);
+          return res.status(500).json({ 
+            error: 'Hiba az eredmények mentésekor',
+            details: updateError.message
+          });
+        }
+
+        console.log('✅ Results submitted for student:', studentId, 'in session:', sessionCode);
+
+        return res.status(200).json({
+          success: true,
+          message: 'Eredmények sikeresen elmentve!'
+        });
+
+      } catch (err) {
+        console.error('Results submission error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Get exercise image by ID (for lazy loading)
     if (method === 'GET' && path.includes('/exercises/') && path.includes('/image')) {
       const idMatch = path.match(/\/exercises\/([^\/]+)\/image/);
@@ -349,7 +425,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Get session exercises (student)
+    // Get session exercises (student) - return full JSON for fast loading
     if (method === 'GET' && path.includes('/sessions/') && path.includes('/exercises')) {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/exercises/);
       if (!codeMatch) {
@@ -384,11 +460,22 @@ export default async function handler(req, res) {
           });
         }
 
-        return res.status(200).json({
-          exercises: data.exercises,
-          count: data.exercises.length,
-          sessionCode: data.session_code
-        });
+        // Return full JSON session data for fast loading
+        const sessionData = {
+          sessionCode: data.session_code,
+          subject: data.subject || 'general',
+          createdAt: data.created_at,
+          exercises: data.exercises, // Full exercise data with images
+          metadata: {
+            version: '1.0.0',
+            exportedBy: 'Okos Gyakorló API',
+            totalExercises: data.exercises.length,
+            estimatedTime: data.exercises.length * 3,
+            sessionId: data.id // For result submission
+          }
+        };
+
+        return res.status(200).json(sessionData);
         
       } catch (err) {
         return res.status(500).json({ 
@@ -943,7 +1030,8 @@ export default async function handler(req, res) {
         'GET /api/simple-api/performance/analytics?subject=info&period=week - Performance analytics',
         'GET /api/simple-api/sessions/{code}/check - Check session exists',
         'GET /api/simple-api/sessions/{code}/status - Get session status (real-time)',
-        'GET /api/simple-api/sessions/{code}/exercises - Get session exercises',
+        'GET /api/simple-api/sessions/{code}/exercises - Get session JSON data',
+        'POST /api/simple-api/sessions/{code}/results - Submit student results',
         'PUT /api/simple-api/sessions/{code}/toggle - Activate/deactivate session',
         'DELETE /api/simple-api/sessions/{code} - Delete session'
       ]
