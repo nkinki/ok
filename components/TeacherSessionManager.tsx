@@ -153,10 +153,16 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       return
     }
 
-    if (!className.trim()) {
-      setError('Az osztály neve kötelező!')
+    if (!className || !className.trim()) {
+      setError('Az osztály kiválasztása kötelező!')
       return
     }
+
+    console.log('🔍 Pre-validation check:', { 
+      className, 
+      trimmed: className.trim(),
+      length: className.length 
+    });
 
     setLoading(true)
     setError(null)
@@ -210,6 +216,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Ismeretlen hiba' }))
         console.error('❌ API Error:', errorData)
+        console.error('❌ Full response:', response)
         
         // Show specific error messages
         if (errorData.sqlFile) {
