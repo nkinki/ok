@@ -378,8 +378,9 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       console.log('🚀 Session created successfully with code:', sessionCode)
       console.log('🎯 Active session set:', session)
 
-      // Upload JSON to Google Drive for students to download (non-blocking)
+      // CRITICAL: Upload JSON to Google Drive for students to download (ALWAYS with images)
       console.log('📤 Uploading session JSON to Google Drive...');
+      console.log('🖼️ Uploading with images:', fullSessionData.exercises.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', fullSessionData.exercises.length);
       try {
         const uploadResponse = await fetch('/api/simple-api/sessions/upload-drive', {
           method: 'POST',
@@ -394,22 +395,26 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
 
         if (uploadResponse.ok) {
           const uploadResult = await uploadResponse.json();
-          console.log('✅ JSON uploaded to Google Drive:', uploadResult.downloadUrl);
+          console.log('✅ JSON uploaded to Google Drive with images:', uploadResult.downloadUrl);
+          console.log('🖼️ Upload successful - students will see images!');
           
           // Store download info for later use
           localStorage.setItem(`session_${sessionCode}_drive`, JSON.stringify({
             fileId: uploadResult.fileId,
             downloadUrl: uploadResult.downloadUrl,
-            uploadedAt: new Date().toISOString()
+            uploadedAt: new Date().toISOString(),
+            hasImages: true
           }));
         } else {
           const errorData = await uploadResponse.json().catch(() => ({}));
-          console.warn('⚠️ Google Drive upload failed:', errorData.error || 'Unknown error');
-          console.log('💾 Using localStorage fallback');
+          console.error('❌ Google Drive upload failed:', errorData.error || 'Unknown error');
+          console.error('❌ Students will NOT see images!');
+          setError('⚠️ Képek feltöltése sikertelen! A diákok nem fogják látni a képeket. Próbáld újra!');
         }
       } catch (uploadError) {
-        console.warn('⚠️ Google Drive upload error:', uploadError);
-        console.log('💾 Using localStorage fallback');
+        console.error('❌ Google Drive upload error:', uploadError);
+        console.error('❌ Students will NOT see images!');
+        setError('⚠️ Hálózati hiba a képek feltöltésekor! A diákok nem fogják látni a képeket. Ellenőrizd a kapcsolatot és próbáld újra!');
       }
       
       // Auto-download JSON file for sharing with students
