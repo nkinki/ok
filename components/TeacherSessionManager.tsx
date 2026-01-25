@@ -228,20 +228,45 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         reduction: Math.round((1 - JSON.stringify(minimalExercises).length / JSON.stringify(sessionJson).length) * 100) + '%'
       });
       
+      const requestBody = {
+        code: sessionCode,
+        exercises: minimalExercises, // Send minimal data for speed
+        // Don't send sessionJson - generate it on server side from exercises
+        subject: currentSubject || 'general',
+        className: className.trim(),
+        maxScore: selectedExerciseData.length * 10, // 10 pont per feladat
+        // Send full exercise data separately for server-side JSON generation
+        fullExercises: selectedExerciseData.map(item => ({
+          id: item.id,
+          fileName: item.fileName,
+          imageUrl: item.imageUrl || '',
+          title: item.data.title,
+          instruction: item.data.instruction,
+          type: item.data.type,
+          content: item.data.content
+        }))
+      };
+      
+      const requestBodySize = JSON.stringify(requestBody).length;
+      console.log('📤 Preparing API request with body size:', requestBodySize, 'bytes');
+      console.log('📤 Request URL: /api/simple-api/sessions/create');
+      
+      // Check if request is too large (Vercel has 4.5MB limit)
+      if (requestBodySize > 4 * 1024 * 1024) { // 4MB
+        console.warn('⚠️ Request body is very large:', requestBodySize, 'bytes');
+        console.warn('⚠️ This might cause Vercel function timeout');
+      }
+      
+      console.log('🚀 Starting fetch request...');
       const response = await fetch('/api/simple-api/sessions/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          code: sessionCode,
-          exercises: minimalExercises, // Send minimal data for speed
-          sessionJson: sessionJson, // Send full JSON for database storage
-          subject: currentSubject || 'general',
-          className: className.trim(),
-          maxScore: selectedExerciseData.length * 10 // 10 pont per feladat
-        })
+        body: JSON.stringify(requestBody)
       })
+      
+      console.log('📡 Fetch completed, response received');
 
       console.log('📡 API create response status:', response.status);
       
