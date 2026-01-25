@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { BulkResultItem } from './BulkProcessor'
 import SessionMonitor from './SessionMonitor'
 import StudentProgressDashboard from './StudentProgressDashboard'
@@ -37,6 +37,21 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     '4.a', '4.b', '5.a', '5.b', '6.a', '6.b',
     '7.a', '7.b', '8.a', '8.b'
   ]
+
+  // Debug: Monitor activeSession changes
+  useEffect(() => {
+    console.log('🔍 ActiveSession changed:', activeSession)
+  }, [activeSession])
+
+  // Debug: Monitor loading state changes
+  useEffect(() => {
+    console.log('🔄 Loading state changed:', loading)
+  }, [loading])
+
+  // Debug: Monitor error state changes
+  useEffect(() => {
+    console.log('❌ Error state changed:', error)
+  }, [error])
 
   // Show subject login if not authenticated
   if (!isSubjectAuthenticated) {
@@ -246,6 +261,13 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const apiResult = await response.json()
       console.log('✅ Session created in database:', apiResult)
 
+      // Verify we got the expected response structure
+      if (!apiResult.success || !apiResult.session) {
+        console.error('❌ Invalid API response structure:', apiResult)
+        setError('Hibás API válasz struktúra')
+        return
+      }
+
       // Create session object for UI (use full data locally)
       const session: Session = {
         code: sessionCode,
@@ -256,11 +278,19 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
 
       setActiveSession(session)
       console.log('🚀 Session created successfully with code:', sessionCode)
+      console.log('🎯 Active session set:', session)
+      
+      // Force a small delay to ensure state is set
+      setTimeout(() => {
+        console.log('🔍 Checking activeSession after timeout:', activeSession)
+      }, 100)
 
     } catch (error) {
       console.error('❌ Session creation error:', error)
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
       setError(`Hálózati hiba: ${error instanceof Error ? error.message : 'Ismeretlen hiba'}`)
     } finally {
+      console.log('🔄 Session creation finally block - setting loading to false')
       setLoading(false)
     }
   }
@@ -456,6 +486,32 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                 ))}
               </select>
             </div>
+            
+            {/* Debug button */}
+            <button
+              onClick={() => {
+                console.log('🧪 Debug - Current state:', {
+                  activeSession,
+                  loading,
+                  error,
+                  selectedExercises: selectedExercises.length,
+                  className
+                })
+                // Test setting activeSession manually
+                const testSession: Session = {
+                  code: 'DEBUG123',
+                  exercises: library.filter(item => selectedExercises.includes(item.id)),
+                  createdAt: new Date(),
+                  isActive: true
+                }
+                setActiveSession(testSession)
+                console.log('🧪 Debug - Set test session:', testSession)
+              }}
+              className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-xs"
+            >
+              Debug
+            </button>
+            
             <button
               onClick={handleStartSession}
               disabled={selectedExercises.length === 0 || !className.trim() || loading}
