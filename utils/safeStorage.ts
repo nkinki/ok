@@ -62,7 +62,7 @@ export class SafeStorage {
   static emergencyCleanup(): void {
     const keysToRemove: string[] = [];
     
-    // Find ALL session-related data to remove (be more aggressive)
+    // Find session-related data to remove (but preserve important settings)
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && (
@@ -70,7 +70,6 @@ export class SafeStorage {
         key.startsWith('drive_session_') ||
         key.startsWith('teacher_drive_session_') ||
         key.startsWith('exerciseLibrary') ||
-        key.startsWith('okosgyakorlo_') ||
         key.includes('_results') ||
         key.includes('_summary') ||
         key.includes('_cache') ||
@@ -78,11 +77,20 @@ export class SafeStorage {
         key.includes('collections') ||
         key.includes('Library')
       )) {
-        keysToRemove.push(key);
+        // Don't remove current session being created or important auth data
+        if (!key.includes('current_subject') && 
+            !key.includes('subject_auth') && 
+            !key.includes('subject_theme') && 
+            !key.includes('subject_display_name') &&
+            !key.includes('auth_timestamp') &&
+            !key.includes('api_key') &&
+            !key.includes('google_drive_folder')) {
+          keysToRemove.push(key);
+        }
       }
     }
     
-    // Remove ALL found items (don't keep any)
+    // Remove found items
     keysToRemove.forEach(key => {
       try {
         localStorage.removeItem(key);

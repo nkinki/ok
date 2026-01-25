@@ -322,7 +322,22 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         return
       }
 
-      // Upload JSON to Google Drive for students to download
+      console.log('✅ Session created in database:', apiResult)
+
+      // Create session object for UI FIRST (before any other operations)
+      const session: Session = {
+        code: sessionCode,
+        exercises: selectedExerciseData, // Keep full data for local use
+        createdAt: new Date(),
+        isActive: true
+      }
+
+      // Set active session immediately
+      setActiveSession(session)
+      console.log('🚀 Session created successfully with code:', sessionCode)
+      console.log('🎯 Active session set:', session)
+
+      // Upload JSON to Google Drive for students to download (non-blocking)
       console.log('📤 Uploading session JSON to Google Drive...');
       try {
         const uploadResponse = await fetch('/api/simple-api/sessions/upload-drive', {
@@ -355,18 +370,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         console.warn('⚠️ Google Drive upload error:', uploadError);
         console.log('💾 Using localStorage fallback');
       }
-
-      // Create session object for UI (use full data locally)
-      const session: Session = {
-        code: sessionCode,
-        exercises: selectedExerciseData, // Keep full data for local use
-        createdAt: new Date(),
-        isActive: true
-      }
-
-      setActiveSession(session)
-      console.log('🚀 Session created successfully with code:', sessionCode)
-      console.log('🎯 Active session set:', session)
       
       // Auto-download JSON file for sharing with students
       const dataStr = JSON.stringify(fullSessionData, null, 2)
@@ -737,19 +740,38 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                   selectedExercises: selectedExercises.length,
                   className
                 })
-                // Test setting activeSession manually
-                const testSession: Session = {
-                  code: 'DEBUG123',
-                  exercises: library.filter(item => selectedExercises.includes(item.id)),
-                  createdAt: new Date(),
-                  isActive: true
+                
+                // Check localStorage for recent sessions
+                const recentSessions: Array<{key: string, code: string, created: string}> = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                  const key = localStorage.key(i);
+                  if (key && key.startsWith('session_')) {
+                    try {
+                      const data = JSON.parse(localStorage.getItem(key) || '{}');
+                      recentSessions.push({ key, code: data.sessionCode || 'UNKNOWN', created: data.createdAt || 'UNKNOWN' });
+                    } catch (e) {
+                      // ignore
+                    }
+                  }
                 }
-                setActiveSession(testSession)
-                console.log('🧪 Debug - Set test session:', testSession)
+                console.log('🗄️ Recent sessions in localStorage:', recentSessions);
+                
+                // Test setting activeSession manually
+                if (!activeSession && recentSessions.length > 0) {
+                  const latestSession = recentSessions[recentSessions.length - 1];
+                  const testSession: Session = {
+                    code: latestSession.code || 'TEST123',
+                    exercises: library.filter(item => selectedExercises.includes(item.id)),
+                    createdAt: new Date(),
+                    isActive: true
+                  }
+                  setActiveSession(testSession)
+                  console.log('🧪 Debug - Set test session:', testSession)
+                }
               }}
               className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-xs"
             >
-              Debug
+              🧪 Debug
             </button>
             
             <button
