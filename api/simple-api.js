@@ -470,7 +470,7 @@ export default async function handler(req, res) {
           sessionCode: data.session_code,
           subject: data.subject || 'general',
           createdAt: data.created_at,
-          exercises: data.exercises, // Full exercise data with images
+          exercises: data.exercises, // Should now have full exercise data
           metadata: {
             version: '1.0.0',
             exportedBy: 'Okos Gyakorló API',
@@ -491,7 +491,7 @@ export default async function handler(req, res) {
     }
     // Create session
     if (method === 'POST' && path.includes('/sessions/create')) {
-      const { code, exercises, subject = 'general', maxScore, className } = req.body;
+      const { code, exercises, subject = 'general', maxScore, className, fullExercises } = req.body;
 
       if (!code || !exercises) {
         return res.status(400).json({ error: 'Kód és feladatok megadása kötelező' });
@@ -518,10 +518,10 @@ export default async function handler(req, res) {
         // Számítsuk ki a maximális pontszámot ha nincs megadva
         const calculatedMaxScore = maxScore || exercises.length * 10; // Alapértelmezett: 10 pont/feladat
         
-        // Create basic session without JSON download for now (to get sessions working)
+        // Create session with full exercise data for student access
         const sessionData = {
           session_code: code.toUpperCase(),
-          exercises: exercises, // Store minimal exercises
+          exercises: fullExercises || exercises, // Store full exercises if available
           subject: subject,
           class_name: className.trim(),
           max_possible_score: calculatedMaxScore,
@@ -530,6 +530,7 @@ export default async function handler(req, res) {
         };
 
         console.log('💾 Inserting session with', exercises.length, 'exercises, subject:', subject, 'class:', className.trim());
+        console.log('📊 Using', fullExercises ? 'full' : 'minimal', 'exercise data');
         
         // Create session in database
         const { data, error } = await supabase
