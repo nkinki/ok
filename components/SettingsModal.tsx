@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiKeyScanner, FoundApiKey } from '../utils/keyScanner';
 import { SAMPLE_ENV_FORMAT } from '../utils/testKeys';
+import StorageManager from '../utils/storageUtils';
 
 interface Props {
   isOpen: boolean;
@@ -174,98 +175,81 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
         
         <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-          {/* Google Drive Folder Setup */}
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+          {/* Storage Management */}
+          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
             <div className="flex items-center gap-2 mb-3">
-              <div className="text-2xl">📁</div>
-              <h3 className="font-bold text-green-700 text-lg">Google Drive Mappa</h3>
+              <div className="text-2xl">💾</div>
+              <h3 className="font-bold text-yellow-700 text-lg">Tárhely Kezelés</h3>
             </div>
-            <p className="text-sm text-green-600 mb-4">
-              Állítsd be a saját Google Drive mappádat a munkamenet fájlok automatikus megosztásához.
-            </p>
             
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-bold text-green-700 mb-1">
-                  Google Drive Mappa URL
-                </label>
-                <input 
-                  type="url" 
-                  value={googleDriveFolder}
-                  onChange={(e) => setGoogleDriveFolder(e.target.value)}
-                  placeholder="https://drive.google.com/drive/folders/1ABC123DEF456..."
-                  className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
+              <div className="bg-white p-3 rounded border border-yellow-200">
+                <h4 className="font-bold text-yellow-700 text-sm mb-2">📊 Tárhely Állapot:</h4>
+                {(() => {
+                  const storageInfo = StorageManager.getStorageInfo();
+                  const usage = StorageManager.getUsageByCategory();
+                  
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span>Használt:</span>
+                        <span className="font-mono">{storageInfo.usedMB} MB ({storageInfo.percentage}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            storageInfo.percentage > 80 ? 'bg-red-500' : 
+                            storageInfo.percentage > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${Math.min(storageInfo.percentage, 100)}%` }}
+                        ></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>Munkamenetek: {Math.round(usage.sessions / 1024)} KB</div>
+                        <div>Könyvtár: {Math.round(usage.library / 1024)} KB</div>
+                        <div>Beállítások: {Math.round(usage.settings / 1024)} KB</div>
+                        <div>Egyéb: {Math.round(usage.other / 1024)} KB</div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
               
-              <div className="bg-white p-3 rounded border border-green-200">
-                <h4 className="font-bold text-green-700 text-sm mb-2">📋 Beállítási lépések:</h4>
-                <ol className="text-xs text-green-600 space-y-1 list-decimal list-inside">
-                  <li>Menj a <a href="https://drive.google.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-green-800">Google Drive</a>-ra</li>
-                  <li>Hozz létre új mappát: "Okos-Gyakorlo-{teacherEmail.split('@')[0] || 'Munkamenetek'}"</li>
-                  <li>Jobb klikk a mappán → "Megosztás"</li>
-                  <li>Állítsd be: "Bárki, aki rendelkezik a hivatkozással, megtekintheti"</li>
-                  <li>Másold ki a mappa URL-jét és illeszd be ide</li>
-                </ol>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (confirm('🗑️ MUNKAMENET ADATOK TÖRLÉSE\n\nEz törli az összes helyi munkamenet adatot és felszabadítja a tárhelyet.\n\nFolytatod?')) {
+                      const cleaned = StorageManager.cleanupOldSessions(0); // Remove all
+                      const storageInfo = StorageManager.getStorageInfo();
+                      
+                      alert(`🧹 MUNKAMENET ADATOK TÖRÖLVE!\n\n✅ ${cleaned} munkamenet törölve\n✅ Tárhely: ${storageInfo.usedMB} MB (${storageInfo.percentage}%)\n\nMost újra tudsz munkameneteket létrehozni!`);
+                      
+                      // Force re-render to update storage display
+                      window.location.reload();
+                    }
+                  }}
+                  className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded font-medium"
+                >
+                  🗑️ Munkamenetek törlése
+                </button>
+                
+                <button
+                  onClick={() => {
+                    if (confirm('🧹 VÉSZHELYZETI TISZTÍTÁS\n\nEz törli az összes nem-alapvető adatot (munkamenetek, könyvtár, cache).\n\nCsak API kulcsok és beállítások maradnak meg.\n\nFolytatod?')) {
+                      const cleaned = StorageManager.emergencyCleanup();
+                      const storageInfo = StorageManager.getStorageInfo();
+                      
+                      alert(`🧹 VÉSZHELYZETI TISZTÍTÁS KÉSZ!\n\n✅ ${cleaned} elem törölve\n✅ Tárhely: ${storageInfo.usedMB} MB (${storageInfo.percentage}%)\n\nRendszer újraindítása ajánlott.`);
+                      
+                      // Force page reload
+                      window.location.reload();
+                    }
+                  }}
+                  className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded font-medium"
+                >
+                  🧹 Vészhelyzeti tisztítás
+                </button>
               </div>
-              
-              {googleDriveFolder && (
-                <div className="bg-white p-3 rounded border border-green-200">
-                  <h4 className="font-bold text-green-700 text-sm mb-2">✅ Mappa beállítva:</h4>
-                  <p className="text-xs text-green-600 break-all mb-2">{googleDriveFolder}</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        window.open(googleDriveFolder, '_blank');
-                      }}
-                      className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded font-medium"
-                    >
-                      📁 Mappa megnyitása
-                    </button>
-                    <button
-                      onClick={() => {
-                        // Simple folder validation test
-                        const driveUrl = googleDriveFolder.trim();
-                        
-                        if (!driveUrl) {
-                          alert('❌ Nincs Google Drive URL beállítva!');
-                          return;
-                        }
-                        
-                        // Extract folder ID from URL
-                        const folderMatch = driveUrl.match(/\/folders\/([a-zA-Z0-9-_]+)/);
-                        const folderId = folderMatch ? folderMatch[1] : null;
-                        
-                        // Check URL format
-                        const isValidUrl = driveUrl.includes('drive.google.com') && driveUrl.includes('/folders/');
-                        
-                        let result = `📁 Google Drive Mappa Teszt:\n\n`;
-                        result += `URL: ${driveUrl}\n`;
-                        result += `Folder ID: ${folderId || 'Nem található'}\n`;
-                        result += `URL formátum: ${isValidUrl ? '✅ Helyes' : '❌ Hibás'}\n`;
-                        result += `Folder ID érvényes: ${folderId ? '✅ Igen' : '❌ Nem'}\n\n`;
-                        
-                        if (isValidUrl && folderId) {
-                          result += `✅ Beállítás sikeres!\n\n`;
-                          result += `Következő lépések:\n`;
-                          result += `1. Ellenőrizd, hogy a mappa publikus-e\n`;
-                          result += `2. Próbálj munkamenetet indítani\n`;
-                          result += `3. Nézd meg, hogy létrejön-e a JSON fájl`;
-                        } else {
-                          result += `❌ Hibás beállítás!\n\n`;
-                          result += `Helyes formátum:\n`;
-                          result += `https://drive.google.com/drive/folders/1ABC123...`;
-                        }
-                        
-                        alert(result);
-                      }}
-                      className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded font-medium"
-                    >
-                      🔍 Teszt
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -443,6 +427,45 @@ AIzaSy...kulcs3`}
                  className="px-3 py-2 rounded-lg font-medium bg-orange-500 hover:bg-orange-600 text-white transition-colors text-sm"
                >
                  🧹 Teljes Reset
+               </button>
+               <button 
+                 onClick={() => {
+                   if (confirm('🗑️ MUNKAMENET ADATOK TÖRLÉSE\n\nEz törli az összes helyi munkamenet adatot és felszabadítja a tárhelyet.\n\nFolytatod?')) {
+                     let removedCount = 0;
+                     let freedSpace = 0;
+                     
+                     // Find and remove all session-related data
+                     const keysToRemove = [];
+                     for (let i = 0; i < localStorage.length; i++) {
+                       const key = localStorage.key(i);
+                       if (key && (
+                         key.startsWith('session_') || 
+                         key.startsWith('drive_session_') || 
+                         key.startsWith('teacher_drive_session_') ||
+                         key.startsWith('exerciseLibrary') ||
+                         key.startsWith('okosgyakorlo_')
+                       )) {
+                         const data = localStorage.getItem(key);
+                         if (data) {
+                           freedSpace += data.length;
+                         }
+                         keysToRemove.push(key);
+                       }
+                     }
+                     
+                     keysToRemove.forEach(key => {
+                       localStorage.removeItem(key);
+                       removedCount++;
+                     });
+                     
+                     const freedMB = Math.round(freedSpace / 1024 / 1024 * 100) / 100;
+                     
+                     alert(`🧹 MUNKAMENET ADATOK TÖRÖLVE!\n\n✅ ${removedCount} elem törölve\n✅ ${freedMB} MB felszabadítva\n\nMost újra tudsz munkameneteket létrehozni!`);
+                   }
+                 }}
+                 className="px-3 py-2 rounded-lg font-medium bg-red-500 hover:bg-red-600 text-white transition-colors text-sm"
+               >
+                 🗑️ Munkamenetek
                </button>
                <button 
                  onClick={() => {

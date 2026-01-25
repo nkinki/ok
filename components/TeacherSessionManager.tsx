@@ -5,6 +5,7 @@ import StudentProgressDashboard from './StudentProgressDashboard'
 import SessionManager from './SessionManager'
 import { useSubject } from '../contexts/SubjectContext'
 import { SessionTransferService } from '../services/sessionTransferService'
+import StorageManager from '../utils/storageUtils'
 
 interface Props {
   library: BulkResultItem[]
@@ -211,10 +212,68 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         }
       }
 
-      // Store full session data in localStorage for students to access
+      // Try to store session data with smart quota management
       const sessionKey = `session_${sessionCode}`;
-      localStorage.setItem(sessionKey, JSON.stringify(fullSessionData));
-      console.log('💾 Full session data stored locally with key:', sessionKey);
+      const fullSessionJson = JSON.stringify(fullSessionData);
+      
+      console.log('💾 Attempting to store session data:', Math.round(fullSessionJson.length / 1024), 'KB');
+      
+      // Check storage info before attempting
+      const storageInfo = StorageManager.getStorageInfo();
+      console.log('📊 Storage status:', `${storageInfo.usedMB}MB used (${storageInfo.percentage}%)`);
+      
+      if (StorageManager.hasSpaceFor(fullSessionJson.length)) {
+        // Enough space, try to store normally
+        if (StorageManager.safeSetItem(sessionKey, fullSessionJson)) {
+          console.log('✅ Full session data stored successfully');
+        } else {
+          console.warn('⚠️ Failed to store full data, creating compact version...');
+          // Create compact version as fallback
+          const compactData = {
+            sessionCode: sessionCode,
+            subject: currentSubject || 'general',
+            className: className.trim(),
+            createdAt: new Date().toISOString(),
+            exercises: selectedExerciseData.map(item => ({
+              id: item.id,
+              title: item.data.title,
+              type: item.data.type,
+              content: item.data.content
+            })),
+            metadata: { totalExercises: selectedExerciseData.length, isCompact: true }
+          };
+          
+          StorageManager.safeSetItem(sessionKey, JSON.stringify(compactData));
+          console.log('✅ Compact session data stored as fallback');
+        }
+      } else {
+        console.warn('⚠️ Insufficient storage space, cleaning up and using compact format...');
+        
+        // Clean up old sessions first
+        const cleaned = StorageManager.cleanupOldSessions(2);
+        console.log(`🗑️ Cleaned up ${cleaned} old sessions`);
+        
+        // Create compact version
+        const compactData = {
+          sessionCode: sessionCode,
+          subject: currentSubject || 'general',
+          className: className.trim(),
+          createdAt: new Date().toISOString(),
+          exercises: selectedExerciseData.map(item => ({
+            id: item.id,
+            title: item.data.title,
+            type: item.data.type,
+            content: item.data.content
+          })),
+          metadata: { totalExercises: selectedExerciseData.length, isCompact: true }
+        };
+        
+        if (StorageManager.safeSetItem(sessionKey, JSON.stringify(compactData))) {
+          console.log('✅ Compact session data stored after cleanup');
+        } else {
+          console.warn('⚠️ Cannot store locally, will rely on API only');
+        }
+      }
 
       // Send only minimal data to API (just for tracking)
       const minimalData = {
