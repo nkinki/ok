@@ -6,6 +6,7 @@ import SessionManager from './SessionManager'
 import { useSubject } from '../contexts/SubjectContext'
 import { SessionTransferService } from '../services/sessionTransferService'
 import StorageManager from '../utils/storageUtils'
+import SafeStorage from '../utils/safeStorage'
 
 interface Props {
   library: BulkResultItem[]
@@ -212,67 +213,47 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         }
       }
 
-      // Try to store session data with smart quota management
+      // Try to store session data safely (with fallback)
       const sessionKey = `session_${sessionCode}`;
       const fullSessionJson = JSON.stringify(fullSessionData);
       
       console.log('💾 Attempting to store session data:', Math.round(fullSessionJson.length / 1024), 'KB');
       
-      // Check storage info before attempting
-      const storageInfo = StorageManager.getStorageInfo();
-      console.log('📊 Storage status:', `${storageInfo.usedMB}MB used (${storageInfo.percentage}%)`);
-      
-      if (StorageManager.hasSpaceFor(fullSessionJson.length)) {
-        // Enough space, try to store normally
-        if (StorageManager.safeSetItem(sessionKey, fullSessionJson)) {
-          console.log('✅ Full session data stored successfully');
+      // Check if localStorage is available and has reasonable space
+      if (SafeStorage.isAvailable()) {
+        const usage = SafeStorage.getUsage();
+        console.log('📊 Storage usage:', `${Math.round(usage.used / 1024)}KB (${usage.percentage}%)`);
+        
+        if (usage.percentage < 80) {
+          // Try to store full data
+          if (SafeStorage.setItem(sessionKey, fullSessionJson)) {
+            console.log('✅ Full session data stored successfully');
+          } else {
+            console.warn('⚠️ Failed to store full data, trying compact version...');
+            
+            // Create compact version
+            const compactData = {
+              sessionCode: sessionCode,
+              subject: currentSubject || 'general',
+              className: className.trim(),
+              createdAt: new Date().toISOString(),
+              exercises: selectedExerciseData.map(item => ({
+                id: item.id,
+                title: item.data.title,
+                type: item.data.type,
+                content: item.data.content
+              })),
+              metadata: { totalExercises: selectedExerciseData.length, isCompact: true }
+            };
+            
+            SafeStorage.setItem(sessionKey, JSON.stringify(compactData));
+            console.log('✅ Compact session data stored as fallback');
+          }
         } else {
-          console.warn('⚠️ Failed to store full data, creating compact version...');
-          // Create compact version as fallback
-          const compactData = {
-            sessionCode: sessionCode,
-            subject: currentSubject || 'general',
-            className: className.trim(),
-            createdAt: new Date().toISOString(),
-            exercises: selectedExerciseData.map(item => ({
-              id: item.id,
-              title: item.data.title,
-              type: item.data.type,
-              content: item.data.content
-            })),
-            metadata: { totalExercises: selectedExerciseData.length, isCompact: true }
-          };
-          
-          StorageManager.safeSetItem(sessionKey, JSON.stringify(compactData));
-          console.log('✅ Compact session data stored as fallback');
+          console.warn('⚠️ Storage nearly full, skipping localStorage and using API-only approach');
         }
       } else {
-        console.warn('⚠️ Insufficient storage space, cleaning up and using compact format...');
-        
-        // Clean up old sessions first
-        const cleaned = StorageManager.cleanupOldSessions(2);
-        console.log(`🗑️ Cleaned up ${cleaned} old sessions`);
-        
-        // Create compact version
-        const compactData = {
-          sessionCode: sessionCode,
-          subject: currentSubject || 'general',
-          className: className.trim(),
-          createdAt: new Date().toISOString(),
-          exercises: selectedExerciseData.map(item => ({
-            id: item.id,
-            title: item.data.title,
-            type: item.data.type,
-            content: item.data.content
-          })),
-          metadata: { totalExercises: selectedExerciseData.length, isCompact: true }
-        };
-        
-        if (StorageManager.safeSetItem(sessionKey, JSON.stringify(compactData))) {
-          console.log('✅ Compact session data stored after cleanup');
-        } else {
-          console.warn('⚠️ Cannot store locally, will rely on API only');
-        }
+        console.warn('⚠️ localStorage not available, using API-only approach');
       }
 
       // Send only minimal data to API (just for tracking)
