@@ -256,16 +256,26 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         console.warn('⚠️ localStorage not available, using API-only approach');
       }
 
-      // ALWAYS send minimal data to API - use Google Drive + localStorage for full data
+      // ALWAYS send minimal data to API, but include a compact version for students
+      const compactExercisesForStudents = selectedExerciseData.map(item => ({
+        id: item.id,
+        title: item.data.title,
+        instruction: item.data.instruction,
+        type: item.data.type,
+        content: item.data.content
+        // No imageUrl to keep size down
+      }));
+      
       const minimalData = {
         code: sessionCode,
-        exercises: [], // Always empty - full data goes to Drive/localStorage
+        exercises: [], // Keep empty for compatibility
         subject: currentSubject || 'general',
         className: className.trim(),
-        maxScore: selectedExerciseData.length * 10
+        maxScore: selectedExerciseData.length * 10,
+        fullExercises: compactExercisesForStudents // Include for student access
       };
       
-      console.log('📤 Sending minimal data to API:', JSON.stringify(minimalData).length, 'bytes');
+      console.log('📤 Sending minimal data to API with', compactExercisesForStudents.length, 'compact exercises:', JSON.stringify(minimalData).length, 'bytes');
       
       // If localStorage is full, force cleanup before proceeding
       if (SafeStorage.getUsage().percentage >= 80) {
