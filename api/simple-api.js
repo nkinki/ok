@@ -489,6 +489,87 @@ export default async function handler(req, res) {
         });
       }
     }
+
+    // Create minimal session (new approach - localStorage based)
+    if (method === 'POST' && path.includes('/sessions/create-minimal')) {
+      const { code, subject = 'general', className, exerciseCount, maxScore } = req.body;
+
+      if (!code) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      if (!className || !className.trim()) {
+        return res.status(400).json({ error: 'Osztály neve kötelező' });
+      }
+
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ 
+            error: 'Supabase credentials missing',
+            solution: 'Check Vercel environment variables'
+          });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Create minimal session record for tracking
+        const sessionData = {
+          session_code: code.toUpperCase(),
+          exercises: [], // Empty - data is in localStorage
+          subject: subject,
+          class_name: className.trim(),
+          max_possible_score: maxScore || exerciseCount * 10,
+          is_active: true,
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 60 minutes
+          exercise_count: exerciseCount || 0
+        };
+
+        console.log('💾 Creating minimal session record:', code.toUpperCase());
+        
+        // Create session in database
+        const { data, error } = await supabase
+          .from('teacher_sessions')
+          .insert(sessionData)
+          .select('id, session_code, subject, is_active, created_at, expires_at')
+          .single();
+
+        if (error) {
+          console.error('Database error:', error);
+          return res.status(500).json({ 
+            error: 'Database error',
+            details: error.message
+          });
+        }
+
+        console.log('✅ Minimal session created successfully:', data.session_code);
+
+        return res.status(200).json({
+          success: true,
+          session: {
+            id: data.id,
+            code: data.session_code,
+            subject: data.subject,
+            isActive: data.is_active,
+            createdAt: data.created_at,
+            expiresAt: data.expires_at,
+            storageType: 'localStorage'
+          },
+          message: 'Minimal session created successfully'
+        });
+
+      } catch (err) {
+        console.error('Minimal session creation error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+    
     // Create session
     if (method === 'POST' && path.includes('/sessions/create')) {
       const { code, exercises, subject = 'general', maxScore, className, fullExercises } = req.body;

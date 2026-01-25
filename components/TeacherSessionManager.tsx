@@ -188,18 +188,8 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         className: className
       });
 
-      // Send minimal exercise data to API for fast session creation
-      const minimalExercises = selectedExerciseData.map(item => ({
-        id: item.id,
-        fileName: item.fileName,
-        title: item.data.title,
-        instruction: item.data.instruction,
-        type: item.data.type
-        // Note: content excluded for speed - will be in downloadable JSON
-      }))
-
-      // Prepare full JSON for download (stored in database)
-      const sessionJson = {
+      // NEW APPROACH: Store full session data locally and only send minimal data to API
+      const fullSessionData = {
         sessionCode: sessionCode,
         subject: currentSubject || 'general',
         className: className.trim(),
@@ -220,52 +210,30 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           estimatedTime: selectedExerciseData.length * 3
         }
       }
-      
-      console.log('⚡ Creating session with minimal API data + downloadable JSON');
-      console.log('📊 Data size comparison:', {
-        apiSize: JSON.stringify(minimalExercises).length,
-        jsonSize: JSON.stringify(sessionJson).length,
-        reduction: Math.round((1 - JSON.stringify(minimalExercises).length / JSON.stringify(sessionJson).length) * 100) + '%'
-      });
-      
-      const requestBody = {
+
+      // Store full session data in localStorage for students to access
+      const sessionKey = `session_${sessionCode}`;
+      localStorage.setItem(sessionKey, JSON.stringify(fullSessionData));
+      console.log('💾 Full session data stored locally with key:', sessionKey);
+
+      // Send only minimal data to API (just for tracking)
+      const minimalData = {
         code: sessionCode,
-        exercises: minimalExercises, // Send minimal data for API speed
         subject: currentSubject || 'general',
         className: className.trim(),
-        maxScore: selectedExerciseData.length * 10, // 10 pont per feladat
-        // Send full exercise data for proper storage
-        fullExercises: selectedExerciseData.map(item => ({
-          id: item.id,
-          fileName: item.fileName,
-          imageUrl: item.imageUrl || '',
-          title: item.data.title,
-          instruction: item.data.instruction,
-          type: item.data.type,
-          content: item.data.content
-        }))
+        exerciseCount: selectedExerciseData.length,
+        maxScore: selectedExerciseData.length * 10
       };
       
-      const requestBodySize = JSON.stringify(requestBody).length;
-      console.log('📤 Preparing API request with body size:', requestBodySize, 'bytes');
-      console.log('📤 Request URL: /api/simple-api/sessions/create');
+      console.log('📤 Sending minimal data to API:', JSON.stringify(minimalData).length, 'bytes');
       
-      // Check if request is too large (Vercel has 4.5MB limit)
-      if (requestBodySize > 4 * 1024 * 1024) { // 4MB
-        console.warn('⚠️ Request body is very large:', requestBodySize, 'bytes');
-        console.warn('⚠️ This might cause Vercel function timeout');
-      }
-      
-      console.log('🚀 Starting fetch request...');
-      const response = await fetch('/api/simple-api/sessions/create', {
+      const response = await fetch('/api/simple-api/sessions/create-minimal', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(minimalData)
       })
-      
-      console.log('📡 Fetch completed, response received');
 
       console.log('📡 API create response status:', response.status);
       
@@ -286,7 +254,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       console.log('✅ Session created in database:', apiResult)
 
       // Verify we got the expected response structure
-      if (!apiResult.success || !apiResult.session) {
+      if (!apiResult.success) {
         console.error('❌ Invalid API response structure:', apiResult)
         setError('Hibás API válasz struktúra')
         return

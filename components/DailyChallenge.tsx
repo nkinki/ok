@@ -189,18 +189,39 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     try {
       let sessionFound = false;
 
-      // Try API approach (standard method)
-      console.log('🌐 Checking API for session...');
-      try {
-        const response = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
-        console.log('📡 API check response status:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('📡 API check data:', data);
-          if (data.exists) {
-            // Join the session
-            const joinResponse = await fetch(`/api/simple-api/sessions/join`, {
+      // NEW APPROACH: Try localStorage first (fast path)
+      console.log('💾 Checking localStorage for session data...');
+      const sessionKey = `session_${code.toUpperCase()}`;
+      const localSessionData = localStorage.getItem(sessionKey);
+      
+      if (localSessionData) {
+        try {
+          const sessionData = JSON.parse(localSessionData);
+          console.log('✅ Session data found in localStorage');
+          console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
+          
+          // Convert localStorage JSON to playlist format
+          const playlist = sessionData.exercises.map((exercise: any) => ({
+            id: exercise.id,
+            fileName: exercise.fileName,
+            imageUrl: exercise.imageUrl || '',
+            data: {
+              type: exercise.type,
+              title: exercise.title,
+              instruction: exercise.instruction,
+              content: exercise.content
+            }
+          }));
+          
+          setPlaylist(playlist);
+          setCurrentIndex(0);
+          setCompletedCount(0);
+          setStep('PLAYING');
+          sessionFound = true;
+          
+          // Still try to join session for statistics (non-blocking)
+          try {
+            await fetch(`/api/simple-api/sessions/join`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -211,73 +232,107 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 className: studentData.className
               })
             });
+            console.log('📊 Joined session for statistics');
+          } catch (joinError) {
+            console.warn('⚠️ Could not join for statistics (continuing anyway):', joinError);
+          }
+          
+        } catch (parseError) {
+          console.warn('⚠️ Could not parse localStorage session data:', parseError);
+        }
+      }
 
-            if (joinResponse.ok) {
-              const joinData = await joinResponse.json();
-              console.log('✅ Joined session:', joinData);
-              
-              // Store student ID for later use and session metadata
-              if (studentData && joinData.student?.id) {
-                setStudent(prev => prev ? { 
-                  ...prev, 
-                  id: joinData.student.id,
-                  sessionId: joinData.student.sessionId 
-                } : null);
+      // Fallback: Try API approach if localStorage failed
+      if (!sessionFound) {
+        console.log('🌐 Fallback: Checking API for session...');
+        try {
+          const response = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
+          console.log('📡 API check response status:', response.status);
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log('📡 API check data:', data);
+            if (data.exists) {
+              // Join the session
+              const joinResponse = await fetch(`/api/simple-api/sessions/join`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  sessionCode: code.toUpperCase(),
+                  name: studentData.name,
+                  className: studentData.className
+                })
+              });
+
+              if (joinResponse.ok) {
+                const joinData = await joinResponse.json();
+                console.log('✅ Joined session:', joinData);
+                
+                // Store student ID for later use and session metadata
+                if (studentData && joinData.student?.id) {
+                  setStudent(prev => prev ? { 
+                    ...prev, 
+                    id: joinData.student.id,
+                    sessionId: joinData.student.sessionId 
+                  } : null);
+                }
+
+                // Start heartbeat to keep connection alive
+                if (joinData.student?.id) {
+                  startHeartbeat(code.toUpperCase(), joinData.student.id);
+                }
               }
 
-              // Start heartbeat to keep connection alive
-              if (joinData.student?.id) {
-                startHeartbeat(code.toUpperCase(), joinData.student.id);
-              }
-            }
-
-            // Get exercises from API (now returns full JSON)
-            const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
-            console.log('📡 API exercises response status:', exercisesResponse.status);
-            if (exercisesResponse.ok) {
-              const sessionData = await exercisesResponse.json();
-              console.log('📡 API session data:', sessionData);
-              
-              if (sessionData.exercises && sessionData.exercises.length > 0) {
-                console.log('✅ Session JSON loaded from API');
-                console.log('📊 Exercise count:', sessionData.exercises.length);
+              // Get exercises from API (now returns full JSON)
+              const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
+              console.log('📡 API exercises response status:', exercisesResponse.status);
+              if (exercisesResponse.ok) {
+                const sessionData = await exercisesResponse.json();
+                console.log('📡 API session data:', sessionData);
                 
-                // Convert API JSON to playlist format
-                const playlist = sessionData.exercises.map((exercise: any) => ({
-                  id: exercise.id,
-                  fileName: exercise.fileName,
-                  imageUrl: exercise.imageUrl || '',
-                  data: {
-                    type: exercise.type,
-                    title: exercise.title,
-                    instruction: exercise.instruction,
-                    content: exercise.content
-                  }
-                }));
-                
-                setPlaylist(playlist);
-                setCurrentIndex(0);
-                setCompletedCount(0);
-                
-                // Store session metadata for result submission
-                setCurrentSessionCode(code.toUpperCase());
-                
-                setStep('PLAYING');
-                sessionFound = true;
+                if (sessionData.exercises && sessionData.exercises.length > 0) {
+                  console.log('✅ Session JSON loaded from API');
+                  console.log('📊 Exercise count:', sessionData.exercises.length);
+                  
+                  // Convert API JSON to playlist format
+                  const playlist = sessionData.exercises.map((exercise: any) => ({
+                    id: exercise.id,
+                    fileName: exercise.fileName,
+                    imageUrl: exercise.imageUrl || '',
+                    data: {
+                      type: exercise.type,
+                      title: exercise.title,
+                      instruction: exercise.instruction,
+                      content: exercise.content
+                    }
+                  }));
+                  
+                  setPlaylist(playlist);
+                  setCurrentIndex(0);
+                  setCompletedCount(0);
+                  
+                  // Store session metadata for result submission
+                  setCurrentSessionCode(code.toUpperCase());
+                  
+                  setStep('PLAYING');
+                  sessionFound = true;
+                } else {
+                  console.log('❌ No exercises found in API response');
+                }
               } else {
-                console.log('❌ No exercises found in API response');
+                console.log('❌ API exercises request failed');
               }
             } else {
-              console.log('❌ API exercises request failed');
+              console.log('❌ Session not found in API');
             }
           } else {
-            console.log('❌ Session not found in API');
+            console.log('⚠️ API session check failed with status:', response.status);
           }
-        } else {
-          console.log('⚠️ API session check failed with status:', response.status);
+        } catch (apiError) {
+          console.warn('⚠️ API session check failed:', apiError);
         }
-      } catch (apiError) {
-        console.warn('⚠️ API session check failed:', apiError);
       }
 
       // If no session found, show error
