@@ -553,12 +553,12 @@ export default async function handler(req, res) {
           subject: data.subject || 'general',
           className: data.class_name,
           createdAt: data.created_at,
-          exercises: data.exercises, // Full exercise data stored in DB
+          exercises: data.exercises || exercises, // Use stored exercises or fallback to input
           metadata: {
             version: '1.0.0',
             exportedBy: 'Okos Gyakorló API',
-            totalExercises: data.exercises.length,
-            estimatedTime: data.exercises.length * 3,
+            totalExercises: (data.exercises || exercises).length,
+            estimatedTime: (data.exercises || exercises).length * 3,
             sessionId: data.id
           }
         };
