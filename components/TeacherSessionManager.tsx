@@ -173,19 +173,45 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         className: className
       });
 
-      // Send full exercise data to API for complete JSON delivery to students
-      const fullExercises = selectedExerciseData.map(item => ({
+      // Send minimal exercise data to API for fast session creation
+      const minimalExercises = selectedExerciseData.map(item => ({
         id: item.id,
         fileName: item.fileName,
-        imageUrl: item.imageUrl || '', // Include images for students
         title: item.data.title,
         instruction: item.data.instruction,
-        type: item.data.type,
-        content: item.data.content // Include full content for students
+        type: item.data.type
+        // Note: content excluded for speed - will be in downloadable JSON
       }))
+
+      // Prepare full JSON for download (stored in database)
+      const sessionJson = {
+        sessionCode: sessionCode,
+        subject: currentSubject || 'general',
+        className: className.trim(),
+        createdAt: new Date().toISOString(),
+        exercises: selectedExerciseData.map(item => ({
+          id: item.id,
+          fileName: item.fileName,
+          imageUrl: item.imageUrl || '',
+          title: item.data.title,
+          instruction: item.data.instruction,
+          type: item.data.type,
+          content: item.data.content
+        })),
+        metadata: {
+          version: '1.0.0',
+          exportedBy: 'Okos Gyakorló Tanári Felület',
+          totalExercises: selectedExerciseData.length,
+          estimatedTime: selectedExerciseData.length * 3
+        }
+      }
       
-      console.log('⚡ Creating session with full exercise data for student compatibility');
-      console.log('📊 Exercise data includes content:', fullExercises.every(ex => ex.content));
+      console.log('⚡ Creating session with minimal API data + downloadable JSON');
+      console.log('📊 Data size comparison:', {
+        apiSize: JSON.stringify(minimalExercises).length,
+        jsonSize: JSON.stringify(sessionJson).length,
+        reduction: Math.round((1 - JSON.stringify(minimalExercises).length / JSON.stringify(sessionJson).length) * 100) + '%'
+      });
       
       const response = await fetch('/api/simple-api/sessions/create', {
         method: 'POST',
@@ -194,7 +220,8 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         },
         body: JSON.stringify({
           code: sessionCode,
-          exercises: fullExercises, // Send full data for student compatibility
+          exercises: minimalExercises, // Send minimal data for speed
+          sessionJson: sessionJson, // Send full JSON for database storage
           subject: currentSubject || 'general',
           className: className.trim(),
           maxScore: selectedExerciseData.length * 10 // 10 pont per feladat

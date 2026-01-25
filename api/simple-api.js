@@ -228,7 +228,8 @@ export default async function handler(req, res) {
             code: data.session_code,
             exerciseCount: data.exercises.length,
             isActive: data.is_active,
-            expiresAt: data.expires_at
+            expiresAt: data.expires_at,
+            jsonDownloadUrl: data.session_json_url || `/api/simple-api/sessions/${sessionCode}/download` // URL for JSON download
           }
         });
         
@@ -490,7 +491,7 @@ export default async function handler(req, res) {
     }
     // Create session
     if (method === 'POST' && path.includes('/sessions/create')) {
-      const { code, exercises, subject = 'general', maxScore, className } = req.body;
+      const { code, exercises, sessionJson, subject = 'general', maxScore, className } = req.body;
 
       if (!code || !exercises) {
         return res.status(400).json({ error: 'Kód és feladatok megadása kötelező' });
@@ -517,31 +518,32 @@ export default async function handler(req, res) {
         // Számítsuk ki a maximális pontszámot ha nincs megadva
         const calculatedMaxScore = maxScore || exercises.length * 10; // Alapértelmezett: 10 pont/feladat
         
-        // Store full exercise data in database for students, but receive minimal from frontend
-        const fullExercises = exercises.map(exercise => {
-          // If content is missing, this is minimal data from optimized frontend
-          // We need to reconstruct or handle this properly
-          return exercise;
-        });
-
-        // Optimize: Prepare data for database (store full exercises for students)
+        // Store minimal exercise data in database + JSON for download
         const sessionData = {
           session_code: code.toUpperCase(),
-          exercises: fullExercises, // Store whatever we received (minimal or full)
+          exercises: exercises, // Store minimal exercises for API speed
           subject: subject,
           class_name: className.trim(),
           max_possible_score: calculatedMaxScore,
           is_active: true,
-          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes instead of 24 hours
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 60 minutes instead of 24 hours
+          // Store full JSON for download
+          full_session_json: sessionJson,
+          session_json_url: `/api/simple-api/sessions/${code.toUpperCase()}/download`
         };
 
         console.log('💾 Inserting session with', exercises.length, 'exercises, subject:', subject, 'class:', className.trim());
+        console.log('📊 Data size comparison:', {
+          minimalSize: JSON.stringify(exercises).length,
+          fullJsonSize: JSON.stringify(sessionJson).length,
+          reduction: Math.round((1 - JSON.stringify(exercises).length / JSON.stringify(sessionJson).length) * 100) + '%'
+        });
         
         // Create session in database
         const { data, error } = await supabase
           .from('teacher_sessions')
           .insert(sessionData)
-          .select('id, session_code, subject, max_possible_score, is_active, created_at, expires_at')
+          .select('id, session_code, subject, max_possible_score, is_active, created_at, expires_at, session_json_url')
           .single();
 
         if (error) {
@@ -554,22 +556,6 @@ export default async function handler(req, res) {
 
         console.log('✅ Session created successfully:', data.session_code);
 
-        // Return session data + full JSON for hybrid system
-        const sessionJson = {
-          sessionCode: data.session_code,
-          subject: data.subject || 'general',
-          className: data.class_name,
-          createdAt: data.created_at,
-          exercises: data.exercises || exercises, // Use stored exercises or fallback to input
-          metadata: {
-            version: '1.0.0',
-            exportedBy: 'Okos Gyakorló API',
-            totalExercises: (data.exercises || exercises).length,
-            estimatedTime: (data.exercises || exercises).length * 3,
-            sessionId: data.id
-          }
-        };
-
         return res.status(200).json({
           success: true,
           session: {
@@ -581,14 +567,62 @@ export default async function handler(req, res) {
             maxPossibleScore: data.max_possible_score,
             isActive: data.is_active,
             createdAt: data.created_at,
-            expiresAt: data.expires_at
+            expiresAt: data.expires_at,
+            jsonDownloadUrl: data.session_json_url // URL for JSON download
           },
-          sessionJson: sessionJson, // Full JSON for hybrid system
           message: 'Session created successfully'
         });
 
       } catch (err) {
         console.error('Session creation error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
+    // Download session JSON (student) - fast file download
+    if (method === 'GET' && path.includes('/sessions/') && path.includes('/download')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/download/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data, error } = await supabase
+          .from('teacher_sessions')
+          .select('full_session_json')
+          .eq('session_code', sessionCode)
+          .eq('is_active', true)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (error || !data || !data.full_session_json) {
+          return res.status(404).json({ 
+            error: 'Munkamenet JSON nem található',
+            hint: 'A munkamenet lehet, hogy lejárt vagy nem létezik.'
+          });
+        }
+
+        // Return JSON file for download
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="session_${sessionCode}.json"`);
+        return res.status(200).json(data.full_session_json);
+        
+      } catch (err) {
         return res.status(500).json({ 
           error: 'Server error',
           details: err.message

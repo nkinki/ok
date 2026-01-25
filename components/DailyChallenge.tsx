@@ -180,17 +180,43 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     }
   };
 
-  const handleStudentLogin = async (studentData: Student, code: string) => {
+  const handleStudentLogin = async (studentData: Student, code: string, sessionData?: any) => {
     setStudent(studentData);
     setCurrentSessionCode(code);
     setLoading(true);
     setError(null);
 
     try {
+      // If we have pre-downloaded session data, use it directly (fast path)
+      if (sessionData && sessionData.exercises && sessionData.exercises.length > 0) {
+        console.log('🚀 Using pre-downloaded session data (fast path)');
+        console.log('📊 Exercise count:', sessionData.exercises.length);
+        
+        // Convert downloaded JSON to playlist format
+        const playlist = sessionData.exercises.map((exercise: any) => ({
+          id: exercise.id,
+          fileName: exercise.fileName,
+          imageUrl: exercise.imageUrl || '',
+          data: {
+            type: exercise.type,
+            title: exercise.title,
+            instruction: exercise.instruction,
+            content: exercise.content
+          }
+        }));
+        
+        setPlaylist(playlist);
+        setCurrentIndex(0);
+        setCompletedCount(0);
+        setStep('PLAYING');
+        setLoading(false);
+        return;
+      }
+
+      // Fallback: Try API approach (slower path)
       let sessionFound = false;
 
-      // Primary: Try API first (for network access)
-      console.log('🌐 Checking API for session...');
+      console.log('🌐 Fallback: Checking API for session...');
       try {
         const response = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
         console.log('📡 API check response status:', response.status);
@@ -280,9 +306,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         console.warn('⚠️ API session check failed:', apiError);
       }
 
-      // Secondary: Database-only approach - no localStorage fallback
+      // If no session found, show error
       if (!sessionFound) {
-        throw new Error('A megadott tanári kód nem található vagy a munkamenet nem aktív.\n\n🔄 Lehetséges okok:\n• A munkamenet lejárt (24 óra után)\n• Hibás kód\n• Hálózati probléma\n• Adatbázis nem elérhető\n\n💡 Megoldás: Kérj új kódot a tanártól!');
+        throw new Error('A megadott tanári kód nem található vagy a munkamenet nem aktív.\n\n🔄 Lehetséges okok:\n• A munkamenet lejárt (60 perc után)\n• Hibás kód\n• Hálózati probléma\n• Adatbázis nem elérhető\n\n💡 Megoldás: Kérj új kódot a tanártól!');
       }
       
     } catch (error) {
