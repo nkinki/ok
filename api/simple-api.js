@@ -490,62 +490,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // Download session JSON from Supabase Storage
-    if (method === 'GET' && path.includes('/sessions/') && path.includes('/download-json')) {
-      const codeMatch = path.match(/\/sessions\/([^\/]+)\/download-json/);
-      if (!codeMatch) {
-        return res.status(400).json({ error: 'Kód megadása kötelező' });
-      }
-
-      const sessionCode = codeMatch[1].toUpperCase();
-      
-      try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        
-        if (!supabaseUrl || !supabaseKey) {
-          return res.status(500).json({ error: 'Supabase credentials missing' });
-        }
-
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        
-        // Download JSON from Supabase Storage
-        const fileName = `session_${sessionCode}.json`;
-        
-        console.log('📥 Downloading session JSON from storage:', fileName);
-        
-        const { data: downloadData, error: downloadError } = await supabase.storage
-          .from('session-files')
-          .download(fileName);
-
-        if (downloadError) {
-          console.error('Storage download error:', downloadError);
-          return res.status(404).json({ 
-            error: 'Session JSON not found in storage',
-            details: downloadError.message
-          });
-        }
-
-        // Convert blob to JSON
-        const jsonText = await downloadData.text();
-        const sessionData = JSON.parse(jsonText);
-
-        console.log('✅ Session JSON downloaded successfully');
-
-        return res.status(200).json(sessionData);
-        
-      } catch (err) {
-        console.error('JSON download error:', err);
-        return res.status(500).json({ 
-          error: 'Server error',
-          details: err.message
-        });
-      }
-    }
-
-    // Upload session JSON to Supabase Storage (new approach)
-    if (method === 'POST' && path.includes('/sessions/upload-json')) {
+    // Upload session JSON to Google Drive
+    if (method === 'POST' && path.includes('/sessions/upload-drive')) {
       const { code, sessionJson } = req.body;
 
       if (!code || !sessionJson) {
@@ -553,55 +499,109 @@ export default async function handler(req, res) {
       }
 
       try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        // Import Google Drive service dynamically
+        const { googleDriveService } = await import('../../services/googleDriveService.js');
         
-        if (!supabaseUrl || !supabaseKey) {
-          return res.status(500).json({ 
-            error: 'Supabase credentials missing'
+        console.log('📤 Uploading session JSON to Google Drive:', code.toUpperCase());
+        
+        const uploadResult = await googleDriveService.uploadSessionJSON(code, sessionJson);
+        
+        if (!uploadResult.success) {
+          console.error('Drive upload failed:', uploadResult.error);
+          return res.status(500).json({
+            error: 'Google Drive upload failed',
+            details: uploadResult.error,
+            fallback: 'Using localStorage instead'
           });
         }
 
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        
-        // Upload JSON to Supabase Storage
-        const fileName = `session_${code.toUpperCase()}.json`;
-        const jsonBlob = JSON.stringify(sessionJson, null, 2);
-        
-        console.log('📤 Uploading session JSON to storage:', fileName);
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('session-files')
-          .upload(fileName, jsonBlob, {
-            contentType: 'application/json',
-            upsert: true // Overwrite if exists
-          });
-
-        if (uploadError) {
-          console.error('Storage upload error:', uploadError);
-          return res.status(500).json({ 
-            error: 'Storage upload error',
-            details: uploadError.message
-          });
-        }
-
-        // Get public URL for the uploaded file
-        const { data: urlData } = supabase.storage
-          .from('session-files')
-          .getPublicUrl(fileName);
-
-        console.log('✅ Session JSON uploaded successfully:', urlData.publicUrl);
+        console.log('✅ Session JSON uploaded to Google Drive successfully');
 
         return res.status(200).json({
           success: true,
-          downloadUrl: urlData.publicUrl,
-          fileName: fileName,
-          message: 'Session JSON uploaded successfully'
+          fileId: uploadResult.fileId,
+          downloadUrl: uploadResult.downloadUrl,
+          fileName: `session_${code.toUpperCase()}.json`,
+          message: 'Session JSON uploaded to Google Drive successfully'
         });
 
       } catch (err) {
-        console.error('JSON upload error:', err);
+        console.error('Google Drive upload error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message,
+          fallback: 'Using localStorage instead'
+        });
+      }
+    }
+
+    // Download session JSON from Google Drive
+    if (method === 'GET' && path.includes('/sessions/') && path.includes('/download-drive')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/download-drive/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      
+      try {
+        // Import Google Drive service dynamically
+        const { googleDriveService } = await import('../../services/googleDriveService.js');
+        
+        console.log('📥 Downloading session JSON from Google Drive:', sessionCode);
+        
+        const downloadResult = await googleDriveService.downloadSessionJSON(sessionCode);
+        
+        if (!downloadResult.success) {
+          console.error('Drive download failed:', downloadResult.error);
+          return res.status(404).json({
+            error: 'Session JSON not found on Google Drive',
+            details: downloadResult.error,
+            hint: 'Check if the session code is correct or if the file was uploaded'
+          });
+        }
+
+        console.log('✅ Session JSON downloaded from Google Drive successfully');
+
+        return res.status(200).json(downloadResult.data);
+
+      } catch (err) {
+        console.error('Google Drive download error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
+    // Download session JSON (simple approach)
+    if (method === 'GET' && path.includes('/sessions/') && path.includes('/download-json')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/download-json/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      const urlParams = new URLSearchParams(url.split('?')[1] || '');
+      const dataParam = urlParams.get('data');
+      
+      try {
+        if (dataParam) {
+          // Decode the base64url data
+          const jsonString = Buffer.from(dataParam, 'base64url').toString();
+          const sessionData = JSON.parse(jsonString);
+          
+          console.log('✅ Session JSON decoded successfully');
+          return res.status(200).json(sessionData);
+        } else {
+          return res.status(404).json({ 
+            error: 'Session JSON not found',
+            hint: 'Data parameter missing'
+          });
+        }
+        
+      } catch (err) {
+        console.error('JSON decode error:', err);
         return res.status(500).json({ 
           error: 'Server error',
           details: err.message
@@ -635,32 +635,33 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        // Create minimal session record for tracking
+        // Create minimal session record for tracking - only use columns that exist
         const sessionData = {
           session_code: code.toUpperCase(),
           exercises: [], // Empty - data is in localStorage
           subject: subject,
           class_name: className.trim(),
-          max_possible_score: maxScore || exerciseCount * 10,
+          max_possible_score: maxScore || (exerciseCount ? exerciseCount * 10 : 100),
           is_active: true,
           expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes
-          // Remove exercise_count - doesn't exist in schema
         };
 
         console.log('💾 Creating minimal session record:', code.toUpperCase());
+        console.log('📊 Session data to insert:', JSON.stringify(sessionData, null, 2));
         
-        // Create session in database
+        // Create session in database with explicit column selection
         const { data, error } = await supabase
           .from('teacher_sessions')
-          .insert(sessionData)
-          .select('id, session_code, subject, is_active, created_at, expires_at')
+          .insert([sessionData]) // Use array format to be explicit
+          .select('id, session_code, subject, class_name, is_active, created_at, expires_at')
           .single();
 
         if (error) {
-          console.error('Database error:', error);
+          console.error('Database error details:', error);
           return res.status(500).json({ 
             error: 'Database error',
-            details: error.message
+            details: error.message,
+            hint: 'Check if all required columns exist in teacher_sessions table'
           });
         }
 
@@ -672,6 +673,7 @@ export default async function handler(req, res) {
             id: data.id,
             code: data.session_code,
             subject: data.subject,
+            className: data.class_name,
             isActive: data.is_active,
             createdAt: data.created_at,
             expiresAt: data.expires_at,
@@ -684,7 +686,8 @@ export default async function handler(req, res) {
         console.error('Minimal session creation error:', err);
         return res.status(500).json({ 
           error: 'Server error',
-          details: err.message
+          details: err.message,
+          stack: err.stack
         });
       }
     }

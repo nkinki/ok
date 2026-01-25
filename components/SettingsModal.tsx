@@ -11,6 +11,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [geminiApiKeys, setGeminiApiKeys] = useState(''); // Multiple Gemini keys
   const [teacherEmail, setTeacherEmail] = useState('');
+  const [googleDriveFolder, setGoogleDriveFolder] = useState(''); // Google Drive folder URL
   const [isDebug, setIsDebug] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [envText, setEnvText] = useState('');
@@ -26,6 +27,9 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     
     const storedEmail = localStorage.getItem('teacher_email');
     if (storedEmail) setTeacherEmail(storedEmail);
+    
+    const storedDriveFolder = localStorage.getItem('google_drive_folder');
+    if (storedDriveFolder) setGoogleDriveFolder(storedDriveFolder);
     
     const debugStored = localStorage.getItem('app_debug_mode');
     setIsDebug(debugStored === 'true');
@@ -64,6 +68,12 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         localStorage.setItem('teacher_email', teacherEmail.trim());
     } else {
         localStorage.removeItem('teacher_email');
+    }
+
+    if (googleDriveFolder.trim()) {
+        localStorage.setItem('google_drive_folder', googleDriveFolder.trim());
+    } else {
+        localStorage.removeItem('google_drive_folder');
     }
 
     localStorage.setItem('app_debug_mode', isDebug ? 'true' : 'false');
@@ -164,15 +174,75 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
         
         <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-          {/* Gemini Only Notice */}
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="text-2xl">🧠</div>
-              <h3 className="font-bold text-blue-700 text-lg">Google Gemini AI</h3>
+          {/* Google Drive Folder Setup */}
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="text-2xl">📁</div>
+              <h3 className="font-bold text-green-700 text-lg">Google Drive Mappa</h3>
             </div>
-            <p className="text-sm text-blue-600">
-              Ez az alkalmazás most már csak a Google Gemini AI-t használja. Ingyenes és megbízható képfelismerés magyar feladatokhoz.
+            <p className="text-sm text-green-600 mb-4">
+              Állítsd be a saját Google Drive mappádat a munkamenet fájlok automatikus megosztásához.
             </p>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-bold text-green-700 mb-1">
+                  Google Drive Mappa URL
+                </label>
+                <input 
+                  type="url" 
+                  value={googleDriveFolder}
+                  onChange={(e) => setGoogleDriveFolder(e.target.value)}
+                  placeholder="https://drive.google.com/drive/folders/1ABC123DEF456..."
+                  className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div className="bg-white p-3 rounded border border-green-200">
+                <h4 className="font-bold text-green-700 text-sm mb-2">📋 Beállítási lépések:</h4>
+                <ol className="text-xs text-green-600 space-y-1 list-decimal list-inside">
+                  <li>Menj a <a href="https://drive.google.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-green-800">Google Drive</a>-ra</li>
+                  <li>Hozz létre új mappát: "Okos-Gyakorlo-{teacherEmail.split('@')[0] || 'Munkamenetek'}"</li>
+                  <li>Jobb klikk a mappán → "Megosztás"</li>
+                  <li>Állítsd be: "Bárki, aki rendelkezik a hivatkozással, megtekintheti"</li>
+                  <li>Másold ki a mappa URL-jét és illeszd be ide</li>
+                </ol>
+              </div>
+              
+              {googleDriveFolder && (
+                <div className="bg-white p-3 rounded border border-green-200">
+                  <h4 className="font-bold text-green-700 text-sm mb-2">✅ Mappa beállítva:</h4>
+                  <p className="text-xs text-green-600 break-all mb-2">{googleDriveFolder}</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        window.open(googleDriveFolder, '_blank');
+                      }}
+                      className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded font-medium"
+                    >
+                      📁 Mappa megnyitása
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Test the folder configuration
+                        const { googleDriveService } = require('../services/googleDriveService');
+                        const folderInfo = googleDriveService.getTeacherFolderInfo();
+                        const status = googleDriveService.getStatus();
+                        
+                        alert(`📁 Google Drive Mappa Teszt:\n\n` +
+                              `URL: ${folderInfo.url || 'Nincs beállítva'}\n` +
+                              `Folder ID: ${folderInfo.folderId || 'Nem található'}\n` +
+                              `Érvényes: ${folderInfo.isValid ? '✅ Igen' : '❌ Nem'}\n\n` +
+                              `Státusz: ${status}`);
+                      }}
+                      className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded font-medium"
+                    >
+                      🔍 Teszt
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ENV Import Section */}

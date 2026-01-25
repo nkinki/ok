@@ -219,15 +219,24 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       // Send only minimal data to API (just for tracking)
       const minimalData = {
         code: sessionCode,
+        exercises: [], // Empty array to minimize payload
         subject: currentSubject || 'general',
         className: className.trim(),
-        exerciseCount: selectedExerciseData.length,
-        maxScore: selectedExerciseData.length * 10
+        maxScore: selectedExerciseData.length * 10,
+        fullExercises: selectedExerciseData.map(item => ({
+          id: item.id,
+          fileName: item.fileName,
+          imageUrl: item.imageUrl || '',
+          title: item.data.title,
+          instruction: item.data.instruction,
+          type: item.data.type,
+          content: item.data.content
+        }))
       };
       
-      console.log('📤 Sending minimal data to API:', JSON.stringify(minimalData).length, 'bytes');
+      console.log('📤 Sending data to API:', JSON.stringify(minimalData).length, 'bytes');
       
-      const response = await fetch('/api/simple-api/sessions/create-minimal', {
+      const response = await fetch('/api/simple-api/sessions/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -260,10 +269,10 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         return
       }
 
-      // Upload JSON to Supabase Storage for students to download
-      console.log('📤 Uploading session JSON to cloud storage...');
+      // Upload JSON to Google Drive for students to download
+      console.log('📤 Uploading session JSON to Google Drive...');
       try {
-        const uploadResponse = await fetch('/api/simple-api/sessions/upload-json', {
+        const uploadResponse = await fetch('/api/simple-api/sessions/upload-drive', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -276,15 +285,22 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
 
         if (uploadResponse.ok) {
           const uploadResult = await uploadResponse.json();
-          console.log('✅ JSON uploaded to cloud:', uploadResult.downloadUrl);
+          console.log('✅ JSON uploaded to Google Drive:', uploadResult.downloadUrl);
           
-          // Store download URL for later use
-          localStorage.setItem(`session_${sessionCode}_url`, uploadResult.downloadUrl);
+          // Store download info for later use
+          localStorage.setItem(`session_${sessionCode}_drive`, JSON.stringify({
+            fileId: uploadResult.fileId,
+            downloadUrl: uploadResult.downloadUrl,
+            uploadedAt: new Date().toISOString()
+          }));
         } else {
-          console.warn('⚠️ JSON upload failed, using localStorage fallback');
+          const errorData = await uploadResponse.json().catch(() => ({}));
+          console.warn('⚠️ Google Drive upload failed:', errorData.error || 'Unknown error');
+          console.log('💾 Using localStorage fallback');
         }
       } catch (uploadError) {
-        console.warn('⚠️ JSON upload error, using localStorage fallback:', uploadError);
+        console.warn('⚠️ Google Drive upload error:', uploadError);
+        console.log('💾 Using localStorage fallback');
       }
 
       // Create session object for UI (use full data locally)
@@ -422,6 +438,21 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             </svg>
             Munkamenet előzmények
           </button>
+          
+          {/* Google Drive Status */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"/>
+            </svg>
+            <span className="text-sm font-medium text-green-700">
+              {(() => {
+                const driveFolder = localStorage.getItem('google_drive_folder');
+                return driveFolder ? '📁 Drive beállítva' : '⚠️ Drive nincs beállítva';
+              })()}
+            </span>
+          </div>
+          
           <button
             onClick={onExit}
             className="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium"

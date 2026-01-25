@@ -339,44 +339,92 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 }
               }
 
-              // Get exercises from API (now returns full JSON)
-              const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
-              console.log('📡 API exercises response status:', exercisesResponse.status);
-              if (exercisesResponse.ok) {
-                const sessionData = await exercisesResponse.json();
-                console.log('📡 API session data:', sessionData);
+              // Try to load from Google Drive first (faster)
+              console.log('🌐 Trying to load session from Google Drive...');
+              try {
+                const driveResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/download-drive`);
+                console.log('📡 Google Drive response status:', driveResponse.status);
                 
-                if (sessionData.exercises && sessionData.exercises.length > 0) {
-                  console.log('✅ Session JSON loaded from API');
-                  console.log('📊 Exercise count:', sessionData.exercises.length);
+                if (driveResponse.ok) {
+                  const sessionData = await driveResponse.json();
+                  console.log('📡 Google Drive session data:', sessionData);
                   
-                  // Convert API JSON to playlist format
-                  const playlist = sessionData.exercises.map((exercise: any) => ({
-                    id: exercise.id,
-                    fileName: exercise.fileName,
-                    imageUrl: exercise.imageUrl || '',
-                    data: {
-                      type: exercise.type,
-                      title: exercise.title,
-                      instruction: exercise.instruction,
-                      content: exercise.content
-                    }
-                  }));
-                  
-                  setPlaylist(playlist);
-                  setCurrentIndex(0);
-                  setCompletedCount(0);
-                  
-                  // Store session metadata for result submission
-                  setCurrentSessionCode(code.toUpperCase());
-                  
-                  setStep('PLAYING');
-                  sessionFound = true;
+                  if (sessionData.exercises && sessionData.exercises.length > 0) {
+                    console.log('✅ Session JSON loaded from Google Drive');
+                    console.log('📊 Exercise count:', sessionData.exercises.length);
+                    
+                    // Convert Drive JSON to playlist format
+                    const playlist = sessionData.exercises.map((exercise: any) => ({
+                      id: exercise.id,
+                      fileName: exercise.fileName,
+                      imageUrl: exercise.imageUrl || '',
+                      data: {
+                        type: exercise.type,
+                        title: exercise.title,
+                        instruction: exercise.instruction,
+                        content: exercise.content
+                      }
+                    }));
+                    
+                    setPlaylist(playlist);
+                    setCurrentIndex(0);
+                    setCompletedCount(0);
+                    
+                    // Store session metadata for result submission
+                    setCurrentSessionCode(code.toUpperCase());
+                    
+                    setStep('PLAYING');
+                    sessionFound = true;
+                  }
                 } else {
-                  console.log('❌ No exercises found in API response');
+                  console.log('❌ Session not found on Google Drive, trying API fallback...');
                 }
-              } else {
-                console.log('❌ API exercises request failed');
+              } catch (driveError) {
+                console.warn('⚠️ Google Drive load failed, trying API fallback:', driveError);
+              }
+
+              // Fallback to API if Google Drive failed
+              if (!sessionFound) {
+                console.log('🌐 Checking API for session...');
+                // Get exercises from API (now returns full JSON)
+                const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
+                console.log('📡 API exercises response status:', exercisesResponse.status);
+                if (exercisesResponse.ok) {
+                  const sessionData = await exercisesResponse.json();
+                  console.log('📡 API session data:', sessionData);
+                  
+                  if (sessionData.exercises && sessionData.exercises.length > 0) {
+                    console.log('✅ Session JSON loaded from API');
+                    console.log('📊 Exercise count:', sessionData.exercises.length);
+                    
+                    // Convert API JSON to playlist format
+                    const playlist = sessionData.exercises.map((exercise: any) => ({
+                      id: exercise.id,
+                      fileName: exercise.fileName,
+                      imageUrl: exercise.imageUrl || '',
+                      data: {
+                        type: exercise.type,
+                        title: exercise.title,
+                        instruction: exercise.instruction,
+                        content: exercise.content
+                      }
+                    }));
+                    
+                    setPlaylist(playlist);
+                    setCurrentIndex(0);
+                    setCompletedCount(0);
+                    
+                    // Store session metadata for result submission
+                    setCurrentSessionCode(code.toUpperCase());
+                    
+                    setStep('PLAYING');
+                    sessionFound = true;
+                  } else {
+                    console.log('❌ No exercises found in API response');
+                  }
+                } else {
+                  console.log('❌ API exercises request failed');
+                }
               }
             } else {
               console.log('❌ Session not found in API');

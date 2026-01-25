@@ -153,9 +153,66 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
     }
   }
 
-  // Export collection as JSON
-  const exportCollection = (collection: ExerciseCollection) => {
+  // Export collection as JSON (with Google Drive upload)
+  const exportCollection = async (collection: ExerciseCollection) => {
     const collectionExercises = library.filter(item => collection.exercises.includes(item.id))
+    
+    // Create session-compatible format for Google Drive
+    const sessionCode = generateSessionCode()
+    const sessionData = {
+      sessionCode: sessionCode,
+      subject: collection.subject || 'general',
+      className: 'Gyűjtemény Export',
+      createdAt: new Date().toISOString(),
+      exercises: collectionExercises.map(item => ({
+        id: item.id,
+        fileName: item.fileName,
+        imageUrl: item.imageUrl || '',
+        title: item.data.title,
+        instruction: item.data.instruction,
+        type: item.data.type,
+        content: item.data.content
+      })),
+      metadata: {
+        version: '1.0.0',
+        exportedBy: 'Okos Gyakorló Fejlett Könyvtár',
+        collectionName: collection.name,
+        collectionDescription: collection.description,
+        totalExercises: collectionExercises.length,
+        estimatedTime: collectionExercises.length * 3
+      }
+    }
+    
+    // Try to upload to Google Drive first
+    let driveUploadSuccess = false
+    try {
+      console.log('📤 Uploading collection to Google Drive...')
+      const uploadResponse = await fetch('/api/simple-api/sessions/upload-drive', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          code: sessionCode,
+          sessionJson: sessionData
+        })
+      })
+
+      if (uploadResponse.ok) {
+        const uploadResult = await uploadResponse.json()
+        console.log('✅ Collection uploaded to Google Drive:', uploadResult.downloadUrl)
+        
+        // Show success message with session code
+        alert(`✅ Gyűjtemény sikeresen feltöltve Google Drive-ra!\n\n🔑 Munkamenet kód: ${sessionCode}\n\nA diákok ezzel a kóddal tudják betölteni a feladatokat.`)
+        driveUploadSuccess = true
+      } else {
+        console.warn('⚠️ Google Drive upload failed')
+      }
+    } catch (uploadError) {
+      console.warn('⚠️ Google Drive upload error:', uploadError)
+    }
+
+    // Always create local download as backup
     const exportData = {
       collection: {
         name: collection.name,
@@ -163,7 +220,8 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
         createdAt: collection.createdAt,
         subject: collection.subject
       },
-      exercises: collectionExercises
+      exercises: collectionExercises,
+      sessionCode: driveUploadSuccess ? sessionCode : undefined
     }
     
     const dataStr = JSON.stringify(exportData, null, 2)
@@ -171,11 +229,25 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `gyujtemeny_${collection.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.json`
+    a.download = `gyujtemeny_${collection.name.replace(/[^a-zA-Z0-9]/g, '_')}_${sessionCode || new Date().toISOString().slice(0,10)}.json`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+    
+    if (!driveUploadSuccess) {
+      alert('⚠️ Google Drive feltöltés sikertelen. A JSON fájl helyileg letöltve.')
+    }
+  }
+
+  // Generate session code (same as TeacherSessionManager)
+  const generateSessionCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let result = ''
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return result
   }
 
   // Import JSON file
