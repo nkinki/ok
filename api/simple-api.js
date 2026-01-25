@@ -329,6 +329,62 @@ export default async function handler(req, res) {
       }
     }
 
+    // Student heartbeat (keep session alive)
+    if (method === 'POST' && path.includes('/sessions/') && path.includes('/heartbeat')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/heartbeat/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      const { studentId } = req.body;
+
+      if (!studentId) {
+        return res.status(400).json({ error: 'Student ID megadása kötelező' });
+      }
+
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Update student's last seen timestamp
+        const { error: updateError } = await supabase
+          .from('session_participants')
+          .update({
+            last_seen: new Date().toISOString(),
+            is_online: true
+          })
+          .eq('id', studentId);
+
+        if (updateError) {
+          console.error('Heartbeat update error:', updateError);
+          return res.status(500).json({ 
+            error: 'Hiba a heartbeat frissítésekor',
+            details: updateError.message
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Heartbeat updated successfully'
+        });
+
+      } catch (err) {
+        console.error('Heartbeat error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Submit exercise results (student)
     if (method === 'POST' && path.includes('/sessions/') && path.includes('/results')) {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/results/);
@@ -499,24 +555,54 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Simple fallback - just return success for now
         console.log('📤 Google Drive upload requested for:', code.toUpperCase());
-        console.warn('⚠️ Google Drive service not implemented in API yet');
         
+        // For now, we'll use a simple approach: store the JSON in the database
+        // This allows students to download it via the API
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ 
+            error: 'Supabase credentials missing'
+          });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Store the full session JSON in the database
+        const { error: updateError } = await supabase
+          .from('teacher_sessions')
+          .update({
+            full_session_json: sessionJson,
+            json_uploaded_at: new Date().toISOString()
+          })
+          .eq('session_code', code.toUpperCase());
+
+        if (updateError) {
+          console.error('Database JSON storage error:', updateError);
+          return res.status(500).json({
+            error: 'Failed to store session JSON',
+            details: updateError.message
+          });
+        }
+
+        console.log('✅ Session JSON stored in database for Drive access');
+
         return res.status(200).json({
           success: true,
-          fileId: 'mock_file_id',
-          downloadUrl: 'mock_download_url',
+          fileId: `db_${code.toUpperCase()}_${Date.now()}`,
+          downloadUrl: `/api/simple-api/sessions/${code.toUpperCase()}/download-json`,
           fileName: `session_${code.toUpperCase()}.json`,
-          message: 'Google Drive upload simulated (using localStorage fallback)'
+          message: 'Session JSON stored successfully (database fallback)'
         });
 
       } catch (err) {
         console.error('Google Drive upload error:', err);
         return res.status(500).json({ 
           error: 'Server error',
-          details: err.message,
-          fallback: 'Using localStorage instead'
+          details: err.message
         });
       }
     }
@@ -531,14 +617,38 @@ export default async function handler(req, res) {
       const sessionCode = codeMatch[1].toUpperCase();
       
       try {
-        // Simple fallback - return session not found for now
         console.log('📥 Google Drive download requested for:', sessionCode);
-        console.warn('⚠️ Google Drive service not implemented in API yet');
         
-        return res.status(404).json({
-          error: 'Google Drive download not available',
-          hint: 'Use localStorage or API fallback'
-        });
+        // Get full session JSON from database
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data: session, error } = await supabase
+          .from('teacher_sessions')
+          .select('full_session_json, json_uploaded_at')
+          .eq('session_code', sessionCode)
+          .eq('is_active', true)
+          .single();
+
+        if (error || !session || !session.full_session_json) {
+          console.error('Session JSON not found:', error);
+          return res.status(404).json({
+            error: 'Session JSON not found',
+            hint: 'Session may not have been uploaded to Drive yet'
+          });
+        }
+
+        console.log('✅ Session JSON found in database (Drive fallback)');
+        
+        // Return the full session JSON
+        return res.status(200).json(session.full_session_json);
 
       } catch (err) {
         console.error('Google Drive download error:', err);
@@ -557,26 +667,43 @@ export default async function handler(req, res) {
       }
 
       const sessionCode = codeMatch[1].toUpperCase();
-      const urlParams = new URLSearchParams(url.split('?')[1] || '');
-      const dataParam = urlParams.get('data');
       
       try {
-        if (dataParam) {
-          // Decode the base64url data
-          const jsonString = Buffer.from(dataParam, 'base64url').toString();
-          const sessionData = JSON.parse(jsonString);
-          
-          console.log('✅ Session JSON decoded successfully');
-          return res.status(200).json(sessionData);
-        } else {
-          return res.status(404).json({ 
+        console.log('📥 JSON download requested for:', sessionCode);
+        
+        // Get full session JSON from database
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data: session, error } = await supabase
+          .from('teacher_sessions')
+          .select('full_session_json, json_uploaded_at')
+          .eq('session_code', sessionCode)
+          .eq('is_active', true)
+          .single();
+
+        if (error || !session || !session.full_session_json) {
+          console.error('Session JSON not found:', error);
+          return res.status(404).json({
             error: 'Session JSON not found',
-            hint: 'Data parameter missing'
+            hint: 'Session may not have been uploaded yet'
           });
         }
+
+        console.log('✅ Session JSON found in database');
+        
+        // Return the full session JSON
+        return res.status(200).json(session.full_session_json);
         
       } catch (err) {
-        console.error('JSON decode error:', err);
+        console.error('JSON download error:', err);
         return res.status(500).json({ 
           error: 'Server error',
           details: err.message

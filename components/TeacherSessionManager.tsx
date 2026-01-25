@@ -262,8 +262,8 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         title: item.data.title,
         instruction: item.data.instruction,
         type: item.data.type,
-        content: item.data.content
-        // No imageUrl to keep size down
+        content: item.data.content,
+        imageUrl: item.imageUrl || '' // Include imageUrl for students
       }));
       
       const minimalData = {
@@ -275,7 +275,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         fullExercises: compactExercisesForStudents // Include for student access
       };
       
-      console.log('📤 Sending minimal data to API with', compactExercisesForStudents.length, 'compact exercises:', JSON.stringify(minimalData).length, 'bytes');
+      console.log('📤 Sending minimal data to API with', compactExercisesForStudents.length, 'compact exercises (with images):', JSON.stringify(minimalData).length, 'bytes');
       
       // If localStorage is full, force cleanup before proceeding
       if (SafeStorage.getUsage().percentage >= 80) {
