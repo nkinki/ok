@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Loading Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .image-preview { max-width: 200px; max-height: 200px; border: 1px solid #ddd; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🖼️ Image Loading Debug Test</h1>
+    <p>This test checks if images are properly stored and loaded from the database JSON system.</p>
+
+    <div id="results"></div>
+
+    <div class="test-section">
+        <h3>Step 1: Test Database Connection</h3>
+        <button onclick="testDatabaseConnection()">Test Database</button>
+        <div id="db-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 2: Check Recent Sessions</h3>
+        <button onclick="checkRecentSessions()">Check Sessions</button>
+        <div id="sessions-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 3: Test Session JSON Download</h3>
+        <input type="text" id="session-code" placeholder="Enter session code (e.g., EJUUEL)" style="padding: 8px; margin-right: 10px;">
+        <button onclick="testSessionDownload()">Download Session JSON</button>
+        <div id="download-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Step 4: Test Image Display</h3>
+        <button onclick="testImageDisplay()">Test Image Display</button>
+        <div id="image-result"></div>
+    </div>
+
+    <script>
+        let sessionData = null;
+
+        async function testDatabaseConnection() {
+            const resultDiv = document.getElementById('db-result');
+            resultDiv.innerHTML = '<p>🔄 Testing database connection...</p>';
+
+            try {
+                const response = await fetch('/api/simple-api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'test_connection' })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Database Connection Successful</h4>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Database Connection Failed</h4>
+                            <pre>${JSON.stringify(error, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function checkRecentSessions() {
+            const resultDiv = document.getElementById('sessions-result');
+            resultDiv.innerHTML = '<p>🔄 Checking recent sessions...</p>';
+
+            try {
+                const response = await fetch('/api/simple-api/sessions/list');
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    const recentSessions = result.sessions.slice(0, 5);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Found ${result.sessions.length} sessions</h4>
+                            <h5>Recent sessions:</h5>
+                            ${recentSessions.map(session => `
+                                <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                                    <strong>Code:</strong> ${session.code}<br>
+                                    <strong>Subject:</strong> ${session.subject}<br>
+                                    <strong>Class:</strong> ${session.className || 'N/A'}<br>
+                                    <strong>Exercises:</strong> ${session.exerciseCount}<br>
+                                    <strong>Active:</strong> ${session.isActive ? 'Yes' : 'No'}<br>
+                                    <strong>Created:</strong> ${new Date(session.createdAt).toLocaleString()}
+                                    <button onclick="document.getElementById('session-code').value='${session.code}'" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;">Use This Code</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Failed to get sessions</h4>
+                            <pre>${JSON.stringify(error, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testSessionDownload() {
+            const sessionCode = document.getElementById('session-code').value.trim().toUpperCase();
+            const resultDiv = document.getElementById('download-result');
+            
+            if (!sessionCode) {
+                resultDiv.innerHTML = '<div class="error"><p>❌ Please enter a session code</p></div>';
+                return;
+            }
+
+            resultDiv.innerHTML = `<p>🔄 Downloading session JSON for: ${sessionCode}</p>`;
+
+            try {
+                const response = await fetch(`/api/simple-api/sessions/${sessionCode}/download-json`);
+                
+                if (response.ok) {
+                    sessionData = await response.json();
+                    const imageCount = sessionData.exercises?.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length || 0;
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Session JSON Downloaded Successfully</h4>
+                            <p><strong>Session Code:</strong> ${sessionData.sessionCode}</p>
+                            <p><strong>Total Exercises:</strong> ${sessionData.exercises?.length || 0}</p>
+                            <p><strong>Exercises with Images:</strong> ${imageCount}</p>
+                            <p><strong>Subject:</strong> ${sessionData.subject || 'N/A'}</p>
+                            <p><strong>Created:</strong> ${sessionData.createdAt ? new Date(sessionData.createdAt).toLocaleString() : 'N/A'}</p>
+                            
+                            <h5>Exercise Details:</h5>
+                            ${sessionData.exercises?.map((ex, index) => `
+                                <div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                                    <strong>Exercise ${index + 1}:</strong> ${ex.title || 'No title'}<br>
+                                    <strong>Type:</strong> ${ex.type || 'Unknown'}<br>
+                                    <strong>Has Image:</strong> ${ex.imageUrl && ex.imageUrl.length > 0 ? `Yes (${ex.imageUrl.length} chars)` : 'No'}<br>
+                                    ${ex.imageUrl && ex.imageUrl.length > 0 ? `<strong>Image Preview:</strong> ${ex.imageUrl.substring(0, 50)}...` : ''}
+                                </div>
+                            `).join('') || '<p>No exercises found</p>'}
+                        </div>
+                    `;
+                } else {
+                    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Failed to download session JSON</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <pre>${JSON.stringify(error, null, 2)}</pre>
+                            ${response.status === 404 ? '<p><strong>💡 Solution:</strong> The session may not have JSON data uploaded yet, or the database migration may not be complete.</p>' : ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testImageDisplay() {
+            const resultDiv = document.getElementById('image-result');
+            
+            if (!sessionData || !sessionData.exercises) {
+                resultDiv.innerHTML = '<div class="error"><p>❌ Please download session JSON first</p></div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<p>🔄 Testing image display...</p>';
+
+            const exercisesWithImages = sessionData.exercises.filter(ex => ex.imageUrl && ex.imageUrl.length > 0);
+            
+            if (exercisesWithImages.length === 0) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ No Images Found</h4>
+                        <p>None of the ${sessionData.exercises.length} exercises have image data.</p>
+                        <p><strong>💡 Possible causes:</strong></p>
+                        <ul>
+                            <li>Images were not included when the session was created</li>
+                            <li>Image data was lost during database storage</li>
+                            <li>The teacher created the session without images</li>
+                        </ul>
+                    </div>
+                `;
+                return;
+            }
+
+            let imageTestResults = '';
+            for (let i = 0; i < Math.min(exercisesWithImages.length, 3); i++) {
+                const exercise = exercisesWithImages[i];
+                const imageUrl = exercise.imageUrl;
+                
+                imageTestResults += `
+                    <div style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                        <h5>Exercise: ${exercise.title}</h5>
+                        <p><strong>Image URL Length:</strong> ${imageUrl.length} characters</p>
+                        <p><strong>Image Format:</strong> ${imageUrl.startsWith('data:image/') ? 'Base64 Data URL ✅' : 'Unknown format ❌'}</p>
+                        <p><strong>Preview:</strong> ${imageUrl.substring(0, 100)}...</p>
+                        
+                        <div style="margin: 10px 0;">
+                            <strong>Image Display Test:</strong><br>
+                            <img src="${imageUrl}" class="image-preview" 
+                                 onload="this.nextElementSibling.innerHTML='✅ Image loaded successfully!'; this.nextElementSibling.className='success';"
+                                 onerror="this.nextElementSibling.innerHTML='❌ Image failed to load'; this.nextElementSibling.className='error';"
+                                 alt="Exercise image">
+                            <div class="info">🔄 Loading image...</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            resultDiv.innerHTML = `
+                <div class="success">
+                    <h4>✅ Found ${exercisesWithImages.length} exercises with images</h4>
+                    <p>Testing image display for first ${Math.min(exercisesWithImages.length, 3)} exercises:</p>
+                    ${imageTestResults}
+                </div>
+            `;
+        }
+
+        // Auto-run database test on page load
+        window.onload = function() {
+            testDatabaseConnection();
+        };
+    </script>
+</body>
+</html>

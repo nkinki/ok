@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Migration Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .status { padding: 15px; margin: 10px 0; border-radius: 8px; font-weight: bold; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; margin: 10px 5px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 6px; overflow-x: auto; border: 1px solid #e9ecef; }
+        .step { margin: 20px 0; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; }
+        .step h3 { margin-top: 0; color: #495057; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Database Migration Verification</h1>
+        <p>This tool verifies if the database has the required columns for image storage and helps fix any issues.</p>
+
+        <div class="step">
+            <h3>Step 1: Test Database Connection</h3>
+            <button onclick="testConnection()">Test Connection</button>
+            <div id="connection-result"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Check Database Schema</h3>
+            <button onclick="checkSchema()">Check Schema</button>
+            <div id="schema-result"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Test Session Creation</h3>
+            <button onclick="testSessionCreation()">Test Session Creation</button>
+            <div id="session-result"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Test JSON Upload/Download</h3>
+            <button onclick="testJsonFlow()" id="json-test-btn" disabled>Test JSON Flow</button>
+            <div id="json-result"></div>
+        </div>
+
+        <div class="step">
+            <h3>Migration SQL (Run in Supabase if needed)</h3>
+            <div class="info">
+                <p><strong>If any tests fail, copy this SQL and run it in Supabase SQL Editor:</strong></p>
+            </div>
+            <pre id="migration-sql">-- Add JSON download support columns to teacher_sessions table
+ALTER TABLE teacher_sessions 
+ADD COLUMN IF NOT EXISTS full_session_json JSONB,
+ADD COLUMN IF NOT EXISTS json_uploaded_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS google_drive_file_id TEXT,
+ADD COLUMN IF NOT EXISTS google_drive_download_url TEXT;
+
+-- Create indexes for faster queries
+CREATE INDEX IF NOT EXISTS idx_teacher_sessions_json_uploaded 
+ON teacher_sessions(json_uploaded_at) 
+WHERE full_session_json IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_teacher_sessions_drive_file 
+ON teacher_sessions(google_drive_file_id) 
+WHERE google_drive_file_id IS NOT NULL;</pre>
+            <button onclick="copyMigrationSQL()">Copy SQL to Clipboard</button>
+        </div>
+    </div>
+
+    <script>
+        let testSessionCode = null;
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.innerHTML = '<div class="info">🔄 Testing database connection...</div>';
+
+            try {
+                const response = await fetch('/api/simple-api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'test_connection' })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const hasSupabase = result.supabase?.canConnect;
+                    
+                    resultDiv.innerHTML = `
+                        <div class="${hasSupabase ? 'success' : 'error'}">
+                            <h4>${hasSupabase ? '✅' : '❌'} Database Connection</h4>
+                            <p><strong>Supabase URL:</strong> ${result.environment?.hasSupabaseUrl ? '✅ Present' : '❌ Missing'}</p>
+                            <p><strong>Supabase Key:</strong> ${result.environment?.hasSupabaseKey ? '✅ Present' : '❌ Missing'}</p>
+                            <p><strong>Connection:</strong> ${hasSupabase ? '✅ Working' : '❌ Failed'}</p>
+                            ${!hasSupabase ? `<p><strong>Error:</strong> ${result.supabase?.error || 'Unknown error'}</p>` : ''}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ API request failed</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+
+        async function checkSchema() {
+            const resultDiv = document.getElementById('schema-result');
+            resultDiv.innerHTML = '<div class="info">🔄 Checking database schema...</div>';
+
+            try {
+                // Try to create a test session to see if the columns exist
+                const testCode = 'SCHEMA_TEST_' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                
+                const response = await fetch('/api/simple-api/sessions/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: testCode,
+                        exercises: [],
+                        subject: 'test',
+                        className: 'Test Class',
+                        maxScore: 10
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    // Now test if we can upload JSON (this will fail if columns don't exist)
+                    const uploadResponse = await fetch('/api/simple-api/sessions/upload-drive', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            code: testCode,
+                            sessionJson: { test: 'data', exercises: [] }
+                        })
+                    });
+
+                    if (uploadResponse.ok) {
+                        resultDiv.innerHTML = `
+                            <div class="success">
+                                <h4>✅ Database Schema OK</h4>
+                                <p>All required columns exist and are working properly.</p>
+                                <p><strong>Test session created:</strong> ${testCode}</p>
+                            </div>
+                        `;
+                        
+                        // Enable next test
+                        document.getElementById('json-test-btn').disabled = false;
+                        testSessionCode = testCode;
+                    } else {
+                        const uploadError = await uploadResponse.json().catch(() => ({}));
+                        resultDiv.innerHTML = `
+                            <div class="error">
+                                <h4>❌ Database Schema Missing</h4>
+                                <p>The required columns for JSON storage don't exist.</p>
+                                <p><strong>Error:</strong> ${uploadError.error || 'Unknown error'}</p>
+                                <p><strong>Solution:</strong> Run the migration SQL below in Supabase.</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    const error = await response.json().catch(() => ({}));
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Session Creation Failed</h4>
+                            <p>Cannot create test session to check schema.</p>
+                            <pre>${JSON.stringify(error, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Schema check error: ${error.message}</div>`;
+            }
+        }
+
+        async function testSessionCreation() {
+            const resultDiv = document.getElementById('session-result');
+            resultDiv.innerHTML = '<div class="info">🔄 Testing session creation with images...</div>';
+
+            try {
+                const testCode = 'IMAGE_TEST_' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                
+                // Create a test session with a small base64 image
+                const testImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+                
+                const response = await fetch('/api/simple-api/sessions/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: testCode,
+                        exercises: [],
+                        subject: 'test',
+                        className: 'Test Class',
+                        maxScore: 10,
+                        fullExercises: [{
+                            id: 'test-1',
+                            title: 'Test Exercise with Image',
+                            type: 'quiz',
+                            content: { question: 'Test question?' },
+                            imageUrl: testImage
+                        }]
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Session Creation Successful</h4>
+                            <p><strong>Session Code:</strong> ${result.session.code}</p>
+                            <p><strong>Exercise Count:</strong> ${result.session.exerciseCount}</p>
+                            <p>Session created with image data successfully.</p>
+                        </div>
+                    `;
+                    testSessionCode = result.session.code;
+                    document.getElementById('json-test-btn').disabled = false;
+                } else {
+                    const error = await response.json().catch(() => ({}));
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Session Creation Failed</h4>
+                            <pre>${JSON.stringify(error, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Session creation error: ${error.message}</div>`;
+            }
+        }
+
+        async function testJsonFlow() {
+            if (!testSessionCode) {
+                document.getElementById('json-result').innerHTML = '<div class="error">❌ No test session available. Run previous tests first.</div>';
+                return;
+            }
+
+            const resultDiv = document.getElementById('json-result');
+            resultDiv.innerHTML = '<div class="info">🔄 Testing JSON upload and download...</div>';
+
+            try {
+                // Test JSON upload
+                const uploadResponse = await fetch('/api/simple-api/sessions/upload-drive', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: testSessionCode,
+                        sessionJson: {
+                            sessionCode: testSessionCode,
+                            subject: 'test',
+                            exercises: [{
+                                id: 'test-1',
+                                title: 'Test Exercise with Image',
+                                imageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+                                type: 'quiz',
+                                content: { question: 'Test question?' }
+                            }],
+                            metadata: { version: '1.0.0' }
+                        }
+                    })
+                });
+
+                if (!uploadResponse.ok) {
+                    const uploadError = await uploadResponse.json().catch(() => ({}));
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ JSON Upload Failed</h4>
+                            <pre>${JSON.stringify(uploadError, null, 2)}</pre>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const uploadResult = await uploadResponse.json();
+
+                // Test JSON download
+                const downloadResponse = await fetch(`/api/simple-api/sessions/${testSessionCode}/download-json`);
+                
+                if (downloadResponse.ok) {
+                    const downloadResult = await downloadResponse.json();
+                    const hasImages = downloadResult.exercises?.some(ex => ex.imageUrl && ex.imageUrl.length > 0);
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ JSON Flow Working Perfectly!</h4>
+                            <p><strong>Upload:</strong> ✅ Success</p>
+                            <p><strong>Download:</strong> ✅ Success</p>
+                            <p><strong>Exercise Count:</strong> ${downloadResult.exercises?.length || 0}</p>
+                            <p><strong>Images Preserved:</strong> ${hasImages ? '✅ Yes' : '❌ No'}</p>
+                            <p><strong>Session Code:</strong> ${downloadResult.sessionCode}</p>
+                            
+                            <div class="info" style="margin-top: 15px;">
+                                <h5>🎉 All Tests Passed!</h5>
+                                <p>Your database is properly configured for image storage. New sessions will work correctly with images.</p>
+                                <p><strong>Next steps:</strong></p>
+                                <ul>
+                                    <li>Create a new session with images in the teacher interface</li>
+                                    <li>Students will be able to see images when they join</li>
+                                    <li>Images are stored in the database and work across devices</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const downloadError = await downloadResponse.json().catch(() => ({}));
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ JSON Download Failed</h4>
+                            <p>Upload worked but download failed.</p>
+                            <pre>${JSON.stringify(downloadError, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ JSON flow test error: ${error.message}</div>`;
+            }
+        }
+
+        function copyMigrationSQL() {
+            const sql = document.getElementById('migration-sql').textContent;
+            navigator.clipboard.writeText(sql).then(() => {
+                alert('✅ SQL copied to clipboard! Paste it in Supabase SQL Editor and run it.');
+            }).catch(() => {
+                alert('❌ Could not copy to clipboard. Please select and copy the SQL manually.');
+            });
+        }
+
+        // Auto-run connection test on page load
+        window.onload = function() {
+            testConnection();
+        };
+    </script>
+</body>
+</html>

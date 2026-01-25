@@ -189,20 +189,20 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     try {
       let sessionFound = false;
 
-      // NEW APPROACH: Try cloud storage first (fast path)
-      console.log('☁️ Checking cloud storage for session JSON...');
+      // NEW APPROACH: Try database JSON first (with images)
+      console.log('☁️ Checking database for session JSON with images...');
       try {
-        const cloudResponse = await fetch(`https://nyirad.vercel.app/api/simple-api/sessions/${code.toUpperCase()}/download-json`);
+        const cloudResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/download-json`);
         if (cloudResponse.ok) {
           const sessionData = await cloudResponse.json();
-          console.log('✅ Session data downloaded from cloud storage');
+          console.log('✅ Session data downloaded from database JSON');
           console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
           
-          // Convert cloud JSON to playlist format
+          // Convert database JSON to playlist format - PRESERVE IMAGE URLs
           const playlist = sessionData.exercises.map((exercise: any) => ({
             id: exercise.id,
-            fileName: exercise.fileName,
-            imageUrl: exercise.imageUrl || '',
+            fileName: exercise.fileName || exercise.title,
+            imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
             data: {
               type: exercise.type,
               title: exercise.title,
@@ -211,11 +211,16 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             }
           }));
           
+          console.log('🖼️ Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
+          console.log('🖼️ Image check - Has images:', playlist.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', playlist.length);
+          
           setPlaylist(playlist);
           setCurrentIndex(0);
           setCompletedCount(0);
           setStep('PLAYING');
           sessionFound = true;
+          
+          console.log('🎯 Session loaded from database JSON with', playlist.length, 'exercises');
           
           // Still try to join session for statistics (non-blocking)
           try {
@@ -235,10 +240,10 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             console.warn('⚠️ Could not join for statistics (continuing anyway):', joinError);
           }
         } else {
-          console.log('⚠️ Cloud storage download failed, trying localStorage...');
+          console.log('⚠️ Database JSON download failed, trying localStorage...');
         }
       } catch (cloudError) {
-        console.warn('⚠️ Cloud storage error, trying localStorage:', cloudError);
+        console.warn('⚠️ Database JSON error, trying localStorage:', cloudError);
       }
 
       // Fallback 1: Try localStorage (same device)
@@ -253,11 +258,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             console.log('✅ Session data found in localStorage');
             console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
             
-            // Convert localStorage JSON to playlist format
+            // Convert localStorage JSON to playlist format - PRESERVE IMAGE URLs
             const playlist = sessionData.exercises.map((exercise: any) => ({
               id: exercise.id,
               fileName: exercise.fileName,
-              imageUrl: exercise.imageUrl || '',
+              imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
               data: {
                 type: exercise.type,
                 title: exercise.title,
@@ -265,6 +270,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 content: exercise.content
               }
             }));
+            
+            console.log('🖼️ localStorage Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
+            console.log('🖼️ localStorage Image check - Has images:', playlist.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', playlist.length);
             
             setPlaylist(playlist);
             setCurrentIndex(0);
@@ -353,11 +361,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                     console.log('✅ Session JSON loaded from Google Drive');
                     console.log('📊 Exercise count:', sessionData.exercises.length);
                     
-                    // Convert Drive JSON to playlist format
+                    // Convert Drive JSON to playlist format - PRESERVE IMAGE URLs
                     const playlist = sessionData.exercises.map((exercise: any) => ({
                       id: exercise.id,
                       fileName: exercise.fileName,
-                      imageUrl: exercise.imageUrl || '',
+                      imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
                       data: {
                         type: exercise.type,
                         title: exercise.title,
@@ -365,6 +373,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                         content: exercise.content
                       }
                     }));
+                    
+                    console.log('🖼️ Drive Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
+                    console.log('🖼️ Drive Image check - Has images:', playlist.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', playlist.length);
                     
                     setPlaylist(playlist);
                     setCurrentIndex(0);
@@ -397,11 +408,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                     console.log('✅ Session JSON loaded from API');
                     console.log('📊 Exercise count:', sessionData.exercises.length);
                     
-                    // Convert API JSON to playlist format
+                    // Convert API JSON to playlist format - PRESERVE IMAGE URLs
                     const playlist = sessionData.exercises.map((exercise: any) => ({
                       id: exercise.id,
                       fileName: exercise.fileName,
-                      imageUrl: exercise.imageUrl || '',
+                      imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
                       data: {
                         type: exercise.type,
                         title: exercise.title,
@@ -409,6 +420,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                         content: exercise.content
                       }
                     }));
+                    
+                    console.log('🖼️ API Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
+                    console.log('🖼️ API Image check - Has images:', playlist.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', playlist.length);
                     
                     setPlaylist(playlist);
                     setCurrentIndex(0);

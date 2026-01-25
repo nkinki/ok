@@ -199,7 +199,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         exercises: selectedExerciseData.map(item => ({
           id: item.id,
           fileName: item.fileName,
-          imageUrl: item.imageUrl || '',
+          imageUrl: item.imageUrl || '', // CRITICAL: Preserve the base64 image data
           title: item.data.title,
           instruction: item.data.instruction,
           type: item.data.type,
@@ -212,6 +212,12 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           estimatedTime: selectedExerciseData.length * 3
         }
       }
+
+      console.log('🖼️ Teacher session creation - Image check:');
+      console.log('📊 Total exercises:', selectedExerciseData.length);
+      console.log('🖼️ Exercises with images:', selectedExerciseData.filter(item => item.imageUrl && item.imageUrl.length > 0).length);
+      console.log('🖼️ First exercise imageUrl length:', selectedExerciseData[0]?.imageUrl?.length || 0);
+      console.log('🖼️ Sample imageUrl preview:', selectedExerciseData[0]?.imageUrl?.substring(0, 50) || 'No image');
 
       // Try to store session data safely (with fallback)
       const sessionKey = `session_${sessionCode}`;
