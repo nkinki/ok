@@ -231,20 +231,10 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const requestBody = {
         code: sessionCode,
         exercises: minimalExercises, // Send minimal data for speed
-        // Don't send sessionJson - generate it on server side from exercises
         subject: currentSubject || 'general',
         className: className.trim(),
-        maxScore: selectedExerciseData.length * 10, // 10 pont per feladat
-        // Send full exercise data separately for server-side JSON generation
-        fullExercises: selectedExerciseData.map(item => ({
-          id: item.id,
-          fileName: item.fileName,
-          imageUrl: item.imageUrl || '',
-          title: item.data.title,
-          instruction: item.data.instruction,
-          type: item.data.type,
-          content: item.data.content
-        }))
+        maxScore: selectedExerciseData.length * 10 // 10 pont per feladat
+        // Skip fullExercises for now - just get basic sessions working
       };
       
       const requestBodySize = JSON.stringify(requestBody).length;

@@ -180,43 +180,17 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     }
   };
 
-  const handleStudentLogin = async (studentData: Student, code: string, sessionData?: any) => {
+  const handleStudentLogin = async (studentData: Student, code: string) => {
     setStudent(studentData);
     setCurrentSessionCode(code);
     setLoading(true);
     setError(null);
 
     try {
-      // If we have pre-downloaded session data, use it directly (fast path)
-      if (sessionData && sessionData.exercises && sessionData.exercises.length > 0) {
-        console.log('🚀 Using pre-downloaded session data (fast path)');
-        console.log('📊 Exercise count:', sessionData.exercises.length);
-        
-        // Convert downloaded JSON to playlist format
-        const playlist = sessionData.exercises.map((exercise: any) => ({
-          id: exercise.id,
-          fileName: exercise.fileName,
-          imageUrl: exercise.imageUrl || '',
-          data: {
-            type: exercise.type,
-            title: exercise.title,
-            instruction: exercise.instruction,
-            content: exercise.content
-          }
-        }));
-        
-        setPlaylist(playlist);
-        setCurrentIndex(0);
-        setCompletedCount(0);
-        setStep('PLAYING');
-        setLoading(false);
-        return;
-      }
-
-      // Fallback: Try API approach (slower path)
       let sessionFound = false;
 
-      console.log('🌐 Fallback: Checking API for session...');
+      // Try API approach (standard method)
+      console.log('🌐 Checking API for session...');
       try {
         const response = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
         console.log('📡 API check response status:', response.status);

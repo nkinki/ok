@@ -491,7 +491,7 @@ export default async function handler(req, res) {
     }
     // Create session
     if (method === 'POST' && path.includes('/sessions/create')) {
-      const { code, exercises, subject = 'general', maxScore, className, fullExercises } = req.body;
+      const { code, exercises, subject = 'general', maxScore, className } = req.body;
 
       if (!code || !exercises) {
         return res.status(400).json({ error: 'Kód és feladatok megadása kötelező' });
@@ -518,47 +518,24 @@ export default async function handler(req, res) {
         // Számítsuk ki a maximális pontszámot ha nincs megadva
         const calculatedMaxScore = maxScore || exercises.length * 10; // Alapértelmezett: 10 pont/feladat
         
-        // Generate sessionJson on server side to avoid large request payloads
-        const sessionJson = {
-          sessionCode: code.toUpperCase(),
-          subject: subject,
-          className: className.trim(),
-          createdAt: new Date().toISOString(),
-          exercises: fullExercises || exercises, // Use fullExercises if provided, fallback to minimal exercises
-          metadata: {
-            version: '1.0.0',
-            exportedBy: 'Okos Gyakorló API',
-            totalExercises: (fullExercises || exercises).length,
-            estimatedTime: (fullExercises || exercises).length * 3
-          }
-        };
-        
-        // Store minimal exercise data in database + JSON for download
+        // Create basic session without JSON download for now (to get sessions working)
         const sessionData = {
           session_code: code.toUpperCase(),
-          exercises: exercises, // Store minimal exercises for API speed
+          exercises: exercises, // Store minimal exercises
           subject: subject,
           class_name: className.trim(),
           max_possible_score: calculatedMaxScore,
           is_active: true,
-          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 60 minutes instead of 24 hours
-          // Store full JSON for download (generated on server)
-          full_session_json: sessionJson,
-          session_json_url: `/api/simple-api/sessions/${code.toUpperCase()}/download`
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes
         };
 
         console.log('💾 Inserting session with', exercises.length, 'exercises, subject:', subject, 'class:', className.trim());
-        console.log('📊 Data size comparison:', {
-          minimalSize: JSON.stringify(exercises).length,
-          fullJsonSize: JSON.stringify(sessionJson).length,
-          reduction: Math.round((1 - JSON.stringify(exercises).length / JSON.stringify(sessionJson).length) * 100) + '%'
-        });
         
         // Create session in database
         const { data, error } = await supabase
           .from('teacher_sessions')
           .insert(sessionData)
-          .select('id, session_code, subject, max_possible_score, is_active, created_at, expires_at, session_json_url')
+          .select('id, session_code, subject, max_possible_score, is_active, created_at, expires_at')
           .single();
 
         if (error) {
@@ -582,8 +559,7 @@ export default async function handler(req, res) {
             maxPossibleScore: data.max_possible_score,
             isActive: data.is_active,
             createdAt: data.created_at,
-            expiresAt: data.expires_at,
-            jsonDownloadUrl: data.session_json_url // URL for JSON download
+            expiresAt: data.expires_at
           },
           message: 'Session created successfully'
         });
