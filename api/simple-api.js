@@ -520,7 +520,7 @@ export default async function handler(req, res) {
         // Optimize: Prepare minimal data for database
         const sessionData = {
           session_code: code.toUpperCase(),
-          exercises: exercises, // Already optimized from frontend
+          exercises: exercises, // Store minimal exercises from frontend
           subject: subject,
           class_name: className.trim(),
           max_possible_score: calculatedMaxScore,
@@ -528,7 +528,7 @@ export default async function handler(req, res) {
           expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes instead of 24 hours
         };
 
-        console.log('💾 Inserting session with', exercises.length, 'exercises, subject:', subject);
+        console.log('💾 Inserting session with', exercises.length, 'exercises, subject:', subject, 'class:', className.trim());
         
         // Create session in database
         const { data, error } = await supabase
@@ -547,7 +547,22 @@ export default async function handler(req, res) {
 
         console.log('✅ Session created successfully:', data.session_code);
 
-        // Return minimal response for speed
+        // Return session data + full JSON for hybrid system
+        const sessionJson = {
+          sessionCode: data.session_code,
+          subject: data.subject || 'general',
+          className: data.class_name,
+          createdAt: data.created_at,
+          exercises: data.exercises, // Full exercise data stored in DB
+          metadata: {
+            version: '1.0.0',
+            exportedBy: 'Okos Gyakorló API',
+            totalExercises: data.exercises.length,
+            estimatedTime: data.exercises.length * 3,
+            sessionId: data.id
+          }
+        };
+
         return res.status(200).json({
           success: true,
           session: {
@@ -555,11 +570,13 @@ export default async function handler(req, res) {
             code: data.session_code,
             exerciseCount: exercises.length,
             subject: data.subject,
+            className: data.class_name,
             maxPossibleScore: data.max_possible_score,
             isActive: data.is_active,
             createdAt: data.created_at,
             expiresAt: data.expires_at
           },
+          sessionJson: sessionJson, // Full JSON for hybrid system
           message: 'Session created successfully'
         });
 

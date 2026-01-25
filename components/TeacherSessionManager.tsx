@@ -173,18 +173,22 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         className: className
       });
 
-      // Send full exercise data to API for JSON delivery to students
-      const fullExercises = selectedExerciseData.map(item => ({
+      // Send minimal exercise data to API for fast session creation
+      const minimalExercises = selectedExerciseData.map(item => ({
         id: item.id,
         fileName: item.fileName,
-        imageUrl: item.imageUrl || '', // Include images for students
         title: item.data.title,
         instruction: item.data.instruction,
-        type: item.data.type,
-        content: item.data.content
+        type: item.data.type
+        // Note: content and imageUrl excluded for performance - loaded from localStorage by students
       }))
       
-      console.log('⚡ Creating session with full exercise data for JSON delivery');
+      console.log('⚡ Creating session with minimal exercise data for fast performance');
+      console.log('📊 Data size reduction:', {
+        originalSize: JSON.stringify(selectedExerciseData).length,
+        minimalSize: JSON.stringify(minimalExercises).length,
+        reduction: Math.round((1 - JSON.stringify(minimalExercises).length / JSON.stringify(selectedExerciseData).length) * 100) + '%'
+      });
       
       const response = await fetch('/api/simple-api/sessions/create', {
         method: 'POST',
@@ -193,7 +197,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         },
         body: JSON.stringify({
           code: sessionCode,
-          exercises: fullExercises, // Send full data for JSON delivery
+          exercises: minimalExercises, // Send minimal data for fast performance
           subject: currentSubject || 'general',
           className: className.trim(),
           maxScore: selectedExerciseData.length * 10 // 10 pont per feladat
