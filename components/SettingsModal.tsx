@@ -224,16 +224,40 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     </button>
                     <button
                       onClick={() => {
-                        // Test the folder configuration
-                        const { googleDriveService } = require('../services/googleDriveService');
-                        const folderInfo = googleDriveService.getTeacherFolderInfo();
-                        const status = googleDriveService.getStatus();
+                        // Simple folder validation test
+                        const driveUrl = googleDriveFolder.trim();
                         
-                        alert(`📁 Google Drive Mappa Teszt:\n\n` +
-                              `URL: ${folderInfo.url || 'Nincs beállítva'}\n` +
-                              `Folder ID: ${folderInfo.folderId || 'Nem található'}\n` +
-                              `Érvényes: ${folderInfo.isValid ? '✅ Igen' : '❌ Nem'}\n\n` +
-                              `Státusz: ${status}`);
+                        if (!driveUrl) {
+                          alert('❌ Nincs Google Drive URL beállítva!');
+                          return;
+                        }
+                        
+                        // Extract folder ID from URL
+                        const folderMatch = driveUrl.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+                        const folderId = folderMatch ? folderMatch[1] : null;
+                        
+                        // Check URL format
+                        const isValidUrl = driveUrl.includes('drive.google.com') && driveUrl.includes('/folders/');
+                        
+                        let result = `📁 Google Drive Mappa Teszt:\n\n`;
+                        result += `URL: ${driveUrl}\n`;
+                        result += `Folder ID: ${folderId || 'Nem található'}\n`;
+                        result += `URL formátum: ${isValidUrl ? '✅ Helyes' : '❌ Hibás'}\n`;
+                        result += `Folder ID érvényes: ${folderId ? '✅ Igen' : '❌ Nem'}\n\n`;
+                        
+                        if (isValidUrl && folderId) {
+                          result += `✅ Beállítás sikeres!\n\n`;
+                          result += `Következő lépések:\n`;
+                          result += `1. Ellenőrizd, hogy a mappa publikus-e\n`;
+                          result += `2. Próbálj munkamenetet indítani\n`;
+                          result += `3. Nézd meg, hogy létrejön-e a JSON fájl`;
+                        } else {
+                          result += `❌ Hibás beállítás!\n\n`;
+                          result += `Helyes formátum:\n`;
+                          result += `https://drive.google.com/drive/folders/1ABC123...`;
+                        }
+                        
+                        alert(result);
                       }}
                       className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded font-medium"
                     >
