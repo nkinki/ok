@@ -158,12 +158,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       return
     }
 
-    console.log('🔍 Pre-validation check:', { 
-      className, 
-      trimmed: className.trim(),
-      length: className.length 
-    });
-
     setLoading(true)
     setError(null)
 
@@ -191,11 +185,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       }))
       
       console.log('⚡ Creating session with full exercise data for JSON delivery');
-      console.log('🔍 Debug className:', { 
-        original: className, 
-        trimmed: className.trim(), 
-        final: className.trim() || null 
-      });
       
       const response = await fetch('/api/simple-api/sessions/create', {
         method: 'POST',
@@ -216,7 +205,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Ismeretlen hiba' }))
         console.error('❌ API Error:', errorData)
-        console.error('❌ Full response:', response)
         
         // Show specific error messages
         if (errorData.sqlFile) {
