@@ -31,6 +31,13 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [showStudentDashboard, setShowStudentDashboard] = useState(false)
   const [className, setClassName] = useState<string>('')
 
+  // Class options same as student form
+  const classOptions = [
+    '1.a', '1.b', '2.a', '2.b', '3.a', '3.b', 
+    '4.a', '4.b', '5.a', '5.b', '6.a', '6.b',
+    '7.a', '7.b', '8.a', '8.b'
+  ]
+
   // Show subject login if not authenticated
   if (!isSubjectAuthenticated) {
     return (
@@ -408,14 +415,17 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
               <label className="text-sm font-medium text-slate-700 mb-1">
                 Osztály neve <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
-                placeholder="pl. 8.A, 7.B"
                 required
                 className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              >
+                <option value="">Válassz osztályt...</option>
+                {classOptions.map(cls => (
+                  <option key={cls} value={cls}>{cls}</option>
+                ))}
+              </select>
             </div>
             <button
               onClick={handleStartSession}
