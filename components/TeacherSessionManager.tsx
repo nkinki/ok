@@ -169,7 +169,8 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       console.log('📊 Session data:', { 
         code: sessionCode, 
         exerciseCount: selectedExerciseData.length,
-        subject: currentSubject || 'general'
+        subject: currentSubject || 'general',
+        className: className
       });
 
       // Send full exercise data to API for JSON delivery to students
@@ -184,6 +185,11 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       }))
       
       console.log('⚡ Creating session with full exercise data for JSON delivery');
+      console.log('🔍 Debug className:', { 
+        original: className, 
+        trimmed: className.trim(), 
+        final: className.trim() || null 
+      });
       
       const response = await fetch('/api/simple-api/sessions/create', {
         method: 'POST',
@@ -194,7 +200,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           code: sessionCode,
           exercises: fullExercises, // Send full data for JSON delivery
           subject: currentSubject || 'general',
-          className: className.trim() || null,
+          className: className.trim(),
           maxScore: selectedExerciseData.length * 10 // 10 pont per feladat
         })
       })
