@@ -146,6 +146,11 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       return
     }
 
+    if (!className.trim()) {
+      setError('Az osztály neve kötelező!')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -400,18 +405,21 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           </h3>
           <div className="flex items-center gap-4">
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-slate-700 mb-1">Osztály neve (opcionális)</label>
+              <label className="text-sm font-medium text-slate-700 mb-1">
+                Osztály neve <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
                 placeholder="pl. 8.A, 7.B"
+                required
                 className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <button
               onClick={handleStartSession}
-              disabled={selectedExercises.length === 0 || loading}
+              disabled={selectedExercises.length === 0 || !className.trim() || loading}
               className={`px-6 py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-white ${
                 subjectTheme === 'blue' ? 'bg-blue-600 hover:bg-blue-700' :
                 subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :

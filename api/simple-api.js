@@ -248,6 +248,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Session kód és diák név megadása kötelező' });
       }
 
+      if (!className || !className.trim()) {
+        return res.status(400).json({ error: 'Osztály neve kötelező' });
+      }
+
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -492,6 +496,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Kód és feladatok megadása kötelező' });
       }
 
+      if (!className || !className.trim()) {
+        return res.status(400).json({ error: 'Osztály neve kötelező' });
+      }
+
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -514,7 +522,7 @@ export default async function handler(req, res) {
           session_code: code.toUpperCase(),
           exercises: exercises, // Already optimized from frontend
           subject: subject,
-          class_name: className || null,
+          class_name: className.trim(),
           max_possible_score: calculatedMaxScore,
           is_active: true,
           expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes instead of 24 hours
