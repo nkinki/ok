@@ -56,6 +56,30 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper function to find exercise in localStorage
+  const findExerciseInLocalStorage = (exerciseId: string): BulkResultItem | null => {
+    try {
+      // Check all localStorage keys for exercise data
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('exercises_')) {
+          const data = localStorage.getItem(key);
+          if (data) {
+            const exercises = JSON.parse(data);
+            const found = exercises.find((ex: BulkResultItem) => ex.id === exerciseId);
+            if (found) {
+              return found;
+            }
+          }
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error searching localStorage for exercise:', error);
+      return null;
+    }
+  };
+
   // Helper function to safely access exercise data (handles both old and new formats)
   const getExerciseData = (item: any) => {
     // New optimized format (flat structure)
@@ -242,18 +266,34 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 console.log('✅ Session JSON loaded from API');
                 console.log('📊 Exercise count:', sessionData.exercises.length);
                 
-                // Convert API JSON to playlist format
-                const playlist = sessionData.exercises.map((exercise: any) => ({
-                  id: exercise.id,
-                  fileName: exercise.fileName,
-                  imageUrl: exercise.imageUrl || '',
-                  data: {
-                    type: exercise.type,
-                    title: exercise.title,
-                    instruction: exercise.instruction,
-                    content: exercise.content
+                // Convert API JSON to playlist format with localStorage fallback for content
+                const playlist = sessionData.exercises.map((exercise: any) => {
+                  // Try to get full exercise data from localStorage if content is missing
+                  let fullExerciseData = exercise;
+                  
+                  if (!exercise.content && exercise.id) {
+                    // Look for the exercise in localStorage
+                    const storedExercise = findExerciseInLocalStorage(exercise.id);
+                    if (storedExercise) {
+                      console.log('📦 Loading full exercise data from localStorage for:', exercise.id);
+                      fullExerciseData = { ...exercise, content: storedExercise.data.content };
+                    } else {
+                      console.warn('⚠️ Exercise content not found in localStorage:', exercise.id);
+                    }
                   }
-                }));
+                  
+                  return {
+                    id: fullExerciseData.id,
+                    fileName: fullExerciseData.fileName,
+                    imageUrl: fullExerciseData.imageUrl || '',
+                    data: {
+                      type: fullExerciseData.type,
+                      title: fullExerciseData.title,
+                      instruction: fullExerciseData.instruction,
+                      content: fullExerciseData.content
+                    }
+                  };
+                });
                 
                 setPlaylist(playlist);
                 setCurrentIndex(0);
