@@ -431,11 +431,11 @@ AIzaSy...kulcs3`}
                <button 
                  onClick={() => {
                    if (confirm('🗑️ MUNKAMENET ADATOK TÖRLÉSE\n\nEz törli az összes helyi munkamenet adatot és felszabadítja a tárhelyet.\n\nFolytatod?')) {
+                     // Find and remove all session-related data
+                     const keysToRemove: string[] = [];
                      let removedCount = 0;
                      let freedSpace = 0;
                      
-                     // Find and remove all session-related data
-                     const keysToRemove = [];
                      for (let i = 0; i < localStorage.length; i++) {
                        const key = localStorage.key(i);
                        if (key && (
