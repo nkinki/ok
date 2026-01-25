@@ -59,32 +59,40 @@ export class SafeStorage {
   /**
    * Emergency cleanup of old data
    */
-  private static emergencyCleanup(): void {
+  static emergencyCleanup(): void {
     const keysToRemove: string[] = [];
     
-    // Find old session data to remove
+    // Find ALL session-related data to remove (be more aggressive)
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && (
         key.startsWith('session_') ||
         key.startsWith('drive_session_') ||
+        key.startsWith('teacher_drive_session_') ||
+        key.startsWith('exerciseLibrary') ||
+        key.startsWith('okosgyakorlo_') ||
         key.includes('_results') ||
         key.includes('_summary') ||
-        key.includes('_cache')
+        key.includes('_cache') ||
+        key.includes('_temp') ||
+        key.includes('collections') ||
+        key.includes('Library')
       )) {
         keysToRemove.push(key);
       }
     }
     
-    // Remove oldest items first (keep only 2 most recent)
-    keysToRemove.sort().slice(0, -2).forEach(key => {
+    // Remove ALL found items (don't keep any)
+    keysToRemove.forEach(key => {
       try {
         localStorage.removeItem(key);
-        console.log(`🗑️ Removed old data: ${key}`);
+        console.log(`🗑️ Emergency cleanup removed: ${key}`);
       } catch (error) {
         console.warn(`⚠️ Could not remove ${key}:`, error);
       }
     });
+    
+    console.log(`🧹 Emergency cleanup completed: ${keysToRemove.length} items removed`);
   }
 
   /**

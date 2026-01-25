@@ -366,6 +366,54 @@ AIzaSy...kulcs3`}
 
           {/* Bottom Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Google Drive Folder */}
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1">
+                Google Drive Mappa 📁
+                <span className="text-xs font-normal text-slate-500 ml-2">(JSON fájlok megosztásához)</span>
+              </label>
+              <input 
+                type="url" 
+                value={googleDriveFolder}
+                onChange={(e) => setGoogleDriveFolder(e.target.value)}
+                placeholder="https://drive.google.com/drive/folders/..."
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-slate-500">
+                  1. Hozz létre egy mappát a Google Drive-ban
+                </p>
+                <p className="text-xs text-slate-500">
+                  2. Állítsd be "Bárki a linkkel" megtekintési jogosultságra
+                </p>
+                <p className="text-xs text-slate-500">
+                  3. Másold be ide a mappa URL-jét
+                </p>
+                {googleDriveFolder && (
+                  <div className="mt-2">
+                    <button
+                      onClick={() => {
+                        try {
+                          const match = googleDriveFolder.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+                          if (match) {
+                            const folderId = match[1];
+                            alert(`✅ ÉRVÉNYES GOOGLE DRIVE MAPPA!\n\n📁 Mappa ID: ${folderId}\n\n💡 A munkamenet JSON fájlok automatikusan ide kerülnek feltöltésre.`);
+                          } else {
+                            alert(`❌ HIBÁS URL FORMÁTUM!\n\nHelyes formátum:\nhttps://drive.google.com/drive/folders/MAPPA_ID\n\n💡 Nyisd meg a mappát a Drive-ban és másold ki az URL-t.`);
+                          }
+                        } catch (error) {
+                          alert(`❌ HIBA AZ URL ELLENŐRZÉSEKOR!\n\n${error instanceof Error ? error.message : 'Ismeretlen hiba'}`);
+                        }
+                      }}
+                      className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded font-medium"
+                    >
+                      🔍 URL Teszt
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Email */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Tanár Email</label>
@@ -378,20 +426,20 @@ AIzaSy...kulcs3`}
               />
               <p className="text-xs text-slate-500 mt-1">Napi Gyakorlás eredményei</p>
             </div>
+          </div>
 
-            {/* Debug Toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="font-bold text-slate-700 block text-sm">Debug Mód</label>
-                <span className="text-xs text-slate-500">Kommunikációs napló</span>
-              </div>
-              <button 
-                onClick={() => setIsDebug(!isDebug)}
-                className={`w-12 h-6 rounded-full transition-colors relative ${isDebug ? 'bg-green-500' : 'bg-gray-300'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${isDebug ? 'left-7' : 'left-1'}`}></div>
-              </button>
+          {/* Debug Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="font-bold text-slate-700 block text-sm">Debug Mód</label>
+              <span className="text-xs text-slate-500">Kommunikációs napló</span>
             </div>
+            <button 
+              onClick={() => setIsDebug(!isDebug)}
+              className={`w-12 h-6 rounded-full transition-colors relative ${isDebug ? 'bg-green-500' : 'bg-gray-300'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${isDebug ? 'left-7' : 'left-1'}`}></div>
+            </button>
           </div>
 
           {/* Save Button */}

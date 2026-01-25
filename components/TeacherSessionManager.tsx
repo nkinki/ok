@@ -256,60 +256,36 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         console.warn('⚠️ localStorage not available, using API-only approach');
       }
 
-      // Send data to API - adjust payload based on storage availability
-      let minimalData;
+      // ALWAYS send minimal data to API - use Google Drive + localStorage for full data
+      const minimalData = {
+        code: sessionCode,
+        exercises: [], // Always empty - full data goes to Drive/localStorage
+        subject: currentSubject || 'general',
+        className: className.trim(),
+        maxScore: selectedExerciseData.length * 10
+      };
       
-      if (SafeStorage.isAvailable() && SafeStorage.getUsage().percentage < 80) {
-        // localStorage available - send minimal data only
-        minimalData = {
-          code: sessionCode,
-          exercises: [], // Empty array to minimize payload
-          subject: currentSubject || 'general',
-          className: className.trim(),
-          maxScore: selectedExerciseData.length * 10
-          // No fullExercises - data is in localStorage
-        };
-        console.log('📤 Sending minimal data to API (localStorage available):', JSON.stringify(minimalData).length, 'bytes');
-      } else {
-        // localStorage not available - must send full data to API
-        minimalData = {
-          code: sessionCode,
-          exercises: [], // Keep empty for compatibility
-          subject: currentSubject || 'general',
-          className: className.trim(),
-          maxScore: selectedExerciseData.length * 10,
-          fullExercises: selectedExerciseData.map(item => ({
-            id: item.id,
-            fileName: item.fileName,
-            title: item.data.title,
-            type: item.data.type,
-            content: item.data.content
-            // Remove imageUrl and instruction to reduce size
-          }))
-        };
-        console.log('📤 Sending full data to API (localStorage unavailable):', JSON.stringify(minimalData).length, 'bytes');
+      console.log('📤 Sending minimal data to API:', JSON.stringify(minimalData).length, 'bytes');
+      
+      // If localStorage is full, force cleanup before proceeding
+      if (SafeStorage.getUsage().percentage >= 80) {
+        console.warn('⚠️ Storage nearly full, performing cleanup...');
+        SafeStorage.emergencyCleanup();
         
-        // Check if payload is still too large for Vercel
-        const payloadSize = JSON.stringify(minimalData).length;
-        if (payloadSize > 800000) { // 800KB limit to be safe
-          console.warn('⚠️ Payload too large for Vercel, creating ultra-compact version...');
-          
-          // Ultra-compact version - only essential data
-          minimalData = {
-            code: sessionCode,
-            exercises: selectedExerciseData.map(item => ({
-              id: item.id,
-              title: item.data.title,
-              type: item.data.type,
-              content: typeof item.data.content === 'string' ? 
-                item.data.content.substring(0, 500) + '...' : // Truncate long content
-                item.data.content
-            })),
-            subject: currentSubject || 'general',
-            className: className.trim(),
-            maxScore: selectedExerciseData.length * 10
-          };
-          console.log('📤 Sending ultra-compact data to API:', JSON.stringify(minimalData).length, 'bytes');
+        // Try to store after cleanup
+        const usageAfterCleanup = SafeStorage.getUsage();
+        console.log('📊 Storage after cleanup:', `${Math.round(usageAfterCleanup.used / 1024)}KB (${usageAfterCleanup.percentage}%)`);
+        
+        if (usageAfterCleanup.percentage < 70) {
+          // Now we have space, try to store
+          if (SafeStorage.setItem(sessionKey, fullSessionJson)) {
+            console.log('✅ Session data stored after cleanup');
+          } else {
+            console.warn('⚠️ Still cannot store after cleanup - will rely on Google Drive only');
+          }
+        } else {
+          console.warn('⚠️ Cleanup insufficient - will rely on Google Drive only');
+          setError('⚠️ Tárhely majdnem tele! A munkamenet csak Google Drive-on keresztül lesz elérhető. Töröld a régi adatokat a Beállításokban.');
         }
       }
       
@@ -552,10 +528,15 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                 return (
                   <button
                     onClick={() => {
-                      if (confirm('🗑️ Tárhely tisztítás\n\nTörli a régi munkamenet adatokat.\n\nFolytatod?')) {
-                        SafeStorage.setItem('cleanup_test', 'test'); // This will trigger cleanup
-                        SafeStorage.removeItem('cleanup_test');
-                        alert('✅ Tárhely tisztítva! Próbáld újra a munkamenet létrehozást.');
+                      if (confirm('🗑️ TÁRHELY TISZTÍTÁS\n\nEz törli az ÖSSZES régi munkamenet adatot és felszabadítja a tárhelyet.\n\nFolytatod?')) {
+                        // Perform aggressive cleanup
+                        SafeStorage.emergencyCleanup();
+                        
+                        // Show results
+                        const newUsage = SafeStorage.getUsage();
+                        alert(`✅ TÁRHELY TISZTÍTVA!\n\n📊 Új tárhely: ${newUsage.percentage}% (${Math.round(newUsage.used / 1024)}KB)\n\nMost újra tudsz munkameneteket létrehozni!`);
+                        
+                        // Force page reload to update UI
                         window.location.reload();
                       }
                     }}
@@ -578,7 +559,56 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         </div>
       </div>
 
-      {/* Active Session Display */}
+      {/* Storage Warning */}
+      {(() => {
+        const usage = SafeStorage.getUsage();
+        if (usage.percentage > 80) {
+          const cleanupEstimate = StorageManager.getCleanupEstimate();
+          return (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center mb-8">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="bg-red-100 text-red-800 w-16 h-16 flex items-center justify-center rounded-xl shadow-sm font-bold text-2xl border border-red-200">
+                  ⚠️
+                </div>
+                <div className="text-left">
+                  <h3 className="text-2xl font-bold text-red-800">Tárhely majdnem tele!</h3>
+                  <p className="text-red-700">Használat: {usage.percentage}% ({Math.round(usage.used / 1024)}KB)</p>
+                  <p className="text-red-600 text-sm">Törölhető: {cleanupEstimate.itemCount} elem ({cleanupEstimate.sizeKB}KB)</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3 mb-6">
+                <p className="text-red-700">
+                  A böngésző tárhelye majdnem tele van. Ez megakadályozza a munkamenet létrehozást.
+                </p>
+                <p className="text-red-600 font-medium">
+                  💡 Megoldás: Kattints a "🗑️ Tárhely Tisztítás" gombra {cleanupEstimate.sizeKB}KB felszabadításához.
+                </p>
+              </div>
+
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => {
+                    if (confirm(`🗑️ TÁRHELY TISZTÍTÁS\n\nEz törli ${cleanupEstimate.itemCount} elemet és felszabadít ${cleanupEstimate.sizeKB}KB tárhelyet.\n\nFolytatod?`)) {
+                      SafeStorage.emergencyCleanup();
+                      const newUsage = SafeStorage.getUsage();
+                      alert(`✅ TÁRHELY TISZTÍTVA!\n\n📊 Új tárhely: ${newUsage.percentage}% (${Math.round(newUsage.used / 1024)}KB)\n\nMost újra tudsz munkameneteket létrehozni!`);
+                      window.location.reload();
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                  🗑️ Tárhely Tisztítás ({cleanupEstimate.sizeKB}KB)
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
       {activeSession && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center mb-8">
           <div className="flex items-center justify-center gap-4 mb-6">

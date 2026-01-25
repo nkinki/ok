@@ -175,8 +175,38 @@ export class StorageManager {
   }
 
   /**
-   * Get storage usage by category
+   * Get estimate of how much space can be freed by cleanup
    */
+  static getCleanupEstimate(): { itemCount: number; sizeKB: number } {
+    let itemCount = 0;
+    let totalSize = 0;
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.startsWith('session_') ||
+        key.startsWith('drive_session_') ||
+        key.startsWith('teacher_drive_session_') ||
+        key.startsWith('exerciseLibrary') ||
+        key.startsWith('okosgyakorlo_') ||
+        key.includes('_cache') ||
+        key.includes('_temp') ||
+        key.includes('collections') ||
+        key.includes('Library')
+      )) {
+        const value = localStorage.getItem(key);
+        if (value) {
+          totalSize += key.length + value.length;
+          itemCount++;
+        }
+      }
+    }
+    
+    return {
+      itemCount,
+      sizeKB: Math.round(totalSize / 1024)
+    };
+  }
   static getUsageByCategory(): Record<string, number> {
     const categories: Record<string, number> = {
       sessions: 0,
