@@ -189,18 +189,16 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     try {
       let sessionFound = false;
 
-      // NEW APPROACH: Try localStorage first (fast path)
-      console.log('💾 Checking localStorage for session data...');
-      const sessionKey = `session_${code.toUpperCase()}`;
-      const localSessionData = localStorage.getItem(sessionKey);
-      
-      if (localSessionData) {
-        try {
-          const sessionData = JSON.parse(localSessionData);
-          console.log('✅ Session data found in localStorage');
+      // NEW APPROACH: Try cloud storage first (fast path)
+      console.log('☁️ Checking cloud storage for session JSON...');
+      try {
+        const cloudResponse = await fetch(`https://nyirad.vercel.app/api/simple-api/sessions/${code.toUpperCase()}/download-json`);
+        if (cloudResponse.ok) {
+          const sessionData = await cloudResponse.json();
+          console.log('✅ Session data downloaded from cloud storage');
           console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
           
-          // Convert localStorage JSON to playlist format
+          // Convert cloud JSON to playlist format
           const playlist = sessionData.exercises.map((exercise: any) => ({
             id: exercise.id,
             fileName: exercise.fileName,
@@ -236,9 +234,65 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           } catch (joinError) {
             console.warn('⚠️ Could not join for statistics (continuing anyway):', joinError);
           }
-          
-        } catch (parseError) {
-          console.warn('⚠️ Could not parse localStorage session data:', parseError);
+        } else {
+          console.log('⚠️ Cloud storage download failed, trying localStorage...');
+        }
+      } catch (cloudError) {
+        console.warn('⚠️ Cloud storage error, trying localStorage:', cloudError);
+      }
+
+      // Fallback 1: Try localStorage (same device)
+      if (!sessionFound) {
+        console.log('💾 Checking localStorage for session data...');
+        const sessionKey = `session_${code.toUpperCase()}`;
+        const localSessionData = localStorage.getItem(sessionKey);
+        
+        if (localSessionData) {
+          try {
+            const sessionData = JSON.parse(localSessionData);
+            console.log('✅ Session data found in localStorage');
+            console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
+            
+            // Convert localStorage JSON to playlist format
+            const playlist = sessionData.exercises.map((exercise: any) => ({
+              id: exercise.id,
+              fileName: exercise.fileName,
+              imageUrl: exercise.imageUrl || '',
+              data: {
+                type: exercise.type,
+                title: exercise.title,
+                instruction: exercise.instruction,
+                content: exercise.content
+              }
+            }));
+            
+            setPlaylist(playlist);
+            setCurrentIndex(0);
+            setCompletedCount(0);
+            setStep('PLAYING');
+            sessionFound = true;
+            
+            // Still try to join session for statistics (non-blocking)
+            try {
+              await fetch(`/api/simple-api/sessions/join`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  sessionCode: code.toUpperCase(),
+                  name: studentData.name,
+                  className: studentData.className
+                })
+              });
+              console.log('📊 Joined session for statistics');
+            } catch (joinError) {
+              console.warn('⚠️ Could not join for statistics (continuing anyway):', joinError);
+            }
+            
+          } catch (parseError) {
+            console.warn('⚠️ Could not parse localStorage session data:', parseError);
+          }
         }
       }
 

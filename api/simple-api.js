@@ -490,6 +490,125 @@ export default async function handler(req, res) {
       }
     }
 
+    // Download session JSON from Supabase Storage
+    if (method === 'GET' && path.includes('/sessions/') && path.includes('/download-json')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/download-json/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Download JSON from Supabase Storage
+        const fileName = `session_${sessionCode}.json`;
+        
+        console.log('📥 Downloading session JSON from storage:', fileName);
+        
+        const { data: downloadData, error: downloadError } = await supabase.storage
+          .from('session-files')
+          .download(fileName);
+
+        if (downloadError) {
+          console.error('Storage download error:', downloadError);
+          return res.status(404).json({ 
+            error: 'Session JSON not found in storage',
+            details: downloadError.message
+          });
+        }
+
+        // Convert blob to JSON
+        const jsonText = await downloadData.text();
+        const sessionData = JSON.parse(jsonText);
+
+        console.log('✅ Session JSON downloaded successfully');
+
+        return res.status(200).json(sessionData);
+        
+      } catch (err) {
+        console.error('JSON download error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
+    // Upload session JSON to Supabase Storage (new approach)
+    if (method === 'POST' && path.includes('/sessions/upload-json')) {
+      const { code, sessionJson } = req.body;
+
+      if (!code || !sessionJson) {
+        return res.status(400).json({ error: 'Kód és session JSON megadása kötelező' });
+      }
+
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ 
+            error: 'Supabase credentials missing'
+          });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Upload JSON to Supabase Storage
+        const fileName = `session_${code.toUpperCase()}.json`;
+        const jsonBlob = JSON.stringify(sessionJson, null, 2);
+        
+        console.log('📤 Uploading session JSON to storage:', fileName);
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('session-files')
+          .upload(fileName, jsonBlob, {
+            contentType: 'application/json',
+            upsert: true // Overwrite if exists
+          });
+
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          return res.status(500).json({ 
+            error: 'Storage upload error',
+            details: uploadError.message
+          });
+        }
+
+        // Get public URL for the uploaded file
+        const { data: urlData } = supabase.storage
+          .from('session-files')
+          .getPublicUrl(fileName);
+
+        console.log('✅ Session JSON uploaded successfully:', urlData.publicUrl);
+
+        return res.status(200).json({
+          success: true,
+          downloadUrl: urlData.publicUrl,
+          fileName: fileName,
+          message: 'Session JSON uploaded successfully'
+        });
+
+      } catch (err) {
+        console.error('JSON upload error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Create minimal session (new approach - localStorage based)
     if (method === 'POST' && path.includes('/sessions/create-minimal')) {
       const { code, subject = 'general', className, exerciseCount, maxScore } = req.body;
@@ -524,8 +643,8 @@ export default async function handler(req, res) {
           class_name: className.trim(),
           max_possible_score: maxScore || exerciseCount * 10,
           is_active: true,
-          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 60 minutes
-          exercise_count: exerciseCount || 0
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes
+          // Remove exercise_count - doesn't exist in schema
         };
 
         console.log('💾 Creating minimal session record:', code.toUpperCase());
