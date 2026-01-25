@@ -256,25 +256,62 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         console.warn('⚠️ localStorage not available, using API-only approach');
       }
 
-      // Send only minimal data to API (just for tracking)
-      const minimalData = {
-        code: sessionCode,
-        exercises: [], // Empty array to minimize payload
-        subject: currentSubject || 'general',
-        className: className.trim(),
-        maxScore: selectedExerciseData.length * 10,
-        fullExercises: selectedExerciseData.map(item => ({
-          id: item.id,
-          fileName: item.fileName,
-          imageUrl: item.imageUrl || '',
-          title: item.data.title,
-          instruction: item.data.instruction,
-          type: item.data.type,
-          content: item.data.content
-        }))
-      };
+      // Send data to API - adjust payload based on storage availability
+      let minimalData;
       
-      console.log('📤 Sending data to API:', JSON.stringify(minimalData).length, 'bytes');
+      if (SafeStorage.isAvailable() && SafeStorage.getUsage().percentage < 80) {
+        // localStorage available - send minimal data only
+        minimalData = {
+          code: sessionCode,
+          exercises: [], // Empty array to minimize payload
+          subject: currentSubject || 'general',
+          className: className.trim(),
+          maxScore: selectedExerciseData.length * 10
+          // No fullExercises - data is in localStorage
+        };
+        console.log('📤 Sending minimal data to API (localStorage available):', JSON.stringify(minimalData).length, 'bytes');
+      } else {
+        // localStorage not available - must send full data to API
+        minimalData = {
+          code: sessionCode,
+          exercises: [], // Keep empty for compatibility
+          subject: currentSubject || 'general',
+          className: className.trim(),
+          maxScore: selectedExerciseData.length * 10,
+          fullExercises: selectedExerciseData.map(item => ({
+            id: item.id,
+            fileName: item.fileName,
+            title: item.data.title,
+            type: item.data.type,
+            content: item.data.content
+            // Remove imageUrl and instruction to reduce size
+          }))
+        };
+        console.log('📤 Sending full data to API (localStorage unavailable):', JSON.stringify(minimalData).length, 'bytes');
+        
+        // Check if payload is still too large for Vercel
+        const payloadSize = JSON.stringify(minimalData).length;
+        if (payloadSize > 800000) { // 800KB limit to be safe
+          console.warn('⚠️ Payload too large for Vercel, creating ultra-compact version...');
+          
+          // Ultra-compact version - only essential data
+          minimalData = {
+            code: sessionCode,
+            exercises: selectedExerciseData.map(item => ({
+              id: item.id,
+              title: item.data.title,
+              type: item.data.type,
+              content: typeof item.data.content === 'string' ? 
+                item.data.content.substring(0, 500) + '...' : // Truncate long content
+                item.data.content
+            })),
+            subject: currentSubject || 'general',
+            className: className.trim(),
+            maxScore: selectedExerciseData.length * 10
+          };
+          console.log('📤 Sending ultra-compact data to API:', JSON.stringify(minimalData).length, 'bytes');
+        }
+      }
       
       const response = await fetch('/api/simple-api/sessions/create', {
         method: 'POST',
@@ -491,6 +528,45 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                 return driveFolder ? '📁 Drive beállítva' : '⚠️ Drive nincs beállítva';
               })()}
             </span>
+          </div>
+          
+          {/* Storage Status */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+            </svg>
+            <span className="text-sm font-medium text-yellow-700">
+              {(() => {
+                const usage = SafeStorage.getUsage();
+                const color = usage.percentage > 80 ? 'text-red-700' : usage.percentage > 60 ? 'text-yellow-700' : 'text-green-700';
+                return (
+                  <span className={color}>
+                    💾 {usage.percentage}% ({Math.round(usage.used / 1024)}KB)
+                  </span>
+                );
+              })()}
+            </span>
+            {(() => {
+              const usage = SafeStorage.getUsage();
+              if (usage.percentage > 70) {
+                return (
+                  <button
+                    onClick={() => {
+                      if (confirm('🗑️ Tárhely tisztítás\n\nTörli a régi munkamenet adatokat.\n\nFolytatod?')) {
+                        SafeStorage.setItem('cleanup_test', 'test'); // This will trigger cleanup
+                        SafeStorage.removeItem('cleanup_test');
+                        alert('✅ Tárhely tisztítva! Próbáld újra a munkamenet létrehozást.');
+                        window.location.reload();
+                      }
+                    }}
+                    className="ml-2 px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded font-medium"
+                  >
+                    🗑️ Tisztítás
+                  </button>
+                );
+              }
+              return null;
+            })()}
           </div>
           
           <button
