@@ -256,14 +256,22 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         console.warn('⚠️ localStorage not available, using API-only approach');
       }
 
-      // ALWAYS send minimal data to API, but include a compact version for students
+      // ALWAYS send minimal data to API - NO IMAGES to prevent Vercel limits
       const compactExercisesForStudents = selectedExerciseData.map(item => ({
         id: item.id,
         title: item.data.title,
         instruction: item.data.instruction,
         type: item.data.type,
-        content: item.data.content,
-        imageUrl: item.imageUrl || '' // Include imageUrl for students
+        content: (() => {
+          const content = item.data.content;
+          if (typeof content === 'string') {
+            const str = content as string;
+            // Truncate long text content to keep payload small
+            return str.length > 200 ? str.substring(0, 200) + '...' : str;
+          }
+          return content;
+        })()
+        // NO imageUrl - images will come from database JSON
       }));
       
       const minimalData = {
@@ -272,10 +280,27 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         subject: currentSubject || 'general',
         className: className.trim(),
         maxScore: selectedExerciseData.length * 10,
-        fullExercises: compactExercisesForStudents // Include for student access
+        fullExercises: compactExercisesForStudents // Compact exercises WITHOUT images
       };
       
-      console.log('📤 Sending minimal data to API with', compactExercisesForStudents.length, 'compact exercises (with images):', JSON.stringify(minimalData).length, 'bytes');
+      const payloadSize = JSON.stringify(minimalData).length;
+      console.log('📤 Sending minimal data to API with', compactExercisesForStudents.length, 'compact exercises (NO IMAGES):', payloadSize, 'bytes');
+      
+      // Safety check for Vercel limits
+      if (payloadSize > 1000000) { // 1MB safety limit
+        console.warn('⚠️ Payload still too large, creating ultra-minimal version...');
+        
+        // Ultra-minimal: only essential data
+        minimalData.fullExercises = selectedExerciseData.slice(0, 5).map(item => ({
+          id: item.id,
+          title: item.data.title.substring(0, 30),
+          instruction: '',
+          type: item.data.type,
+          content: ''
+        }));
+        
+        console.log('📤 Using ultra-minimal payload:', JSON.stringify(minimalData).length, 'bytes');
+      }
       
       // If localStorage is full, force cleanup before proceeding
       if (SafeStorage.getUsage().percentage >= 80) {
