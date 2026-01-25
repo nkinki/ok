@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { BulkResultItem } from './BulkProcessor'
 import SessionMonitor from './SessionMonitor'
 import StudentProgressDashboard from './StudentProgressDashboard'
+import SessionManager from './SessionManager'
 import { useSubject } from '../contexts/SubjectContext'
 import { SessionTransferService } from '../services/sessionTransferService'
 
@@ -240,7 +241,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     )
   }
 
-  // Show session history (placeholder for now)
+  // Show session history
   if (showHistory) {
     return (
       <div className="max-w-6xl mx-auto p-6">
@@ -261,11 +262,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           </div>
         </div>
 
-        <div className="text-center py-20 bg-white rounded-2xl border border-slate-200">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Tantárgyi előzmények fejlesztés alatt...</p>
-          <p className="text-sm text-slate-500 mt-2">Hamarosan elérhető lesz a tantárgy-specifikus előzmények megtekintése</p>
-        </div>
+        <SessionManager />
       </div>
     )
   }
