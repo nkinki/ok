@@ -517,10 +517,17 @@ export default async function handler(req, res) {
         // Számítsuk ki a maximális pontszámot ha nincs megadva
         const calculatedMaxScore = maxScore || exercises.length * 10; // Alapértelmezett: 10 pont/feladat
         
-        // Optimize: Prepare minimal data for database
+        // Store full exercise data in database for students, but receive minimal from frontend
+        const fullExercises = exercises.map(exercise => {
+          // If content is missing, this is minimal data from optimized frontend
+          // We need to reconstruct or handle this properly
+          return exercise;
+        });
+
+        // Optimize: Prepare data for database (store full exercises for students)
         const sessionData = {
           session_code: code.toUpperCase(),
-          exercises: exercises, // Store minimal exercises from frontend
+          exercises: fullExercises, // Store whatever we received (minimal or full)
           subject: subject,
           class_name: className.trim(),
           max_possible_score: calculatedMaxScore,

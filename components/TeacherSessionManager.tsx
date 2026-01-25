@@ -173,22 +173,19 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         className: className
       });
 
-      // Send minimal exercise data to API for fast session creation
-      const minimalExercises = selectedExerciseData.map(item => ({
+      // Send full exercise data to API for complete JSON delivery to students
+      const fullExercises = selectedExerciseData.map(item => ({
         id: item.id,
         fileName: item.fileName,
+        imageUrl: item.imageUrl || '', // Include images for students
         title: item.data.title,
         instruction: item.data.instruction,
-        type: item.data.type
-        // Note: content and imageUrl excluded for performance - loaded from localStorage by students
+        type: item.data.type,
+        content: item.data.content // Include full content for students
       }))
       
-      console.log('⚡ Creating session with minimal exercise data for fast performance');
-      console.log('📊 Data size reduction:', {
-        originalSize: JSON.stringify(selectedExerciseData).length,
-        minimalSize: JSON.stringify(minimalExercises).length,
-        reduction: Math.round((1 - JSON.stringify(minimalExercises).length / JSON.stringify(selectedExerciseData).length) * 100) + '%'
-      });
+      console.log('⚡ Creating session with full exercise data for student compatibility');
+      console.log('📊 Exercise data includes content:', fullExercises.every(ex => ex.content));
       
       const response = await fetch('/api/simple-api/sessions/create', {
         method: 'POST',
@@ -197,7 +194,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         },
         body: JSON.stringify({
           code: sessionCode,
-          exercises: minimalExercises, // Send minimal data for fast performance
+          exercises: fullExercises, // Send full data for student compatibility
           subject: currentSubject || 'general',
           className: className.trim(),
           maxScore: selectedExerciseData.length * 10 // 10 pont per feladat
