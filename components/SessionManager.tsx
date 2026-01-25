@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 interface Session {
   id: string;
   code: string;
+  className?: string;
   exerciseCount: number;
   participantCount: number;
   isActive: boolean;
@@ -33,6 +34,7 @@ const SessionManager: React.FC = () => {
   const [stats, setStats] = useState<SessionStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
 
   const fetchSessions = async () => {
     try {
@@ -102,6 +104,63 @@ const SessionManager: React.FC = () => {
     }
   };
 
+  // Bulk operations
+  const toggleSessionSelection = (code: string) => {
+    setSelectedSessions(prev => 
+      prev.includes(code) 
+        ? prev.filter(c => c !== code)
+        : [...prev, code]
+    );
+  };
+
+  const selectAllSessions = () => {
+    setSelectedSessions(sessions.map(s => s.code));
+  };
+
+  const deselectAllSessions = () => {
+    setSelectedSessions([]);
+  };
+
+  const bulkToggleSessions = async () => {
+    if (selectedSessions.length === 0) return;
+    
+    if (!confirm(`Biztosan módosítani szeretnéd ${selectedSessions.length} munkamenet állapotát?`)) {
+      return;
+    }
+
+    try {
+      for (const code of selectedSessions) {
+        await fetch(`/api/simple-api/sessions/${code}/toggle`, {
+          method: 'PUT'
+        });
+      }
+      await fetchSessions();
+      setSelectedSessions([]);
+    } catch (err) {
+      setError('Hiba a csoportos módosításkor');
+    }
+  };
+
+  const bulkDeleteSessions = async () => {
+    if (selectedSessions.length === 0) return;
+    
+    if (!confirm(`Biztosan törölni szeretnéd ${selectedSessions.length} munkamenetet?`)) {
+      return;
+    }
+
+    try {
+      for (const code of selectedSessions) {
+        await fetch(`/api/simple-api/sessions/${code}`, {
+          method: 'DELETE'
+        });
+      }
+      await fetchSessions();
+      setSelectedSessions([]);
+    } catch (err) {
+      setError('Hiba a csoportos törléskor');
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -110,10 +169,7 @@ const SessionManager: React.FC = () => {
     };
 
     loadData();
-    
-    // Auto refresh every 30 seconds
-    const interval = setInterval(loadData, 30000);
-    return () => clearInterval(interval);
+    // Removed auto-refresh interval - only load once when component mounts
   }, []);
 
   if (loading) {
@@ -126,7 +182,32 @@ const SessionManager: React.FC = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Munkamenet Kezelő</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Munkamenet Kezelő</h1>
+        <button
+          onClick={async () => {
+            setLoading(true);
+            await Promise.all([fetchSessions(), fetchStats()]);
+            setLoading(false);
+          }}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Frissítés...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Frissítés
+            </>
+          )}
+        </button>
+      </div>
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -170,6 +251,50 @@ const SessionManager: React.FC = () => {
         </div>
       )}
 
+      {/* Bulk Actions */}
+      {sessions.length > 0 && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-slate-700">
+                Kiválasztva: {selectedSessions.length} / {sessions.length}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={selectAllSessions}
+                  className="text-xs px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded"
+                >
+                  Mind kijelöl
+                </button>
+                <button
+                  onClick={deselectAllSessions}
+                  className="text-xs px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded"
+                >
+                  Kijelölés törlése
+                </button>
+              </div>
+            </div>
+            
+            {selectedSessions.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={bulkToggleSessions}
+                  className="px-4 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-sm font-medium"
+                >
+                  Állapot váltás ({selectedSessions.length})
+                </button>
+                <button
+                  onClick={bulkDeleteSessions}
+                  className="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded text-sm font-medium"
+                >
+                  Törlés ({selectedSessions.length})
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Sessions List */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -186,7 +311,18 @@ const SessionManager: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={selectedSessions.length === sessions.length && sessions.length > 0}
+                      onChange={selectedSessions.length === sessions.length ? deselectAllSessions : selectAllSessions}
+                      className="rounded border-gray-300"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Kód
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Osztály
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Feladatok
@@ -210,9 +346,20 @@ const SessionManager: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {sessions.map((session) => (
-                  <tr key={session.id}>
+                  <tr key={session.id} className={selectedSessions.includes(session.code) ? 'bg-blue-50' : ''}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedSessions.includes(session.code)}
+                        onChange={() => toggleSessionSelection(session.code)}
+                        className="rounded border-gray-300"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{session.code}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{session.className || 'Nincs megadva'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{session.exerciseCount}</div>

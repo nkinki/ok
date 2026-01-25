@@ -29,6 +29,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [showMonitor, setShowMonitor] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showStudentDashboard, setShowStudentDashboard] = useState(false)
+  const [className, setClassName] = useState<string>('')
 
   // Show subject login if not authenticated
   if (!isSubjectAuthenticated) {
@@ -181,6 +182,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           code: sessionCode,
           exercises: fullExercises, // Send full data for JSON delivery
           subject: currentSubject || 'general',
+          className: className.trim() || null,
           maxScore: selectedExerciseData.length * 10 // 10 pont per feladat
         })
       })
@@ -396,32 +398,46 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           <h3 className="text-lg font-bold text-slate-800">
             Kiválasztott feladatok ({selectedExercises.length}/{library.length})
           </h3>
-          <button
-            onClick={handleStartSession}
-            disabled={selectedExercises.length === 0 || loading}
-            className={`px-6 py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-white ${
-              subjectTheme === 'blue' ? 'bg-blue-600 hover:bg-blue-700' :
-              subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :
-              subjectTheme === 'red' ? 'bg-red-600 hover:bg-red-700' :
-              subjectTheme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
-              'bg-orange-600 hover:bg-orange-700'
-            }`}
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Indítás...
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-9-4V8a3 3 0 016 0v2M5 12a7 7 0 1114 0v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5z"/>
-                </svg>
-                Munkamenet indítása
-              </>
-            )}
-          </button>
-          
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700 mb-1">Osztály neve (opcionális)</label>
+              <input
+                type="text"
+                value={className}
+                onChange={(e) => setClassName(e.target.value)}
+                placeholder="pl. 8.A, 7.B"
+                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={handleStartSession}
+              disabled={selectedExercises.length === 0 || loading}
+              className={`px-6 py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-white ${
+                subjectTheme === 'blue' ? 'bg-blue-600 hover:bg-blue-700' :
+                subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :
+                subjectTheme === 'red' ? 'bg-red-600 hover:bg-red-700' :
+                subjectTheme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
+                'bg-orange-600 hover:bg-orange-700'
+              }`}
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Indítás...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-9-4V8a3 3 0 016 0v2M5 12a7 7 0 1114 0v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5z"/>
+                  </svg>
+                  Munkamenet indítása
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+        
+        <div className="flex justify-end">
           {/* JSON Export Button */}
           <button
             onClick={() => exportSelectedAsJson()}
