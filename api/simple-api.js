@@ -217,7 +217,7 @@ export default async function handler(req, res) {
           return res.status(404).json({ 
             exists: false, 
             error: 'Hibás kód vagy a munkamenet nem aktív',
-            hint: 'A munkamenet lehet, hogy lejárt (24 óra után). Kérj új kódot a tanártól!'
+            hint: 'A munkamenet lehet, hogy lejárt (60 perc után). Kérj új kódot a tanártól!'
           });
         }
 
@@ -516,7 +516,7 @@ export default async function handler(req, res) {
           subject: subject,
           max_possible_score: calculatedMaxScore,
           is_active: true,
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes instead of 24 hours
         };
 
         console.log('💾 Inserting session with', exercises.length, 'exercises, subject:', subject);

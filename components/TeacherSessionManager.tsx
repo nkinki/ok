@@ -335,6 +335,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             <div className="text-left">
               <h3 className="text-2xl font-bold text-green-800">Aktív munkamenet</h3>
               <p className="text-green-700">Kód: <span className="font-mono text-xl font-bold">{activeSession.code}</span></p>
+              <p className="text-sm text-orange-600 font-medium">⏰ Automatikus leállítás: 60 perc múlva</p>
             </div>
           </div>
           
@@ -438,6 +439,16 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             </svg>
             JSON Export ({selectedExercises.length})
           </button>
+        </div>
+        
+        {/* Session expiration info */}
+        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="flex items-center gap-2 text-orange-800">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span className="text-sm font-medium">A munkamenet automatikusan leáll 60 perc múlva</span>
+          </div>
         </div>
 
         {selectedExercises.length > 0 && (
