@@ -257,30 +257,38 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
         
         switch (dragHandle) {
           case 'top':
+            // Csak függőleges mozgás
             newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
             break;
           case 'bottom':
+            // Csak függőleges mozgás
             newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
             break;
           case 'left':
+            // Csak vízszintes mozgás
             newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
             break;
           case 'right':
+            // Csak vízszintes mozgás
             newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
             break;
           case 'top-left':
+            // ÁTLÓS mozgás - mindkét irány egyszerre
             newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
             newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
             break;
           case 'top-right':
+            // ÁTLÓS mozgás - mindkét irány egyszerre
             newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
             newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
             break;
           case 'bottom-left':
+            // ÁTLÓS mozgás - mindkét irány egyszerre
             newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
             newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
             break;
           case 'bottom-right':
+            // ÁTLÓS mozgás - mindkét irány egyszerre
             newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
             newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
             break;
@@ -663,7 +671,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                 {/* Left side - Image */}
                                 <div className="flex-1">
                                     <p className="text-xs text-slate-600 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
-                                        ⚠️ Sötétített rész eltávolításra kerül. <strong>Húzd a piros sarkokat</strong> (átlós) vagy <strong>kék oldalakat</strong> (egyenes) a vágási terület beállításához.
+                                        ⚠️ Sötétített rész eltávolításra kerül. <strong>Piros sarkok</strong>: átlós húzás (mindkét irány), <strong>Kék oldalak</strong>: egyenes húzás (egy irány).
                                     </p>
                                     <canvas 
                                         ref={canvasRef} 
@@ -682,8 +690,8 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                     <div className="bg-blue-50 p-3 rounded border border-blue-200">
                                         <h4 className="text-sm font-bold text-blue-800 mb-2">🖱️ Interaktív vágás</h4>
                                         <ul className="text-xs text-blue-700 space-y-1">
-                                            <li>• <span className="font-medium text-red-600">Piros sarkok</span>: átlós méretezés</li>
-                                            <li>• <span className="font-medium text-blue-600">Kék oldalak</span>: egyenes vágás</li>
+                                            <li>• <span className="font-medium text-red-600">Piros sarkok</span>: átlós húzás (vízszintes + függőleges egyszerre)</li>
+                                            <li>• <span className="font-medium text-blue-600">Kék oldalak</span>: egyenes húzás (csak egy irány)</li>
                                             <li>• Húzd a fogantyúkat a vágási terület beállításához</li>
                                         </ul>
                                     </div>
