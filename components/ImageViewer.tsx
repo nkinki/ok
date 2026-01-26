@@ -181,26 +181,56 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
     setRotation(prev => (prev + 2) % 360);
   };
 
-  const enhanceDocument = useCallback(async () => {
+  const resetImage = useCallback(() => {
+    if (onImageUpdate) {
+      // Reset to original image by calling onImageUpdate with the original src
+      // This assumes the parent component can handle resetting to original
+      setEnhancementResult(null);
+      setZoom(1);
+      setPosition({ x: 0, y: 0 });
+      setRotation(0);
+      
+      // Create a temporary image to get the original source
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          const originalUrl = canvas.toDataURL('image/jpeg', 0.95);
+          onImageUpdate(originalUrl);
+        }
+      };
+      img.src = src;
+    }
+  }, [src, onImageUpdate]);
+
+  const enhanceReadability = useCallback(async () => {
     if (!onImageUpdate) return;
     
     setIsProcessing(true);
     try {
-      const result = await imageEnhancementService.enhanceDocument(src);
+      // Very conservative enhancement - only readability improvements
+      const result = await imageEnhancementService.enhanceImage(src, {
+        autoStraighten: false, // Disable auto-straighten to prevent rotation issues
+        enhanceContrast: false, // Disable aggressive contrast to prevent inversion
+        convertToGrayscale: false, // Keep colors
+        sharpenText: true, // Only sharpen text
+        removeNoise: true, // Remove noise
+        adjustBrightness: false, // Disable brightness adjustment to prevent issues
+        quality: 0.95
+      });
       setEnhancementResult(result);
       onImageUpdate(result.enhancedImageUrl);
       
-      // Show success message
-      console.log('✅ Képjavítás befejezve:', {
-        alkalmazottJavítások: result.appliedEnhancements,
-        feldolgozásiIdő: `${Math.round(result.processingTime)}ms`,
-        eredetiMéret: `${result.originalSize.width}x${result.originalSize.height}`,
-        javítottMéret: `${result.enhancedSize.width}x${result.enhancedSize.height}`
-      });
+      console.log('✅ Olvashatóság javítás befejezve:', result.appliedEnhancements);
       
     } catch (error) {
-      console.error('Képjavítás sikertelen:', error);
-      alert('Képjavítás sikertelen: ' + (error instanceof Error ? error.message : 'Ismeretlen hiba'));
+      console.error('Olvashatóság javítás sikertelen:', error);
+      alert('Olvashatóság javítás sikertelen: ' + (error instanceof Error ? error.message : 'Ismeretlen hiba'));
     } finally {
       setIsProcessing(false);
     }
@@ -211,15 +241,24 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
     
     setIsProcessing(true);
     try {
-      const result = await imageEnhancementService.enhanceColor(src);
+      // Conservative color enhancement - minimal changes
+      const result = await imageEnhancementService.enhanceImage(src, {
+        autoStraighten: false, // Disable to prevent rotation
+        enhanceContrast: false, // Disable aggressive contrast
+        convertToGrayscale: false, // Keep colors
+        sharpenText: true, // Only sharpen
+        removeNoise: true, // Remove noise
+        adjustBrightness: false, // Disable brightness to prevent inversion
+        quality: 0.95
+      });
       setEnhancementResult(result);
       onImageUpdate(result.enhancedImageUrl);
       
-      console.log('✅ Színes javítás befejezve:', result.appliedEnhancements);
+      console.log('✅ Színmegőrzéses javítás befejezve:', result.appliedEnhancements);
       
     } catch (error) {
-      console.error('Színes javítás sikertelen:', error);
-      alert('Színes javítás sikertelen: ' + (error instanceof Error ? error.message : 'Ismeretlen hiba'));
+      console.error('Színmegőrzéses javítás sikertelen:', error);
+      alert('Színmegőrzéses javítás sikertelen: ' + (error instanceof Error ? error.message : 'Ismeretlen hiba'));
     } finally {
       setIsProcessing(false);
     }
@@ -407,10 +446,10 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
             
             {/* AI Enhancement Controls */}
             <button
-              onClick={enhanceDocument}
+              onClick={enhanceReadability}
               disabled={isProcessing || !onImageUpdate}
               className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1"
-              title="AI dokumentum javítás (kiegyenesítés, kontraszt, fekete-fehér)"
+              title="Csak olvashatóság javítás (szöveg élesítés, zaj eltávolítás)"
             >
               {isProcessing ? (
                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
@@ -419,14 +458,14 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               )}
-              AI Dokumentum
+              Olvashatóság
             </button>
             
             <button
               onClick={enhanceColor}
               disabled={isProcessing || !onImageUpdate}
               className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1"
-              title="AI színes javítás (kontraszt, élesítés, színek megőrzése)"
+              title="Konzervatív javítás (minimális változtatás, színek megőrzése)"
             >
               {isProcessing ? (
                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
@@ -435,7 +474,19 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
                 </svg>
               )}
-              AI Színes
+              Konzervatív
+            </button>
+            
+            <button
+              onClick={resetImage}
+              disabled={isProcessing || !onImageUpdate}
+              className="px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1"
+              title="Eredeti kép visszaállítása"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Reset
             </button>
             
             <button
