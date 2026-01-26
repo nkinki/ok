@@ -37,7 +37,6 @@ const SessionManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [selectedSessionForDetails, setSelectedSessionForDetails] = useState<string | null>(null);
-  const [selectedSessionForEntry, setSelectedSessionForEntry] = useState<string | null>(null);
 
   const fetchSessions = async () => {
     try {

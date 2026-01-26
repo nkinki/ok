@@ -105,6 +105,10 @@ function AppContent() {
 // Student App Component (simplified interface for students)
 function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: () => void, sessionCode: string | null }) {
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
+  
+  // Mouse movement tracking for auto-hiding header
+  const [showHeader, setShowHeader] = useState(true);
+  const headerTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Load manual exercises on mount with error handling
   useEffect(() => {
@@ -124,9 +128,56 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
     }
   }, []);
 
+  // Mouse movement handler for auto-hiding header
+  useEffect(() => {
+    const handleMouseMove = () => {
+      setShowHeader(true);
+      
+      // Clear existing timeout
+      if (headerTimeoutRef.current) {
+        clearTimeout(headerTimeoutRef.current);
+      }
+      
+      // Set new timeout to hide header after 3 seconds of inactivity
+      headerTimeoutRef.current = setTimeout(() => {
+        setShowHeader(false);
+      }, 3000);
+    };
+
+    const handleMouseLeave = () => {
+      // Hide header immediately when mouse leaves the window
+      if (headerTimeoutRef.current) {
+        clearTimeout(headerTimeoutRef.current);
+      }
+      headerTimeoutRef.current = setTimeout(() => {
+        setShowHeader(false);
+      }, 1000);
+    };
+
+    // Add event listeners
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+
+    // Initial timer
+    headerTimeoutRef.current = setTimeout(() => {
+      setShowHeader(false);
+    }, 3000);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      if (headerTimeoutRef.current) {
+        clearTimeout(headerTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
-      <nav className="bg-white border-b border-purple-200 sticky top-0 z-50 shadow-md">
+      <nav className={`
+        bg-white border-b border-purple-200 sticky top-0 z-50 shadow-md transition-all duration-300
+        ${showHeader ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}
+      `}>
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div 

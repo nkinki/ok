@@ -120,11 +120,6 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
 
-  // Mouse movement tracking for auto-hiding header in student mode
-  const [showHeader, setShowHeader] = useState(true);
-  const [mouseTimer, setMouseTimer] = useState<NodeJS.Timeout | null>(null);
-  const headerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   // Initialize playlist in preview mode
   useEffect(() => {
     if (isPreviewMode && library.length > 0) {
@@ -134,52 +129,6 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       setCompletedCount(0);
     }
   }, [isPreviewMode, library]);
-
-  // Mouse movement handler for auto-hiding header in student mode
-  useEffect(() => {
-    if (!isStudentMode || isPreviewMode) return;
-
-    const handleMouseMove = () => {
-      setShowHeader(true);
-      
-      // Clear existing timeout
-      if (headerTimeoutRef.current) {
-        clearTimeout(headerTimeoutRef.current);
-      }
-      
-      // Set new timeout to hide header after 3 seconds of inactivity
-      headerTimeoutRef.current = setTimeout(() => {
-        setShowHeader(false);
-      }, 3000);
-    };
-
-    const handleMouseLeave = () => {
-      // Hide header immediately when mouse leaves the window
-      if (headerTimeoutRef.current) {
-        clearTimeout(headerTimeoutRef.current);
-      }
-      headerTimeoutRef.current = setTimeout(() => {
-        setShowHeader(false);
-      }, 1000);
-    };
-
-    // Add event listeners
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
-
-    // Initial timer
-    headerTimeoutRef.current = setTimeout(() => {
-      setShowHeader(false);
-    }, 3000);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
-      if (headerTimeoutRef.current) {
-        clearTimeout(headerTimeoutRef.current);
-      }
-    };
-  }, [isStudentMode, isPreviewMode]);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -974,11 +923,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               {/* Right Side: Exercise - Optimized for 15.6" monitors */}
               <div className="lg:w-3/5 h-[65vh] lg:h-full bg-slate-50 overflow-y-auto order-2 lg:order-2 relative">
                   <div className="max-w-2xl mx-auto">
-                      {/* Auto-hiding Header for Student Mode */}
-                      <div className={`
-                        sticky top-0 z-20 bg-slate-50 p-2 pb-1 border-b border-slate-200 mb-2 shadow-sm backdrop-blur transition-all duration-300
-                        ${isStudentMode && !isPreviewMode ? (showHeader ? 'opacity-95 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none') : 'opacity-95'}
-                      `}>
+                      {/* Exercise Header - Always Visible */}
+                      <div className="sticky top-0 z-20 bg-slate-50 p-2 pb-1 border-b border-slate-200 mb-2 shadow-sm opacity-95 backdrop-blur">
                           <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-2">
                                   <span className="font-bold text-purple-900 text-sm">
