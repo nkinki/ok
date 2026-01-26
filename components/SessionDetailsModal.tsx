@@ -164,29 +164,29 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
+      <div className="bg-white rounded-lg max-w-7xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+        {/* Compact Header */}
+        <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Munkamenet részletek: {sessionDetails.code}
+            <h2 className="text-xl font-bold text-gray-900">
+              📊 {sessionDetails.code} • {sessionDetails.participantCount} résztvevő • {sessionDetails.averagePercentage}% átlag
             </h2>
-            <p className="text-gray-600">
-              {sessionDetails.exerciseCount} feladat • {sessionDetails.participantCount} résztvevő
+            <p className="text-sm text-gray-600">
+              {sessionDetails.exerciseCount} feladat • {sessionDetails.isActive ? '🟢 Aktív' : '🔴 Inaktív'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+            className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
           >
             ×
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
+        {/* Compact Tabs */}
+        <div className="border-b border-gray-200 bg-gray-50">
+          <nav className="flex space-x-6 px-4">
             {[
               { id: 'overview', label: 'Áttekintés', icon: '📊' },
               { id: 'participants', label: 'Résztvevők', icon: '👥' },
@@ -195,7 +195,7 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-3 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -207,39 +207,17 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
           </nav>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4">
           {activeTab === 'overview' && (
-            <div className="space-y-6">
-              {/* Status Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{sessionDetails.participantCount}</div>
-                  <div className="text-sm text-blue-800">Résztvevők</div>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{sessionDetails.averagePercentage}%</div>
-                  <div className="text-sm text-green-800">Átlag teljesítmény</div>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{sessionDetails.exerciseCount}</div>
-                  <div className="text-sm text-purple-800">Feladatok száma</div>
-                </div>
-                <div className="bg-orange-50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-600">
-                    {sessionDetails.isActive ? 'Aktív' : 'Inaktív'}
-                  </div>
-                  <div className="text-sm text-orange-800">Állapot</div>
-                </div>
-              </div>
-
-              {/* Performance Distribution */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Teljesítmény megoszlás</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-4">
+              {/* Compact Performance Distribution */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-3">Teljesítmény megoszlás</h3>
+                <div className="grid grid-cols-4 gap-3">
                   {Object.entries(sessionDetails.performanceDistribution).map(([category, count]) => (
                     <div key={category} className="text-center">
-                      <div className={`text-2xl font-bold ${getPerformanceColor(category).split(' ')[0]}`}>
+                      <div className={`text-xl font-bold ${getPerformanceColor(category).split(' ')[0]}`}>
                         {count}
                       </div>
                       <div className={`text-xs px-2 py-1 rounded-full ${getPerformanceColor(category)}`}>
@@ -250,27 +228,14 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
                 </div>
               </div>
 
-              {/* Session Info */}
+              {/* Compact Session Info */}
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">Munkamenet információk</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Létrehozva:</span> {new Date(sessionDetails.createdAt).toLocaleString('hu-HU')}
-                  </div>
-                  <div>
-                    <span className="font-medium">Lejárat:</span> {new Date(sessionDetails.expiresAt).toLocaleString('hu-HU')}
-                  </div>
-                  <div>
-                    <span className="font-medium">Max pontszám:</span> {sessionDetails.maxPossibleScore}
-                  </div>
-                  <div>
-                    <span className="font-medium">Állapot:</span> 
-                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                      sessionDetails.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {sessionDetails.isActive ? 'Aktív' : 'Inaktív'}
-                    </span>
-                  </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="font-medium">Létrehozva:</span> {new Date(sessionDetails.createdAt).toLocaleString('hu-HU')}</div>
+                  <div><span className="font-medium">Lejárat:</span> {new Date(sessionDetails.expiresAt).toLocaleString('hu-HU')}</div>
+                  <div><span className="font-medium">Max pontszám:</span> {sessionDetails.maxPossibleScore}</div>
+                  <div><span className="font-medium">Feladatok:</span> {sessionDetails.exerciseCount} db</div>
                 </div>
               </div>
             </div>
@@ -278,7 +243,7 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
 
           {activeTab === 'participants' && (
             <div>
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-3">
                 <h3 className="text-lg font-semibold">Résztvevők ({sessionDetails.participants.length})</h3>
                 <button
                   onClick={fetchSessionDetails}
@@ -294,77 +259,58 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200 text-sm">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Diák neve
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Osztály
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Teljesített
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Pontszám
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Százalék
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Teljesítmény
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Állapot
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Csatlakozott
-                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Diák neve</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Osztály</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Teljesített</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pontszám</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">%</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Teljesítmény</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Állapot</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Csatlakozott</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {sessionDetails.participants.map((participant) => (
-                        <tr key={participant.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {participant.student_name}
-                            </div>
+                        <tr key={participant.id} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{participant.student_name}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-2 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{participant.student_class}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {participant.completed_exercises} / {sessionDetails.exerciseCount}
-                            </div>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{participant.completed_exercises} / {sessionDetails.exerciseCount}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {participant.total_score} / {sessionDetails.maxPossibleScore}
-                            </div>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{participant.total_score} / {sessionDetails.maxPossibleScore}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {participant.percentage || 0}%
-                            </div>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <div className="text-sm font-bold text-gray-900">{participant.percentage || 0}%</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-2 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                               getPerformanceColor(participant.performance_category || 'poor')
                             }`}>
                               {getPerformanceLabel(participant.performance_category || 'poor')}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-2 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                               participant.is_online ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                             }`}>
                               {participant.is_online ? 'Online' : 'Offline'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(participant.joined_at).toLocaleString('hu-HU')}
+                          <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
+                            {new Date(participant.joined_at).toLocaleString('hu-HU', { 
+                              month: '2-digit', 
+                              day: '2-digit', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
                           </td>
                         </tr>
                       ))}
@@ -387,11 +333,11 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
+        {/* Compact Footer */}
+        <div className="flex justify-end gap-3 p-3 border-t border-gray-200 bg-gray-50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
+            className="px-4 py-2 text-gray-700 bg-white hover:bg-gray-100 rounded-lg border border-gray-300 text-sm"
           >
             Bezárás
           </button>
