@@ -120,6 +120,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
 
+  // Mouse movement tracking for auto-hiding header in student mode
+  const [showHeader, setShowHeader] = useState(true);
+  const [mouseTimer, setMouseTimer] = useState<NodeJS.Timeout | null>(null);
+  const headerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Initialize playlist in preview mode
   useEffect(() => {
     if (isPreviewMode && library.length > 0) {
@@ -129,6 +134,52 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       setCompletedCount(0);
     }
   }, [isPreviewMode, library]);
+
+  // Mouse movement handler for auto-hiding header in student mode
+  useEffect(() => {
+    if (!isStudentMode || isPreviewMode) return;
+
+    const handleMouseMove = () => {
+      setShowHeader(true);
+      
+      // Clear existing timeout
+      if (headerTimeoutRef.current) {
+        clearTimeout(headerTimeoutRef.current);
+      }
+      
+      // Set new timeout to hide header after 3 seconds of inactivity
+      headerTimeoutRef.current = setTimeout(() => {
+        setShowHeader(false);
+      }, 3000);
+    };
+
+    const handleMouseLeave = () => {
+      // Hide header immediately when mouse leaves the window
+      if (headerTimeoutRef.current) {
+        clearTimeout(headerTimeoutRef.current);
+      }
+      headerTimeoutRef.current = setTimeout(() => {
+        setShowHeader(false);
+      }, 1000);
+    };
+
+    // Add event listeners
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+
+    // Initial timer
+    headerTimeoutRef.current = setTimeout(() => {
+      setShowHeader(false);
+    }, 3000);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      if (headerTimeoutRef.current) {
+        clearTimeout(headerTimeoutRef.current);
+      }
+    };
+  }, [isStudentMode, isPreviewMode]);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -896,7 +947,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       const uniqueKey = `${currentItem.id}-${currentIndex}`; // Force re-render on change
 
       return (
-          <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row overflow-hidden">
+          <div className={`${isStudentMode && !isPreviewMode ? 'h-screen' : 'h-[calc(100vh-80px)]'} flex flex-col lg:flex-row overflow-hidden`}>
               {/* Left Side: Original Image - Optimized for 15.6" monitors */}
               <div className="lg:w-2/5 h-[35vh] lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
                    {getImageUrl(currentItem) ? (
@@ -923,8 +974,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               {/* Right Side: Exercise - Optimized for 15.6" monitors */}
               <div className="lg:w-3/5 h-[65vh] lg:h-full bg-slate-50 overflow-y-auto order-2 lg:order-2 relative">
                   <div className="max-w-2xl mx-auto">
-                      {/* Ultra Compact Header */}
-                      <div className="sticky top-0 z-20 bg-slate-50 p-2 pb-1 border-b border-slate-200 mb-2 shadow-sm opacity-95 backdrop-blur">
+                      {/* Auto-hiding Header for Student Mode */}
+                      <div className={`
+                        sticky top-0 z-20 bg-slate-50 p-2 pb-1 border-b border-slate-200 mb-2 shadow-sm backdrop-blur transition-all duration-300
+                        ${isStudentMode && !isPreviewMode ? (showHeader ? 'opacity-95 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none') : 'opacity-95'}
+                      `}>
                           <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-2">
                                   <span className="font-bold text-purple-900 text-sm">
@@ -958,25 +1012,25 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                               <div className="bg-purple-600 h-1 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
                           </div>
 
-                          {/* Ultra Compact Exercise Info */}
+                          {/* Exercise Info with Better Styling */}
                           <div className="bg-white rounded-lg p-2 border border-slate-200">
                               <div className="flex justify-between items-center mb-1">
                                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Feladat {currentIndex + 1} / {playlist.length}</span>
                                   <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{exerciseData.type}</span>
                               </div>
-                              <h3 className="text-sm font-bold text-slate-800 mb-1 leading-tight">{exerciseData.title}</h3>
-                              
-                              {/* Ultra compact instruction */}
-                              <div className="text-xs text-slate-700">
-                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
-                                      <div className="flex items-start gap-1">
-                                          <svg className="w-3 h-3 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                          </svg>
-                                          <div className="text-blue-800 font-medium text-xs leading-tight">
-                                              {exerciseData.instruction}
-                                          </div>
-                                      </div>
+                              <h3 className="text-sm font-bold text-slate-800 mb-2 leading-tight">{exerciseData.title}</h3>
+                          </div>
+                      </div>
+
+                      {/* Task Description Block - Separate with Different Background */}
+                      <div className="mx-2 mb-3">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm">
+                              <div className="flex items-start gap-2">
+                                  <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                  </svg>
+                                  <div className="text-blue-800 font-medium text-sm leading-relaxed">
+                                      {exerciseData.instruction}
                                   </div>
                               </div>
                           </div>
