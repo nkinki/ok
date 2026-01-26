@@ -1233,11 +1233,11 @@ export default async function handler(req, res) {
         }
         
         // Get all participants for these sessions
-        const sessionCodes = sessions.map(s => s.session_code);
+        const sessionIds = sessions.map(s => s.id);
         const { data: participants, error: participantsError } = await supabase
           .from('session_participants')
           .select('*')
-          .in('session_code', sessionCodes);
+          .in('session_id', sessionIds);
           
         if (participantsError) {
           return res.status(500).json({ 
@@ -1353,9 +1353,22 @@ export default async function handler(req, res) {
         const { data: allSessions } = await allSessionsQuery;
         const { data: activeSessions } = await activeSessionsQuery;
 
-        const { data: allParticipants } = await supabase
-          .from('session_participants')
-          .select('*');
+        // Get participants only for sessions of the current subject
+        let participantsQuery;
+        if (subjectFilter && subjectFilter !== 'all') {
+          // Get session IDs for the current subject
+          const sessionIds = allSessions?.map(s => s.id) || [];
+          participantsQuery = supabase
+            .from('session_participants')
+            .select('*')
+            .in('session_id', sessionIds);
+        } else {
+          participantsQuery = supabase
+            .from('session_participants')
+            .select('*');
+        }
+        
+        const { data: allParticipants } = await participantsQuery;
 
         // Calculate stats
         const now = new Date();

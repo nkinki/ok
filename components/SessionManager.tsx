@@ -236,82 +236,79 @@ const SessionManager: React.FC = () => {
 
       {/* Statistics */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <div className="bg-blue-100 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{stats.overview.totalSessions}</div>
-            <div className="text-sm text-blue-800">Összes munkamenet</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+          <div className="bg-blue-100 p-2 rounded text-center">
+            <div className="text-lg font-bold text-blue-600">{stats.overview.totalSessions}</div>
+            <div className="text-xs text-blue-800">📊 Összes</div>
           </div>
-          <div className="bg-green-100 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{stats.overview.activeSessions}</div>
-            <div className="text-sm text-green-800">Aktív munkamenet</div>
+          <div className="bg-green-100 p-2 rounded text-center">
+            <div className="text-lg font-bold text-green-600">{stats.overview.activeSessions}</div>
+            <div className="text-xs text-green-800">🟢 Aktív</div>
           </div>
-          <div className="bg-yellow-100 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">{stats.overview.todaySessions}</div>
-            <div className="text-sm text-yellow-800">Mai munkamenetek</div>
+          <div className="bg-yellow-100 p-2 rounded text-center">
+            <div className="text-lg font-bold text-yellow-600">{stats.overview.todaySessions}</div>
+            <div className="text-xs text-yellow-800">📅 Mai</div>
           </div>
-          <div className="bg-purple-100 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-purple-600">{stats.overview.weekSessions}</div>
-            <div className="text-sm text-purple-800">Heti munkamenetek</div>
+          <div className="bg-purple-100 p-2 rounded text-center">
+            <div className="text-lg font-bold text-purple-600">{stats.overview.weekSessions}</div>
+            <div className="text-xs text-purple-800">📆 Heti</div>
           </div>
-          <div className="bg-indigo-100 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-indigo-600">{stats.overview.totalParticipants}</div>
-            <div className="text-sm text-indigo-800">Összes résztvevő</div>
+          <div className="bg-indigo-100 p-2 rounded text-center">
+            <div className="text-lg font-bold text-indigo-600">{stats.overview.totalParticipants}</div>
+            <div className="text-xs text-indigo-800">👥 Résztvevő</div>
           </div>
-          <div className="bg-pink-100 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-pink-600">{stats.overview.avgParticipantsPerSession}</div>
-            <div className="text-sm text-pink-800">Átlag résztvevő</div>
+          <div className="bg-pink-100 p-2 rounded text-center">
+            <div className="text-lg font-bold text-pink-600">{stats.overview.avgParticipantsPerSession}</div>
+            <div className="text-xs text-pink-800">📈 Átlag</div>
           </div>
         </div>
       )}
 
       {/* Bulk Actions */}
       {sessions.length > 0 && (
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-slate-700">
-                Kiválasztva: {selectedSessions.length} / {sessions.length}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={selectAllSessions}
-                  className="text-xs px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded"
-                >
-                  Mind kijelöl
-                </button>
-                <button
-                  onClick={deselectAllSessions}
-                  className="text-xs px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded"
-                >
-                  Kijelölés törlése
-                </button>
-              </div>
+        <div className="bg-slate-50 border border-slate-200 rounded p-2 mb-4">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium text-slate-700">
+              Kiválasztva: {selectedSessions.length} / {sessions.length}
+            </span>
+            <div className="flex gap-1">
+              <button
+                onClick={selectAllSessions}
+                className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
+              >
+                Mind
+              </button>
+              <button
+                onClick={deselectAllSessions}
+                className="px-2 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs"
+              >
+                Semmi
+              </button>
+              {selectedSessions.length > 0 && (
+                <>
+                  <button
+                    onClick={bulkToggleSessions}
+                    className="px-2 py-1 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 rounded text-xs"
+                  >
+                    ⚡ Váltás
+                  </button>
+                  <button
+                    onClick={bulkDeleteSessions}
+                    className="px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs"
+                  >
+                    🗑️ Törlés
+                  </button>
+                </>
+              )}
             </div>
-            
-            {selectedSessions.length > 0 && (
-              <div className="flex gap-2">
-                <button
-                  onClick={bulkToggleSessions}
-                  className="px-4 py-2 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-sm font-medium"
-                >
-                  Állapot váltás ({selectedSessions.length})
-                </button>
-                <button
-                  onClick={bulkDeleteSessions}
-                  className="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded text-sm font-medium"
-                >
-                  Törlés ({selectedSessions.length})
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
 
       {/* Sessions List */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold">Munkamenetek</h2>
+        <div className="px-4 py-2 border-b border-gray-200">
+          <h2 className="text-lg font-semibold">Munkamenetek</h2>
         </div>
         
         {sessions.length === 0 ? (
@@ -320,10 +317,10 @@ const SessionManager: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-xs">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-2 py-2 text-left">
                     <input
                       type="checkbox"
                       checked={selectedSessions.length === sessions.length && sessions.length > 0}
@@ -331,36 +328,36 @@ const SessionManager: React.FC = () => {
                       className="rounded border-gray-300"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Kód
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Kód">
+                    🔑
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Osztály
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Osztály">
+                    🏫
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Feladatok
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Feladatok">
+                    📝
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Résztvevők
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Résztvevők">
+                    👥
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Állapot
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Állapot">
+                    ⚡
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Létrehozva
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Létrehozva">
+                    📅
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Lejárat
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Lejárat">
+                    ⏰
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Műveletek
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Műveletek">
+                    ⚙️
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {sessions.map((session) => (
                   <tr key={session.id} className={selectedSessions.includes(session.code) ? 'bg-blue-50' : ''}>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-2 py-1 whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedSessions.includes(session.code)}
@@ -368,62 +365,76 @@ const SessionManager: React.FC = () => {
                         className="rounded border-gray-300"
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{session.code}</div>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      <div className="text-xs font-medium text-gray-900">{session.code}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{session.className || 'Nincs megadva'}</div>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      <div className="text-xs text-gray-900">{session.className || '-'}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{session.exerciseCount}</div>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      <div className="text-xs text-gray-900">{session.exerciseCount}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{session.participantCount}</div>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      <div className="text-xs text-gray-900">{session.participantCount}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      <span className={`text-xs ${
                         session.isActive && new Date(session.expiresAt) > new Date()
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                          ? 'text-green-600'
+                          : 'text-red-600'
                       }`}>
-                        {session.isActive && new Date(session.expiresAt) > new Date() ? 'Aktív' : 'Inaktív'}
+                        {session.isActive && new Date(session.expiresAt) > new Date() ? '🟢' : '🔴'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(session.createdAt).toLocaleString('hu-HU')}
+                    <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500">
+                      {new Date(session.createdAt).toLocaleString('hu-HU', { 
+                        month: '2-digit', 
+                        day: '2-digit', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(session.expiresAt).toLocaleString('hu-HU')}
+                    <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500">
+                      {new Date(session.expiresAt).toLocaleString('hu-HU', { 
+                        month: '2-digit', 
+                        day: '2-digit', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
+                    <td className="px-2 py-1 whitespace-nowrap text-xs font-medium">
+                      <div className="flex gap-1">
                         <button
                           onClick={() => enterSession(session.code)}
-                          className="px-3 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-medium"
+                          className="px-2 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs"
+                          title="Belépés"
                         >
-                          📊 Belépés
+                          🚪
                         </button>
                         <button
                           onClick={() => setSelectedSessionForDetails(session.code)}
-                          className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
+                          className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
+                          title="Részletek"
                         >
-                          📊 Részletek
+                          📊
                         </button>
                         <button
                           onClick={() => toggleSession(session.code)}
-                          className={`px-3 py-1 rounded text-xs ${
+                          className={`px-2 py-1 rounded text-xs ${
                             session.isActive
                               ? 'bg-red-100 text-red-700 hover:bg-red-200'
                               : 'bg-green-100 text-green-700 hover:bg-green-200'
                           }`}
+                          title={session.isActive ? 'Leállít' : 'Aktivál'}
                         >
-                          {session.isActive ? 'Leállít' : 'Aktivál'}
+                          {session.isActive ? '⏹️' : '▶️'}
                         </button>
                         <button
                           onClick={() => deleteSession(session.code)}
-                          className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs"
+                          className="px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs"
+                          title="Töröl"
                         >
-                          Töröl
+                          🗑️
                         </button>
                       </div>
                     </td>
