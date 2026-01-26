@@ -5,7 +5,7 @@ import { SubjectProvider } from './contexts/SubjectContext';
 import AuthPage from './components/auth/AuthPage';
 import TeacherSessionManager from './components/TeacherSessionManager';
 // TeacherExerciseCreator removed - not used in current implementation
-import TeacherLibrary from './components/TeacherLibrary';
+// TeacherLibrary removed - merged into AdvancedLibraryManager
 import AdvancedLibraryManager from './components/AdvancedLibraryManager';
 import DailyChallenge from './components/DailyChallenge';
 import BulkProcessor, { BulkResultItem } from './components/BulkProcessor';
@@ -228,7 +228,7 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
 
 // Teacher App Component (full functionality with session manager first to show history)
 function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
-  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'LIBRARY' | 'ADVANCED_LIBRARY'>('BULK')
+  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'ADVANCED_LIBRARY'>('BULK')
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<BulkResultItem | null>(null);
   const [isMemoryMode, setIsMemoryMode] = useState(false)
@@ -286,8 +286,8 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
       const newItems = results.filter((r: any) => !prev.some((p: any) => p.id === r.id));
       return [...prev, ...newItems];
     });
-    setViewMode('LIBRARY');
-    alert(`${results.length} új elem mentve a Könyvtárba!`);
+    setViewMode('ADVANCED_LIBRARY'); // Changed from 'LIBRARY' to 'ADVANCED_LIBRARY'
+    alert(`${results.length} új elem mentve a Fejlett Könyvtárba!`);
   };
 
   const handleLibraryUpdate = () => {
@@ -362,21 +362,12 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             <div className="h-8 w-px bg-slate-200 mx-1"></div>
             
             <button 
-              onClick={() => setViewMode('LIBRARY')} 
-              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                viewMode === 'LIBRARY' ? 'bg-purple-50 text-purple-800' : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-bold">{library.length}</span>}
-            </button>
-            
-            <button 
               onClick={() => setViewMode('ADVANCED_LIBRARY')} 
               className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
                 viewMode === 'ADVANCED_LIBRARY' ? 'bg-green-50 text-green-800' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              📚 Fejlett Könyvtár
+              📚 Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-bold">{library.length}</span>}
             </button>
             
             <div className="h-8 w-px bg-slate-200 mx-1"></div>
@@ -422,7 +413,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             onAnalysisComplete={handleBulkComplete} 
             existingLibrary={library} 
             onLibraryImport={handleBulkImport} 
-            onExit={() => setViewMode('LIBRARY')} 
+            onExit={() => setViewMode('ADVANCED_LIBRARY')} // Changed from 'LIBRARY' to 'ADVANCED_LIBRARY'
           />
         )}
         {!showPreview && viewMode === 'SESSION' && (
@@ -430,18 +421,6 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             library={library} 
             onExit={onBackToRoleSelect}
             onLibraryUpdate={handleLibraryUpdate}
-          />
-        )}
-        {!showPreview && viewMode === 'LIBRARY' && (
-          <TeacherLibrary 
-            library={library}
-            setLibrary={setLibrary}
-            onExit={() => setViewMode('BULK')}
-            onOpenSingle={(item) => {
-              setSelectedExercise(item);
-              setShowPreview(true);
-            }}
-            isMemoryMode={isMemoryMode}
           />
         )}
         {!showPreview && viewMode === 'ADVANCED_LIBRARY' && (
