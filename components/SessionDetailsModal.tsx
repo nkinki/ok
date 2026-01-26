@@ -380,7 +380,7 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
                     </div>
                     <div className="text-center p-2 bg-red-100 rounded">
                       <div className="text-lg font-bold text-red-600">{sessionDetails.performanceDistribution.poor}</div>
-                      <div className="text-xs text-red-800">Gyenge (<60%)</div>
+                      <div className="text-xs text-red-800">Gyenge (&lt;60%)</div>
                     </div>
                   </div>
                 </div>
