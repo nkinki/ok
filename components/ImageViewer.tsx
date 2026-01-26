@@ -152,12 +152,14 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
   const [enhancementResult, setEnhancementResult] = useState<EnhancementResult | null>(null);
   const [showEnhancementOptions, setShowEnhancementOptions] = useState(false);
   const [originalSrc, setOriginalSrc] = useState<string>(src); // Store original image URL
+  const [hasBeenModified, setHasBeenModified] = useState(false); // Track if image has been modified
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Update original src when src prop changes
+  // Update original src when src prop changes and reset modification flag
   React.useEffect(() => {
     setOriginalSrc(src);
+    setHasBeenModified(false);
   }, [src]);
 
   const zoomLevels = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
@@ -194,6 +196,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
       setZoom(1);
       setPosition({ x: 0, y: 0 });
       setRotation(0);
+      setHasBeenModified(false);
       
       // Call onImageUpdate with the original source
       onImageUpdate(originalSrc);
@@ -218,6 +221,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
         quality: 0.95
       });
       setEnhancementResult(result);
+      setHasBeenModified(true); // Mark as modified
       onImageUpdate(result.enhancedImageUrl);
       
       console.log('✅ Olvashatóság javítás befejezve:', result.appliedEnhancements);
@@ -246,6 +250,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
         quality: 0.95
       });
       setEnhancementResult(result);
+      setHasBeenModified(true); // Mark as modified
       onImageUpdate(result.enhancedImageUrl);
       
       console.log('✅ Színmegőrzéses javítás befejezve:', result.appliedEnhancements);
@@ -265,6 +270,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
     try {
       const result = await imageEnhancementService.enhanceImage(src, options);
       setEnhancementResult(result);
+      setHasBeenModified(true); // Mark as modified
       onImageUpdate(result.enhancedImageUrl);
       setShowEnhancementOptions(false);
       
@@ -322,6 +328,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
       
       // Convert to base64 and update
       const rotatedSrc = canvas.toDataURL('image/jpeg', 0.9);
+      setHasBeenModified(true); // Mark as modified
       onImageUpdate(rotatedSrc);
       setRotation(0); // Reset rotation after applying
       
@@ -473,9 +480,9 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
             
             <button
               onClick={resetImage}
-              disabled={isProcessing || !onImageUpdate || src === originalSrc}
-              className={`px-3 py-1 ${src === originalSrc ? 'bg-gray-500' : 'bg-orange-600 hover:bg-orange-700'} disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1`}
-              title={src === originalSrc ? "Nincs mit visszaállítani" : "Eredeti kép visszaállítása"}
+              disabled={isProcessing || !onImageUpdate || !hasBeenModified}
+              className={`px-3 py-1 ${!hasBeenModified ? 'bg-gray-500' : 'bg-orange-600 hover:bg-orange-700'} disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1`}
+              title={!hasBeenModified ? "Nincs mit visszaállítani" : "Eredeti kép visszaállítása"}
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
