@@ -620,7 +620,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                       {usage.percentage}% használva
                     </div>
                     <div className="text-sm text-slate-600">
-                      {Math.round(usage.used / 1024)}KB / {Math.round(usage.total / 1024)}KB
+                      {Math.round(usage.used / 1024)}KB használva
                     </div>
                     {cleanupEstimate.itemCount > 0 && (
                       <div className="text-xs text-slate-500 mt-1">
@@ -645,7 +645,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                       onClick={() => {
                         const usage = SafeStorage.getUsage();
                         const cleanupEstimate = StorageManager.getCleanupEstimate();
-                        alert(`📊 TÁRHELY INFORMÁCIÓ\n\n💾 Használat: ${usage.percentage}% (${Math.round(usage.used / 1024)}KB)\n📁 Összes: ${Math.round(usage.total / 1024)}KB\n🗑️ Törölhető: ${cleanupEstimate.itemCount} elem (${cleanupEstimate.sizeKB}KB)\n\n💡 A tárhely a böngészőben tárolt munkamenet adatokat tartalmazza.`);
+                        alert(`📊 TÁRHELY INFORMÁCIÓ\n\n💾 Használat: ${usage.percentage}% (${Math.round(usage.used / 1024)}KB)\n🗑️ Törölhető: ${cleanupEstimate.itemCount} elem (${cleanupEstimate.sizeKB}KB)\n\n💡 A tárhely a böngészőben tárolt munkamenet adatokat tartalmazza.`);
                       }}
                       className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium flex items-center gap-2 border border-blue-200"
                     >
