@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SessionDetailsModal from './SessionDetailsModal';
 
 interface Session {
   id: string;
@@ -35,6 +36,7 @@ const SessionManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
+  const [selectedSessionForDetails, setSelectedSessionForDetails] = useState<string | null>(null);
 
   const fetchSessions = async () => {
     try {
@@ -383,22 +385,30 @@ const SessionManager: React.FC = () => {
                       {new Date(session.expiresAt).toLocaleString('hu-HU')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => toggleSession(session.code)}
-                        className={`mr-2 px-3 py-1 rounded text-xs ${
-                          session.isActive
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}
-                      >
-                        {session.isActive ? 'Leállít' : 'Aktivál'}
-                      </button>
-                      <button
-                        onClick={() => deleteSession(session.code)}
-                        className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs"
-                      >
-                        Töröl
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setSelectedSessionForDetails(session.code)}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
+                        >
+                          📊 Részletek
+                        </button>
+                        <button
+                          onClick={() => toggleSession(session.code)}
+                          className={`px-3 py-1 rounded text-xs ${
+                            session.isActive
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
+                        >
+                          {session.isActive ? 'Leállít' : 'Aktivál'}
+                        </button>
+                        <button
+                          onClick={() => deleteSession(session.code)}
+                          className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs"
+                        >
+                          Töröl
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -435,6 +445,14 @@ const SessionManager: React.FC = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Session Details Modal */}
+      {selectedSessionForDetails && (
+        <SessionDetailsModal
+          sessionCode={selectedSessionForDetails}
+          onClose={() => setSelectedSessionForDetails(null)}
+        />
       )}
     </div>
   );

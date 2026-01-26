@@ -160,23 +160,43 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     if (!currentSessionCode || !student?.id) return;
 
     try {
-      await fetch(`/api/simple-api/sessions/${currentSessionCode}/result`, {
+      console.log('📊 Submitting result to API:', { studentId: student.id, exerciseIndex, isCorrect, score, timeSpent });
+      
+      const response = await fetch(`/api/simple-api/sessions/${currentSessionCode}/results`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           studentId: student.id,
-          exerciseIndex,
-          isCorrect,
-          score,
-          timeSpent,
-          answer
+          results: [{
+            exerciseIndex,
+            isCorrect,
+            score,
+            timeSpent,
+            answer,
+            completedAt: new Date().toISOString()
+          }],
+          summary: {
+            studentName: student.name,
+            studentClass: student.className,
+            sessionCode: currentSessionCode,
+            totalExercises: playlist.length,
+            completedExercises: exerciseIndex + 1,
+            totalScore: score,
+            completedAt: new Date().toISOString()
+          }
         })
       });
-      console.log('📊 Result submitted to API');
+
+      if (response.ok) {
+        console.log('✅ Result submitted to API successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn('⚠️ API result submission failed:', errorData.error || 'Unknown error');
+      }
     } catch (error) {
-      console.warn('Failed to submit result to API:', error);
+      console.warn('❌ Failed to submit result to API:', error);
     }
   };
 

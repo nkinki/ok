@@ -116,22 +116,26 @@ export class ImageCompressor {
    */
   static getRecommendedSettings(sizeMB: number, hasText: boolean = true): { quality: number, maxWidth: number, description: string } {
     if (hasText) {
-      // Conservative settings for text-heavy images
-      if (sizeMB > 8) {
-        return { quality: 0.75, maxWidth: 900, description: 'Közepes tömörítés (szöveg olvasható)' };
+      // Conservative settings for text-heavy images - IMPROVED QUALITY
+      if (sizeMB > 10) {
+        return { quality: 0.8, maxWidth: 1000, description: 'Közepes tömörítés (nagy munkamenet)' };
+      } else if (sizeMB > 8) {
+        return { quality: 0.85, maxWidth: 1100, description: 'Enyhe tömörítés (szöveg tiszta)' };
       } else if (sizeMB > 6) {
-        return { quality: 0.8, maxWidth: 1000, description: 'Enyhe tömörítés (szöveg tiszta)' };
+        return { quality: 0.9, maxWidth: 1200, description: 'Minimális tömörítés (kiváló minőség)' };
+      } else if (sizeMB > 4) {
+        return { quality: 0.95, maxWidth: 1400, description: 'Szinte eredeti minőség' };
       } else {
-        return { quality: 0.85, maxWidth: 1200, description: 'Minimális tömörítés (kiváló minőség)' };
+        return { quality: 1.0, maxWidth: 1600, description: 'Eredeti minőség (nincs tömörítés)' };
       }
     } else {
       // More aggressive settings for photo-only content
       if (sizeMB > 8) {
-        return { quality: 0.6, maxWidth: 700, description: 'Erős tömörítés (fotókhoz)' };
+        return { quality: 0.7, maxWidth: 800, description: 'Erős tömörítés (fotókhoz)' };
       } else if (sizeMB > 6) {
-        return { quality: 0.7, maxWidth: 800, description: 'Közepes tömörítés (fotókhoz)' };
+        return { quality: 0.8, maxWidth: 900, description: 'Közepes tömörítés (fotókhoz)' };
       } else {
-        return { quality: 0.8, maxWidth: 1000, description: 'Enyhe tömörítés (fotókhoz)' };
+        return { quality: 0.9, maxWidth: 1000, description: 'Enyhe tömörítés (fotókhoz)' };
       }
     }
   }

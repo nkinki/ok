@@ -1393,6 +1393,169 @@ export default async function handler(req, res) {
       }
     }
 
+    // Get session participants (teacher)
+    if (method === 'GET' && path.includes('/sessions/') && path.includes('/participants')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/participants/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Get session first
+        const { data: session, error: sessionError } = await supabase
+          .from('teacher_sessions')
+          .select('id')
+          .eq('session_code', sessionCode)
+          .single();
+
+        if (sessionError || !session) {
+          return res.status(404).json({ 
+            error: 'Munkamenet nem található'
+          });
+        }
+
+        // Get participants for this session
+        const { data: participants, error: participantsError } = await supabase
+          .from('session_participants')
+          .select('*')
+          .eq('session_id', session.id)
+          .order('joined_at', { ascending: false });
+
+        if (participantsError) {
+          return res.status(500).json({ 
+            error: 'Database error',
+            details: participantsError.message
+          });
+        }
+
+        // Calculate performance categories for each participant
+        const participantsWithPerformance = (participants || []).map(participant => {
+          const percentage = participant.percentage || 0;
+          let performance_category = 'poor';
+          
+          if (percentage >= 90) performance_category = 'excellent';
+          else if (percentage >= 75) performance_category = 'good';
+          else if (percentage >= 60) performance_category = 'average';
+          
+          return {
+            ...participant,
+            performance_category
+          };
+        });
+
+        return res.status(200).json({
+          participants: participantsWithPerformance,
+          total: participantsWithPerformance.length,
+          sessionCode: sessionCode
+        });
+
+      } catch (err) {
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
+    // Get session participants (teacher)
+    if (method === 'GET' && path.includes('/sessions/') && path.includes('/participants')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/participants/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Get session first
+        const { data: session, error: sessionError } = await supabase
+          .from('teacher_sessions')
+          .select('id, session_code, exercises')
+          .eq('session_code', sessionCode)
+          .single();
+
+        if (sessionError || !session) {
+          return res.status(404).json({ 
+            error: 'Munkamenet nem található'
+          });
+        }
+
+        // Get participants for this session
+        const { data: participants, error: participantsError } = await supabase
+          .from('session_participants')
+          .select('*')
+          .eq('session_id', session.id)
+          .order('joined_at', { ascending: false });
+
+        if (participantsError) {
+          return res.status(500).json({ 
+            error: 'Database error',
+            details: participantsError.message
+          });
+        }
+
+        // Calculate performance categories and percentages
+        const maxPossibleScore = session.exercises.length * 10; // Assuming 10 points per exercise
+        const enhancedParticipants = (participants || []).map(participant => {
+          const percentage = maxPossibleScore > 0 
+            ? Math.round((participant.total_score / maxPossibleScore) * 100)
+            : 0;
+          
+          let performance_category = 'poor';
+          if (percentage >= 90) performance_category = 'excellent';
+          else if (percentage >= 75) performance_category = 'good';
+          else if (percentage >= 60) performance_category = 'average';
+          
+          return {
+            ...participant,
+            percentage,
+            performance_category
+          };
+        });
+
+        return res.status(200).json({
+          success: true,
+          sessionCode: sessionCode,
+          sessionId: session.id,
+          exerciseCount: session.exercises.length,
+          maxPossibleScore,
+          participants: enhancedParticipants,
+          participantCount: enhancedParticipants.length,
+          averagePercentage: enhancedParticipants.length > 0 
+            ? Math.round(enhancedParticipants.reduce((sum, p) => sum + p.percentage, 0) / enhancedParticipants.length)
+            : 0
+        });
+
+      } catch (err) {
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Default response
     return res.status(404).json({ 
       error: 'Endpoint not found',
