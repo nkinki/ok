@@ -802,96 +802,46 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
               </select>
             </div>
             
-            {/* Debug button */}
-            <button
-              onClick={() => {
-                console.log('🧪 Debug - Current state:', {
-                  activeSession,
-                  loading,
-                  error,
-                  selectedExercises: selectedExercises.length,
-                  className
-                })
-                
-                // Check localStorage for recent sessions
-                const recentSessions: Array<{key: string, code: string, created: string}> = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                  const key = localStorage.key(i);
-                  if (key && key.startsWith('session_')) {
-                    try {
-                      const data = JSON.parse(localStorage.getItem(key) || '{}');
-                      recentSessions.push({ key, code: data.sessionCode || 'UNKNOWN', created: data.createdAt || 'UNKNOWN' });
-                    } catch (e) {
-                      // ignore
-                    }
-                  }
-                }
-                console.log('🗄️ Recent sessions in localStorage:', recentSessions);
-                
-                // Test setting activeSession manually
-                if (!activeSession && recentSessions.length > 0) {
-                  const latestSession = recentSessions[recentSessions.length - 1];
-                  const testSession: Session = {
-                    code: latestSession.code || 'TEST123',
-                    exercises: library.filter(item => selectedExercises.includes(item.id)),
-                    createdAt: new Date(),
-                    isActive: true
-                  }
-                  setActiveSession(testSession)
-                  console.log('🧪 Debug - Set test session:', testSession)
-                }
-              }}
-              className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-xs"
-            >
-              🧪 Debug
-            </button>
-            
-            <button
-              onClick={handleStartSession}
-              disabled={selectedExercises.length === 0 || !className.trim() || loading}
-              className={`px-6 py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-white ${
-                subjectTheme === 'blue' ? 'bg-blue-600 hover:bg-blue-700' :
-                subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :
-                subjectTheme === 'red' ? 'bg-red-600 hover:bg-red-700' :
-                subjectTheme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
-                'bg-orange-600 hover:bg-orange-700'
-              }`}
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Indítás...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-9-4V8a3 3 0 016 0v2M5 12a7 7 0 1114 0v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5z"/>
-                  </svg>
-                  Munkamenet indítása
-                </>
-              )}
-            </button>
+            {/* Action Buttons - Organized and Symmetrical */}
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={handleStartSession}
+                disabled={selectedExercises.length === 0 || !className.trim() || loading}
+                className={`px-6 py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-white transition-colors ${
+                  subjectTheme === 'blue' ? 'bg-blue-600 hover:bg-blue-700' :
+                  subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :
+                  subjectTheme === 'red' ? 'bg-red-600 hover:bg-red-700' :
+                  subjectTheme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
+                  'bg-orange-600 hover:bg-orange-700'
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Indítás...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-9-4V8a3 3 0 016 0v2M5 12a7 7 0 1114 0v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5z"/>
+                    </svg>
+                    Munkamenet indítása
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => exportSelectedAsJson()}
+                disabled={selectedExercises.length === 0}
+                className="px-6 py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-white bg-green-600 hover:bg-green-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                JSON Export ({selectedExercises.length})
+              </button>
+            </div>
           </div>
-        </div>
-        
-        <div className="flex justify-end">
-          {/* JSON Export Button */}
-          <button
-            onClick={() => exportSelectedAsJson()}
-            disabled={selectedExercises.length === 0}
-            className={`px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
-              subjectTheme === 'blue' ? 'bg-green-600 hover:bg-green-700' :
-              subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :
-              subjectTheme === 'red' ? 'bg-green-600 hover:bg-green-700' :
-              subjectTheme === 'purple' ? 'bg-green-600 hover:bg-green-700' :
-              'bg-green-600 hover:bg-green-700'
-            } text-white`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            JSON Export ({selectedExercises.length})
-          </button>
         </div>
         
         {/* Session expiration info */}

@@ -509,7 +509,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                     <textarea 
                         value={formData.title} 
                         onChange={(e) => setFormData({...formData, title: e.target.value})}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 resize-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 bg-slate-50"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 resize-y focus:ring-2 focus:ring-brand-400 focus:border-brand-400 bg-slate-50"
                         rows={3}
                         placeholder="Írd ide a feladat címét..."
                     />
@@ -524,7 +524,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                     <textarea 
                         value={formData.instruction} 
                         onChange={(e) => setFormData({...formData, instruction: e.target.value})}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 resize-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 bg-slate-50"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 resize-y focus:ring-2 focus:ring-brand-400 focus:border-brand-400 bg-slate-50"
                         rows={4}
                         placeholder="Írd ide a feladat részletes utasítását..."
                     />
