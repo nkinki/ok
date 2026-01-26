@@ -1335,16 +1335,23 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        // Get session counts
-        const { data: allSessions } = await supabase
-          .from('teacher_sessions')
-          .select('*');
-
-        const { data: activeSessions } = await supabase
-          .from('teacher_sessions')
-          .select('*')
+        // Get subject filter from query params
+        const urlParams = new URLSearchParams(url.split('?')[1] || '');
+        const subjectFilter = urlParams.get('subject');
+        
+        // Build queries with optional subject filter
+        let allSessionsQuery = supabase.from('teacher_sessions').select('*');
+        let activeSessionsQuery = supabase.from('teacher_sessions').select('*')
           .eq('is_active', true)
           .gt('expires_at', new Date().toISOString());
+        
+        if (subjectFilter && subjectFilter !== 'all') {
+          allSessionsQuery = allSessionsQuery.eq('subject', subjectFilter);
+          activeSessionsQuery = activeSessionsQuery.eq('subject', subjectFilter);
+        }
+        
+        const { data: allSessions } = await allSessionsQuery;
+        const { data: activeSessions } = await activeSessionsQuery;
 
         const { data: allParticipants } = await supabase
           .from('session_participants')

@@ -165,14 +165,14 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
-      <div className="bg-white rounded-lg max-w-7xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[85vh] overflow-hidden flex flex-col">
         {/* Compact Header */}
-        <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
+        <div className="flex justify-between items-center p-3 border-b border-gray-200 bg-gray-50">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-lg font-bold text-gray-900">
               📊 {sessionDetails.code} • {sessionDetails.participantCount} résztvevő • {sessionDetails.averagePercentage}% átlag
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs text-gray-600">
               {sessionDetails.exerciseCount} feladat • {sessionDetails.isActive ? '🟢 Aktív' : '🔴 Inaktív'}
             </p>
           </div>
@@ -186,16 +186,14 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
 
         {/* Compact Tabs */}
         <div className="border-b border-gray-200 bg-gray-50">
-          <nav className="flex space-x-6 px-4">
+          <nav className="flex space-x-4 px-3">
             {[
-              { id: 'overview', label: 'Áttekintés', icon: '📊' },
-              { id: 'participants', label: 'Résztvevők', icon: '👥' },
-              { id: 'results', label: 'Eredmények', icon: '🏆' }
+              { id: 'participants', label: 'Résztvevők', icon: '👥' }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -208,136 +206,86 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {activeTab === 'overview' && (
-            <div className="space-y-4">
-              {/* Compact Performance Distribution */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold mb-3">Teljesítmény megoszlás</h3>
-                <div className="grid grid-cols-4 gap-3">
-                  {Object.entries(sessionDetails.performanceDistribution).map(([category, count]) => (
-                    <div key={category} className="text-center">
-                      <div className={`text-xl font-bold ${getPerformanceColor(category).split(' ')[0]}`}>
-                        {count}
-                      </div>
-                      <div className={`text-xs px-2 py-1 rounded-full ${getPerformanceColor(category)}`}>
-                        {getPerformanceLabel(category)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Compact Session Info */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">Munkamenet információk</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="font-medium">Létrehozva:</span> {new Date(sessionDetails.createdAt).toLocaleString('hu-HU')}</div>
-                  <div><span className="font-medium">Lejárat:</span> {new Date(sessionDetails.expiresAt).toLocaleString('hu-HU')}</div>
-                  <div><span className="font-medium">Max pontszám:</span> {sessionDetails.maxPossibleScore}</div>
-                  <div><span className="font-medium">Feladatok:</span> {sessionDetails.exerciseCount} db</div>
-                </div>
-              </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-semibold">👥 Résztvevők ({sessionDetails.participants.length})</h3>
+              <button
+                onClick={fetchSessionDetails}
+                className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
+              >
+                🔄
+              </button>
             </div>
-          )}
-
-          {activeTab === 'participants' && (
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-lg font-semibold">Résztvevők ({sessionDetails.participants.length})</h3>
-                <button
-                  onClick={fetchSessionDetails}
-                  className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-sm"
-                >
-                  🔄 Frissítés
-                </button>
+            
+            {sessionDetails.participants.length === 0 ? (
+              <div className="text-center py-6 text-gray-500 text-sm">
+                Még nincsenek résztvevők ebben a munkamenetben
               </div>
-              
-              {sessionDetails.participants.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  Még nincsenek résztvevők ebben a munkamenetben
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Diák neve</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Osztály</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Teljesített</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pontszám</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">%</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Teljesítmény</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Állapot</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Csatlakozott</th>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Név">👤</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Osztály">🏫</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Feladatok">📝</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Résztvevők">👥</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Állapot">⚡</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Létrehozva">📅</th>
+                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Lejárat">⏰</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {sessionDetails.participants.map((participant) => (
+                      <tr key={participant.id} className="hover:bg-gray-50">
+                        <td className="px-2 py-1 whitespace-nowrap">
+                          <div className="text-xs font-medium text-gray-900">{participant.student_name}</div>
+                        </td>
+                        <td className="px-2 py-1 whitespace-nowrap">
+                          <div className="text-xs text-gray-900">{participant.student_class}</div>
+                        </td>
+                        <td className="px-2 py-1 whitespace-nowrap">
+                          <div className="text-xs text-gray-900">{participant.completed_exercises}</div>
+                        </td>
+                        <td className="px-2 py-1 whitespace-nowrap">
+                          <div className="text-xs text-gray-900">1</div>
+                        </td>
+                        <td className="px-2 py-1 whitespace-nowrap">
+                          <span className={`text-xs ${participant.is_online ? 'text-green-600' : 'text-gray-400'}`}>
+                            {participant.is_online ? '🟢' : '⚫'}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500">
+                          {new Date(participant.joined_at).toLocaleString('hu-HU', { 
+                            month: '2-digit', 
+                            day: '2-digit', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </td>
+                        <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500">
+                          {new Date(sessionDetails.expiresAt).toLocaleString('hu-HU', { 
+                            month: '2-digit', 
+                            day: '2-digit', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {sessionDetails.participants.map((participant) => (
-                        <tr key={participant.id} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{participant.student_name}</div>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{participant.student_class}</div>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{participant.completed_exercises} / {sessionDetails.exerciseCount}</div>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{participant.total_score} / {sessionDetails.maxPossibleScore}</div>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="text-sm font-bold text-gray-900">{participant.percentage || 0}%</div>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              getPerformanceColor(participant.performance_category || 'poor')
-                            }`}>
-                              {getPerformanceLabel(participant.performance_category || 'poor')}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              participant.is_online ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {participant.is_online ? 'Online' : 'Offline'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
-                            {new Date(participant.joined_at).toLocaleString('hu-HU', { 
-                              month: '2-digit', 
-                              day: '2-digit', 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'results' && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Részletes eredmények</h3>
-              <div className="text-center py-8 text-gray-500">
-                A részletes eredmények funkció fejlesztés alatt áll.
-                <br />
-                Jelenleg a résztvevők fülön láthatók az alapvető statisztikák.
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Compact Footer */}
-        <div className="flex justify-end gap-3 p-3 border-t border-gray-200 bg-gray-50">
+        <div className="flex justify-end gap-2 p-2 border-t border-gray-200 bg-gray-50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-white hover:bg-gray-100 rounded-lg border border-gray-300 text-sm"
+            className="px-3 py-1 text-gray-700 bg-white hover:bg-gray-100 rounded border border-gray-300 text-xs"
           >
             Bezárás
           </button>

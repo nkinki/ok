@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SessionDetailsModal from './SessionDetailsModal';
+import { useSubject } from '../contexts/SubjectContext';
 
 interface Session {
   id: string;
@@ -31,6 +32,7 @@ interface SessionStats {
 }
 
 const SessionManager: React.FC = () => {
+  const { currentSubject } = useSubject();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [stats, setStats] = useState<SessionStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,9 @@ const SessionManager: React.FC = () => {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('/api/simple-api/sessions/list');
+      // Add subject filter to the API call
+      const subjectParam = currentSubject ? `?subject=${currentSubject}` : '';
+      const response = await fetch(`/api/simple-api/sessions/list${subjectParam}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -55,7 +59,9 @@ const SessionManager: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/simple-api/sessions/stats');
+      // Add subject filter to stats as well
+      const subjectParam = currentSubject ? `?subject=${currentSubject}` : '';
+      const response = await fetch(`/api/simple-api/sessions/stats${subjectParam}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -176,8 +182,8 @@ const SessionManager: React.FC = () => {
     };
 
     loadData();
-    // Removed auto-refresh interval - only load once when component mounts
-  }, []);
+    // Reload data when subject changes
+  }, [currentSubject]);
 
   if (loading) {
     return (
