@@ -98,7 +98,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           ctx.strokeRect(leftW, topH, canvas.width - leftW - rightW, canvas.height - topH - bottomH);
           
           // Draw resize handles - only edge handles
-          const handleSize = 12;
+          const handleSize = 16; // Increased size for easier clicking
           ctx.fillStyle = '#3b82f6';
           ctx.strokeStyle = '#1d4ed8';
           ctx.lineWidth = 2;
@@ -109,7 +109,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           const cropW = canvas.width - leftW - rightW;
           const cropH = canvas.height - topH - bottomH;
           
-          // Edge handles only
+          // Edge handles only - larger and more visible
           // Top edge
           ctx.fillRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
           ctx.strokeRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
@@ -147,7 +147,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
     const cropW = canvas.width - leftW - rightW;
     const cropH = canvas.height - topH - bottomH;
     
-    const tolerance = 15;
+    const tolerance = 20; // Increased tolerance for easier clicking
     
     // Check edge handles only (no corners)
     if (Math.abs(canvasX - (cropX + cropW/2)) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top';
@@ -203,16 +203,16 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
     } else {
       // Update cursor based on handle position
       const handle = getHandleAtPosition(e.clientX, e.clientY);
-      if (handle) {
+      if (handle && canvasRef.current) {
         const cursors: { [key: string]: string } = {
           'top': 'n-resize',
           'bottom': 'n-resize',
           'left': 'w-resize',
           'right': 'w-resize'
         };
-        canvasRef.current!.style.cursor = cursors[handle] || 'default';
-      } else {
-        canvasRef.current!.style.cursor = 'default';
+        canvasRef.current.style.cursor = cursors[handle] || 'default';
+      } else if (canvasRef.current) {
+        canvasRef.current.style.cursor = 'default';
       }
     }
   };
@@ -221,6 +221,61 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
     setIsDragging(false);
     setDragHandle(null);
   };
+
+  // Add global mouse event listeners for better drag handling
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDragging && dragHandle && canvasRef.current) {
+        const canvas = canvasRef.current;
+        const deltaX = e.clientX - dragStart.x;
+        const deltaY = e.clientY - dragStart.y;
+        
+        const deltaXPercent = (deltaX / canvas.width) * 100;
+        const deltaYPercent = (deltaY / canvas.height) * 100;
+        
+        let newCrop = { ...crop };
+        
+        switch (dragHandle) {
+          case 'top':
+            newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
+            break;
+          case 'bottom':
+            newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
+            break;
+          case 'left':
+            newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+            break;
+          case 'right':
+            newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+            break;
+        }
+        
+        setCrop(newCrop);
+        setDragStart({ x: e.clientX, y: e.clientY });
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      setIsDragging(false);
+      setDragHandle(null);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDragging, dragHandle, dragStart, crop]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Crop state:', crop);
+    console.log('Dragging:', isDragging, 'Handle:', dragHandle);
+  }, [crop, isDragging, dragHandle]);
 
   if (!formData) return null;
 
@@ -574,6 +629,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                         onMouseMove={handleMouseMove}
                                         onMouseUp={handleMouseUp}
                                         onMouseLeave={handleMouseUp}
+                                        style={{ touchAction: 'none' }}
                                     />
                                 </div>
                                 
