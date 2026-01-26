@@ -151,8 +151,14 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
   const [isProcessing, setIsProcessing] = useState(false);
   const [enhancementResult, setEnhancementResult] = useState<EnhancementResult | null>(null);
   const [showEnhancementOptions, setShowEnhancementOptions] = useState(false);
+  const [originalSrc, setOriginalSrc] = useState<string>(src); // Store original image URL
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Update original src when src prop changes
+  React.useEffect(() => {
+    setOriginalSrc(src);
+  }, [src]);
 
   const zoomLevels = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
 
@@ -182,31 +188,19 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
   };
 
   const resetImage = useCallback(() => {
-    if (onImageUpdate) {
-      // Reset to original image by calling onImageUpdate with the original src
-      // This assumes the parent component can handle resetting to original
+    if (onImageUpdate && originalSrc) {
+      // Reset all states
       setEnhancementResult(null);
       setZoom(1);
       setPosition({ x: 0, y: 0 });
       setRotation(0);
       
-      // Create a temporary image to get the original source
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          const originalUrl = canvas.toDataURL('image/jpeg', 0.95);
-          onImageUpdate(originalUrl);
-        }
-      };
-      img.src = src;
+      // Call onImageUpdate with the original source
+      onImageUpdate(originalSrc);
+      
+      console.log('🔄 Kép visszaállítva az eredeti állapotra');
     }
-  }, [src, onImageUpdate]);
+  }, [originalSrc, onImageUpdate]);
 
   const enhanceReadability = useCallback(async () => {
     if (!onImageUpdate) return;
@@ -479,9 +473,9 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
             
             <button
               onClick={resetImage}
-              disabled={isProcessing || !onImageUpdate}
-              className="px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1"
-              title="Eredeti kép visszaállítása"
+              disabled={isProcessing || !onImageUpdate || src === originalSrc}
+              className={`px-3 py-1 ${src === originalSrc ? 'bg-gray-500' : 'bg-orange-600 hover:bg-orange-700'} disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1`}
+              title={src === originalSrc ? "Nincs mit visszaállítani" : "Eredeti kép visszaállítása"}
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
