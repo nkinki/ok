@@ -30,7 +30,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [showResults, setShowResults] = useState(false)
   const [showMonitor, setShowMonitor] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const [showStudentDashboard, setShowStudentDashboard] = useState(false)
+
   const [className, setClassName] = useState<string>('')
 
   // Class options same as student form
@@ -504,14 +504,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     )
   }
 
-  // Show student dashboard
-  if (showStudentDashboard) {
-    return (
-      <StudentProgressDashboard 
-        onClose={() => setShowStudentDashboard(false)}
-      />
-    )
-  }
+
 
   // Show session history
   if (showHistory) {
@@ -564,21 +557,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           <p className="text-slate-600">Válassz ki feladatokat a könyvtárból és indíts munkamenetet a diákoknak</p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={() => setShowStudentDashboard(true)}
-            className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-white ${
-              subjectTheme === 'blue' ? 'bg-blue-600 hover:bg-blue-700' :
-              subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :
-              subjectTheme === 'red' ? 'bg-red-600 hover:bg-red-700' :
-              subjectTheme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
-              'bg-orange-600 hover:bg-orange-700'
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-            </svg>
-            Diák teljesítmények
-          </button>
           <button
             onClick={() => setShowHistory(true)}
             className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"

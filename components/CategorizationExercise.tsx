@@ -124,23 +124,23 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
   return (
     <div className="flex flex-col h-full relative">
       
-      {/* Unassigned Items (Word Bank) */}
+      {/* Unassigned Items (Word Bank) - Ultra Compact */}
       <div 
         className={`
-            bg-white p-4 rounded-xl border-2 border-brand-100 shadow-lg mb-6 transition-all
+            bg-white p-2 rounded-xl border-2 border-brand-100 shadow-lg mb-4 transition-all
             ${isSubmitted ? 'opacity-50 pointer-events-none' : ''}
         `}
         onDragOver={handleDragOver}
         onDrop={(e) => handleDrop(e, null)}
         onClick={() => handleCategoryClick(null)}
       >
-         <h3 className="text-xs font-bold text-brand-600 uppercase mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+         <h3 className="text-xs font-bold text-brand-600 uppercase mb-2 flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
             Besorolandó elemek (Húzd a kategóriákba)
          </h3>
-         <div className="flex flex-wrap gap-2 min-h-[50px]">
+         <div className="flex flex-wrap gap-1 min-h-[40px]">
             {unassignedItems.length === 0 && !isSubmitted && (
-                <div className="text-slate-800 text-sm font-medium italic w-full text-center py-2">
+                <div className="text-slate-800 text-xs font-medium italic w-full text-center py-1">
                     Minden elemet besoroltál. Ellenőrizd a megoldást!
                 </div>
             )}
@@ -151,7 +151,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
                     onDragStart={(e) => handleDragStart(e, item.id)}
                     onClick={(e) => { e.stopPropagation(); handleItemClick(item.id); }}
                     className={`
-                        px-3 py-2 rounded-lg shadow-sm cursor-grab active:cursor-grabbing select-none border transition-all font-medium
+                        px-2 py-1 rounded-lg shadow-sm cursor-grab active:cursor-grabbing select-none border transition-all font-medium text-xs
                         ${selectedItemId === item.id ? 'bg-brand-600 text-white border-brand-600 ring-2 ring-brand-300' : 'bg-white text-brand-900 border-brand-300 hover:bg-brand-50 hover:border-brand-500'}
                     `}
                 >
@@ -161,15 +161,15 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
          </div>
       </div>
 
-      {/* Categories (Drop Zones) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pb-24">
+      {/* Categories (Drop Zones) - Ultra Compact */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pb-16">
         {content.categories.map(cat => {
              const catItems = items.filter(i => assignments[i.id] === cat.id);
              const isTarget = selectedItemId && !assignments[selectedItemId] && !isSubmitted;
 
              return (
               <div key={cat.id} className="flex flex-col h-full">
-                <div className="bg-brand-600 text-white p-2 rounded-t-lg font-bold text-center shadow-sm text-sm">
+                <div className="bg-brand-600 text-white p-1.5 rounded-t-lg font-bold text-center shadow-sm text-xs">
                   {cat.name}
                 </div>
                 <div 
@@ -177,7 +177,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
                     onDrop={(e) => handleDrop(e, cat.id)}
                     onClick={() => handleCategoryClick(cat.id)}
                     className={`
-                        flex-1 bg-brand-50 border-2 border-t-0 p-3 rounded-b-xl min-h-[200px] flex flex-col gap-2 transition-colors
+                        flex-1 bg-brand-50 border-2 border-t-0 p-2 rounded-b-xl min-h-[150px] flex flex-col gap-1 transition-colors
                         ${isTarget ? 'border-brand-500 bg-brand-100 cursor-pointer ring-1 ring-brand-300' : 'border-brand-200'}
                     `}
                 >
@@ -192,7 +192,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
                             onDragStart={(e) => handleDragStart(e, item.id)}
                             onClick={(e) => { e.stopPropagation(); handleItemClick(item.id); }}
                             className={`
-                                p-3 rounded-lg text-sm font-bold shadow-sm flex flex-col bg-white cursor-grab active:cursor-grabbing border
+                                p-2 rounded-lg text-xs font-bold shadow-sm flex flex-col bg-white cursor-grab active:cursor-grabbing border
                                 ${selectedItemId === item.id ? 'ring-2 ring-brand-500 border-brand-700' : 'border-transparent'}
                                 ${isSubmitted && isCorrect ? 'border-green-400 bg-green-50 text-green-900' : ''}
                                 ${isWrong ? 'border-red-400 bg-red-50 text-red-900' : 'text-slate-800'}
@@ -204,7 +204,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
                             </div>
                             
                             {isWrong && (
-                                <div className="mt-2 text-xs text-slate-600 border-t border-red-200 pt-1 font-normal">
+                                <div className="mt-1 text-xs text-slate-600 border-t border-red-200 pt-1 font-normal">
                                     Helyesen: <strong className="text-brand-700">{content.categories.find(c => c.id === item.categoryId)?.name}</strong>
                                 </div>
                             )}
@@ -213,7 +213,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
                   })}
                   
                   {catItems.length === 0 && (
-                     <div className={`text-center text-sm font-bold mt-8 pointer-events-none uppercase ${isTarget ? 'text-brand-600 opacity-100 animate-pulse' : 'text-brand-800 opacity-40'}`}>
+                     <div className={`text-center text-xs font-bold mt-4 pointer-events-none uppercase ${isTarget ? 'text-brand-600 opacity-100 animate-pulse' : 'text-brand-800 opacity-40'}`}>
                          Húzd ide az elemeket
                      </div>
                   )}

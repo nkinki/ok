@@ -167,29 +167,29 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-3">
-      {/* Progress Bar - More Compact */}
-      <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
-        <div className="flex justify-between text-xs font-semibold text-gray-500 mb-2">
+    <div className="max-w-2xl mx-auto space-y-2">
+      {/* Progress Bar - Ultra Compact */}
+      <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100">
+        <div className="flex justify-between text-xs font-semibold text-gray-500 mb-1">
           <span>Kérdés {currentIndex + 1} / {content.questions.length}</span>
           <span>{score} pont</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-1.5">
+        <div className="w-full bg-gray-200 rounded-full h-1">
           <div 
-            className="bg-brand-600 h-1.5 rounded-full transition-all duration-500 ease-out" 
+            className="bg-brand-600 h-1 rounded-full transition-all duration-500 ease-out" 
             style={{ width: `${progress}%` }}
           ></div>
         </div>
       </div>
 
-      {/* Question Card - More Compact */}
-      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-        <div className="mb-3">
-          <h3 className="text-base font-bold text-gray-800 mb-2 leading-tight">
+      {/* Question Card - Ultra Compact */}
+      <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+        <div className="mb-2">
+          <h3 className="text-sm font-bold text-gray-800 mb-1 leading-tight">
             {currentQuestion.question}
           </h3>
           {isMulti && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-1.5 mb-2">
               <p className="text-xs text-amber-800 font-bold flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
@@ -200,7 +200,7 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {currentQuestion.options.map((option, idx) => {
             let stateStyles = "border-gray-200 hover:border-brand-300 hover:bg-brand-50";
             let icon: JSX.Element | null = null;
@@ -219,11 +219,11 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
             if (isAnswered) {
               if (isActuallyCorrect) {
                 stateStyles = "border-green-500 bg-green-50 text-green-700 font-medium ring-1 ring-green-500";
-                icon = <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>;
+                icon = <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>;
                 statusText = "Helyes válasz";
               } else if (isSelectedByUser) {
                 stateStyles = "border-red-500 bg-red-50 text-red-700";
-                icon = <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>;
+                icon = <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>;
                 statusText = "Rossz válasz";
               } else {
                 stateStyles = "border-gray-100 text-gray-400 opacity-50";
@@ -238,20 +238,20 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
                 onClick={() => handleOptionSelect(idx)}
                 disabled={isAnswered}
                 className={`
-                  w-full text-left p-3 rounded-lg border-2 transition-all duration-200 flex items-center justify-between group text-sm
+                  w-full text-left p-2 rounded-lg border-2 transition-all duration-200 flex items-center justify-between group text-xs
                   ${stateStyles}
                 `}
               >
                 <div className="flex items-center gap-2">
                     <div className={`
-                        w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0
+                        w-3 h-3 rounded border-2 flex items-center justify-center flex-shrink-0
                         ${isMulti ? 'rounded-md' : 'rounded-full'}
                         ${isSelectedByUser 
                             ? (isAnswered ? (isActuallyCorrect ? 'border-green-600 bg-green-600' : 'border-red-500 bg-red-500') : 'border-brand-600 bg-brand-600') 
                             : 'border-gray-300 group-hover:border-brand-400'}
                     `}>
                         {isSelectedByUser && (
-                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
                             </svg>
                         )}
@@ -259,7 +259,7 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
                     <div className="flex-1">
                         <span className="leading-tight">{option}</span>
                         {isAnswered && statusText && (
-                            <div className="text-xs font-medium mt-1 opacity-75">
+                            <div className="text-xs font-medium mt-0.5 opacity-75">
                                 {statusText}
                             </div>
                         )}
@@ -272,14 +272,14 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
         </div>
       </div>
 
-      {/* Actions - More Compact */}
-      <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex justify-end">
+      {/* Actions - Ultra Compact */}
+      <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 flex justify-end">
         {!isAnswered ? (
           <button
             onClick={handleSubmit}
             disabled={selectedOption === null || (Array.isArray(selectedOption) && selectedOption.length === 0)}
             className={`
-              px-5 py-2 rounded-lg font-bold text-white shadow transition-all text-sm
+              px-4 py-1.5 rounded-lg font-bold text-white shadow transition-all text-xs
               ${(selectedOption !== null && (!Array.isArray(selectedOption) || selectedOption.length > 0)) ? 'bg-brand-600 hover:bg-brand-700' : 'bg-gray-300 cursor-not-allowed'}
             `}
           >
@@ -288,10 +288,10 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
         ) : (
           <button
             onClick={handleNext}
-            className="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-lg font-bold shadow transition-all flex items-center gap-2 text-sm"
+            className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-1.5 rounded-lg font-bold shadow transition-all flex items-center gap-1 text-xs"
           >
             {currentIndex === content.questions.length - 1 ? "Befejezés" : "Következő"}
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>

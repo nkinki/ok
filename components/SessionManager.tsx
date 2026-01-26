@@ -37,6 +37,7 @@ const SessionManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [selectedSessionForDetails, setSelectedSessionForDetails] = useState<string | null>(null);
+  const [selectedSessionForEntry, setSelectedSessionForEntry] = useState<string | null>(null);
 
   const fetchSessions = async () => {
     try {
@@ -140,6 +141,24 @@ const SessionManager: React.FC = () => {
       setSelectedSessions([]);
     } catch (err) {
       setError('Hiba a csoportos módosításkor');
+    }
+  };
+
+  const enterSession = async (code: string) => {
+    try {
+      // Check if session exists and is active
+      const response = await fetch(`/api/simple-api/sessions/${code}/check`);
+      const data = await response.json();
+      
+      if (response.ok && data.exists) {
+        // Redirect to student interface with the session code
+        const studentUrl = `${window.location.origin}/?mode=student&code=${code}`;
+        window.open(studentUrl, '_blank');
+      } else {
+        setError('A munkamenet nem található vagy nem aktív');
+      }
+    } catch (err) {
+      setError('Hiba a munkamenet elérésekor');
     }
   };
 
@@ -386,6 +405,12 @@ const SessionManager: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2">
+                        <button
+                          onClick={() => enterSession(session.code)}
+                          className="px-3 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs font-medium"
+                        >
+                          🚪 Belépés
+                        </button>
                         <button
                           onClick={() => setSelectedSessionForDetails(session.code)}
                           className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"

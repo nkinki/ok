@@ -897,8 +897,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
       return (
           <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row overflow-hidden">
-              {/* Left Side: Original Image */}
-              <div className="lg:w-1/2 h-1/3 lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
+              {/* Left Side: Original Image - Optimized for 15.6" monitors */}
+              <div className="lg:w-2/5 h-[35vh] lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
                    {getImageUrl(currentItem) ? (
                         <ImageViewer 
                           src={getImageUrl(currentItem)} 
@@ -915,23 +915,23 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                           </div>
                         </div>
                    )}
-                   <div className="absolute top-4 left-4 z-10 bg-black/50 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
+                   <div className="absolute top-2 left-2 z-10 bg-black/50 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
                         Forrás: {currentItem.fileName}
                    </div>
               </div>
 
-              {/* Right Side: Exercise */}
-              <div className="lg:w-1/2 h-2/3 lg:h-full bg-slate-50 overflow-y-auto order-2 lg:order-2 relative">
+              {/* Right Side: Exercise - Optimized for 15.6" monitors */}
+              <div className="lg:w-3/5 h-[65vh] lg:h-full bg-slate-50 overflow-y-auto order-2 lg:order-2 relative">
                   <div className="max-w-2xl mx-auto">
-                      {/* Sticky Header - More Compact */}
-                      <div className="sticky top-0 z-20 bg-slate-50 p-4 pb-2 border-b border-slate-200 mb-3 shadow-sm opacity-95 backdrop-blur">
-                          <div className="flex justify-between items-center mb-3">
+                      {/* Ultra Compact Header */}
+                      <div className="sticky top-0 z-20 bg-slate-50 p-2 pb-1 border-b border-slate-200 mb-2 shadow-sm opacity-95 backdrop-blur">
+                          <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-2">
                                   <span className="font-bold text-purple-900 text-sm">
                                       {isPreviewMode ? 'Feladat Előnézet' : 'Napi Kihívás'}
                                   </span>
                                   {isPreviewMode && (
-                                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-medium">
                                           Tanári előnézet
                                       </span>
                                   )}
@@ -947,33 +947,33 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                       className="p-1 hover:bg-slate-200 rounded-full transition-colors"
                                       title="Bezárás"
                                   >
-                                      <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <svg className="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                       </svg>
                                   </button>
                               </div>
                           </div>
                           
-                          <div className="w-full bg-slate-200 rounded-full h-1.5 mb-3">
-                              <div className="bg-purple-600 h-1.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                          <div className="w-full bg-slate-200 rounded-full h-1 mb-2">
+                              <div className="bg-purple-600 h-1 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
                           </div>
 
-                          {/* Compact Exercise Info */}
-                          <div className="bg-white rounded-lg p-3 border border-slate-200">
-                              <div className="flex justify-between items-start mb-2">
+                          {/* Ultra Compact Exercise Info */}
+                          <div className="bg-white rounded-lg p-2 border border-slate-200">
+                              <div className="flex justify-between items-center mb-1">
                                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Feladat {currentIndex + 1} / {playlist.length}</span>
-                                  <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">{exerciseData.type}</span>
+                                  <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{exerciseData.type}</span>
                               </div>
-                              <h3 className="text-lg font-bold text-slate-800 mb-2 leading-tight">{exerciseData.title}</h3>
+                              <h3 className="text-sm font-bold text-slate-800 mb-1 leading-tight">{exerciseData.title}</h3>
                               
-                              {/* Full instruction text - expandable */}
-                              <div className="text-sm text-slate-700 leading-relaxed">
-                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                      <div className="flex items-start gap-2">
-                                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              {/* Ultra compact instruction */}
+                              <div className="text-xs text-slate-700">
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                                      <div className="flex items-start gap-1">
+                                          <svg className="w-3 h-3 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                           </svg>
-                                          <div className="text-blue-800 font-medium text-sm leading-relaxed">
+                                          <div className="text-blue-800 font-medium text-xs leading-tight">
                                               {exerciseData.instruction}
                                           </div>
                                       </div>

@@ -104,16 +104,16 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-4 relative">
       
-      {/* Word Bank (Compact Sticky) */}
+      {/* Word Bank (Ultra Compact Sticky) */}
       <div className={`
-        bg-white p-3 rounded-lg border border-brand-200 shadow-sm sticky top-0 z-20 transition-all
+        bg-white p-2 rounded-lg border border-brand-200 shadow-sm sticky top-0 z-20 transition-all
         ${isSubmitted ? 'opacity-50 pointer-events-none' : ''}
       `}>
-        <h3 className="text-xs font-bold text-brand-600 uppercase mb-2 flex items-center gap-2">
+        <h3 className="text-xs font-bold text-brand-600 uppercase mb-1 flex items-center gap-1">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"/></svg>
             Választható elemek
         </h3>
-        <div className="flex flex-wrap gap-2 min-h-[40px]">
+        <div className="flex flex-wrap gap-1 min-h-[30px]">
             {bankItems.length === 0 && !isSubmitted && (
                 <div className="text-slate-600 text-xs italic w-full text-center py-1">
                     Minden elemet elhelyeztél. Ellenőrizd a megoldást!
@@ -126,7 +126,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
                     onDragStart={(e) => handleDragStart(e, item.id)}
                     onClick={() => handleItemClick(item.id)}
                     className={`
-                        px-2 py-1 rounded text-sm shadow-sm cursor-grab active:cursor-grabbing select-none border transition-all
+                        px-2 py-1 rounded text-xs shadow-sm cursor-grab active:cursor-grabbing select-none border transition-all
                         ${selectedId === item.id ? 'bg-brand-600 text-white border-brand-600 ring-1 ring-brand-300' : 'bg-white text-brand-800 border-brand-200 hover:bg-brand-50'}
                     `}
                 >
@@ -136,8 +136,8 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
         </div>
       </div>
 
-      {/* Pairs List - More Compact */}
-      <div className="space-y-2 pb-16">
+      {/* Pairs List - Ultra Compact */}
+      <div className="space-y-1 pb-16">
          {content.pairs.map(pair => {
              const matchedRightId = matches[pair.id];
              const matchedItem = rightItems.find(i => i.id === matchedRightId);
@@ -163,15 +163,15 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
              }
 
              return (
-                 <div key={pair.id} className="flex flex-col md:flex-row md:items-stretch gap-0 md:gap-4 group">
+                 <div key={pair.id} className="flex flex-col md:flex-row md:items-stretch gap-0 md:gap-2 group">
                      {/* Question / Left */}
-                     <div className="flex-1 bg-white border border-gray-300 p-4 rounded-t-xl md:rounded-xl flex items-center font-bold text-slate-900 shadow-sm">
+                     <div className="flex-1 bg-white border border-gray-300 p-2 rounded-t-xl md:rounded-xl flex items-center font-bold text-slate-900 shadow-sm text-sm">
                          {pair.left}
                      </div>
 
                      {/* Connector (Visual) */}
                      <div className="hidden md:flex items-center justify-center text-gray-400">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                      </div>
 
                      {/* Drop Zone / Right */}
@@ -180,7 +180,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
                         onDrop={(e) => handleDrop(e, pair.id)}
                         onClick={() => handleZoneClick(pair.id)}
                         className={`
-                            flex-1 p-2 rounded-b-xl md:rounded-xl border-2 min-h-[60px] flex items-center justify-center relative transition-colors
+                            flex-1 p-2 rounded-b-xl md:rounded-xl border-2 min-h-[50px] flex items-center justify-center relative transition-colors
                             ${statusClass}
                             ${!isSubmitted && !matchedRightId ? 'cursor-pointer hover:border-brand-400' : ''}
                         `}
@@ -194,7 +194,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
                                     if(!isSubmitted) handleItemClick(matchedItem.id);
                                 }}
                                 className={`
-                                    w-full text-center px-3 py-2 rounded-lg bg-white border shadow-sm cursor-grab select-none relative z-10 font-medium
+                                    w-full text-center px-2 py-1 rounded-lg bg-white border shadow-sm cursor-grab select-none relative z-10 font-medium text-sm
                                     ${isSubmitted ? (matchedRightId === pair.id ? 'text-green-900 border-green-300 bg-green-50' : 'text-red-900 border-red-300 bg-red-50') : 'border-brand-300 text-brand-900 hover:border-brand-500'}
                                     ${selectedId === matchedItem.id ? 'ring-2 ring-brand-500 border-brand-700' : ''}
                                 `}
@@ -202,7 +202,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
                                  {matchedItem.text}
                              </div>
                          ) : (
-                             <span className={`text-sm pointer-events-none select-none ${textStatusClass}`}>
+                             <span className={`text-xs pointer-events-none select-none ${textStatusClass}`}>
                                  {selectedId ? 'KATTINTS VAGY HÚZD IDE' : 'HÚZD IDE A VÁLASZT'}
                              </span>
                          )}
@@ -216,9 +216,9 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
                                     delete newM[pair.id];
                                     setMatches(newM);
                                 }}
-                                className="absolute -top-2 -right-2 bg-white rounded-full shadow border border-gray-300 p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 z-10"
+                                className="absolute -top-1 -right-1 bg-white rounded-full shadow border border-gray-300 p-0.5 text-gray-500 hover:text-red-600 hover:bg-red-50 z-10"
                              >
-                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
                              </button>
                          )}
                      </div>
