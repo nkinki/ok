@@ -276,13 +276,13 @@ const SessionManager: React.FC = () => {
                 onClick={selectAllSessions}
                 className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
               >
-                Mind
+                ✅ Kijelöl mindet
               </button>
               <button
                 onClick={deselectAllSessions}
                 className="px-2 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-xs"
               >
-                Semmi
+                ❌ Kijelölés törlése
               </button>
               {selectedSessions.length > 0 && (
                 <>
@@ -290,7 +290,7 @@ const SessionManager: React.FC = () => {
                     onClick={bulkToggleSessions}
                     className="px-2 py-1 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 rounded text-xs"
                   >
-                    ⚡ Váltás
+                    ⚡ Kikapcs
                   </button>
                   <button
                     onClick={bulkDeleteSessions}
@@ -328,20 +328,20 @@ const SessionManager: React.FC = () => {
                       className="rounded border-gray-300"
                     />
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Kód">
-                    🔑
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500">
+                    Kód
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Osztály">
-                    🏫
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500">
+                    Osztály
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Feladatok">
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500">
                     📝
                   </th>
                   <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Résztvevők">
                     👥
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Állapot">
-                    ⚡
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500">
+                    Állapot
                   </th>
                   <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Létrehozva">
                     📅
@@ -349,8 +349,8 @@ const SessionManager: React.FC = () => {
                   <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Lejárat">
                     ⏰
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500" title="Műveletek">
-                    ⚙️
+                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500">
+                    Műveletek
                   </th>
                 </tr>
               </thead>
@@ -407,16 +407,14 @@ const SessionManager: React.FC = () => {
                         <button
                           onClick={() => enterSession(session.code)}
                           className="px-2 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs"
-                          title="Belépés"
                         >
-                          🚪
+                          🚪 Belépés
                         </button>
                         <button
                           onClick={() => setSelectedSessionForDetails(session.code)}
                           className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
-                          title="Részletek"
                         >
-                          📊
+                          📊 Részletek
                         </button>
                         <button
                           onClick={() => toggleSession(session.code)}
@@ -425,16 +423,14 @@ const SessionManager: React.FC = () => {
                               ? 'bg-red-100 text-red-700 hover:bg-red-200'
                               : 'bg-green-100 text-green-700 hover:bg-green-200'
                           }`}
-                          title={session.isActive ? 'Leállít' : 'Aktivál'}
                         >
-                          {session.isActive ? '⏹️' : '▶️'}
+                          {session.isActive ? '⏹️ Leállít' : '▶️ Aktivál'}
                         </button>
                         <button
                           onClick={() => deleteSession(session.code)}
                           className="px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs"
-                          title="Töröl"
                         >
-                          🗑️
+                          🗑️ Töröl
                         </button>
                       </div>
                     </td>
