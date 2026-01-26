@@ -19,6 +19,9 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
   const [crop, setCrop] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [showCropMode, setShowCropMode] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragHandle, setDragHandle] = useState<string | null>(null);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -93,8 +96,178 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           ctx.lineWidth = 2;
           ctx.setLineDash([5, 5]);
           ctx.strokeRect(leftW, topH, canvas.width - leftW - rightW, canvas.height - topH - bottomH);
+          
+          // Draw resize handles
+          const handleSize = 12;
+          ctx.fillStyle = '#3b82f6';
+          ctx.strokeStyle = '#1d4ed8';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([]);
+          
+          // Corner handles
+          const cropX = leftW;
+          const cropY = topH;
+          const cropW = canvas.width - leftW - rightW;
+          const cropH = canvas.height - topH - bottomH;
+          
+          // Top-left
+          ctx.fillRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          
+          // Top-right
+          ctx.fillRect(cropX + cropW - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX + cropW - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          
+          // Bottom-left
+          ctx.fillRect(cropX - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          
+          // Bottom-right
+          ctx.fillRect(cropX + cropW - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX + cropW - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          
+          // Edge handles
+          ctx.fillStyle = '#10b981';
+          ctx.strokeStyle = '#059669';
+          
+          // Top edge
+          ctx.fillRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          
+          // Bottom edge
+          ctx.fillRect(cropX + cropW/2 - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX + cropW/2 - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          
+          // Left edge
+          ctx.fillRect(cropX - handleSize/2, cropY + cropH/2 - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX - handleSize/2, cropY + cropH/2 - handleSize/2, handleSize, handleSize);
+          
+          // Right edge
+          ctx.fillRect(cropX + cropW - handleSize/2, cropY + cropH/2 - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX + cropW - handleSize/2, cropY + cropH/2 - handleSize/2, handleSize, handleSize);
       }
   }, [showCropMode, crop, originalImage]);
+
+  // Interactive crop handlers
+  const getHandleAtPosition = (x: number, y: number): string | null => {
+    if (!canvasRef.current) return null;
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const canvasX = x - rect.left;
+    const canvasY = y - rect.top;
+    
+    const leftW = (crop.left / 100) * canvas.width;
+    const topH = (crop.top / 100) * canvas.height;
+    const rightW = (crop.right / 100) * canvas.width;
+    const bottomH = (crop.bottom / 100) * canvas.height;
+    
+    const cropX = leftW;
+    const cropY = topH;
+    const cropW = canvas.width - leftW - rightW;
+    const cropH = canvas.height - topH - bottomH;
+    
+    const handleSize = 12;
+    const tolerance = handleSize;
+    
+    // Check corner handles
+    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top-left';
+    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top-right';
+    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom-left';
+    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom-right';
+    
+    // Check edge handles
+    if (Math.abs(canvasX - (cropX + cropW/2)) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top';
+    if (Math.abs(canvasX - (cropX + cropW/2)) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom';
+    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - (cropY + cropH/2)) < tolerance) return 'left';
+    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - (cropY + cropH/2)) < tolerance) return 'right';
+    
+    return null;
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!showCropMode) return;
+    
+    const handle = getHandleAtPosition(e.clientX, e.clientY);
+    if (handle) {
+      setIsDragging(true);
+      setDragHandle(handle);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      e.preventDefault();
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!showCropMode) return;
+    
+    if (isDragging && dragHandle && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
+      
+      const deltaXPercent = (deltaX / canvas.width) * 100;
+      const deltaYPercent = (deltaY / canvas.height) * 100;
+      
+      let newCrop = { ...crop };
+      
+      switch (dragHandle) {
+        case 'top':
+          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
+          break;
+        case 'bottom':
+          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
+          break;
+        case 'left':
+          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+          break;
+        case 'right':
+          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+          break;
+        case 'top-left':
+          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
+          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+          break;
+        case 'top-right':
+          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
+          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+          break;
+        case 'bottom-left':
+          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
+          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+          break;
+        case 'bottom-right':
+          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
+          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+          break;
+      }
+      
+      setCrop(newCrop);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    } else {
+      // Update cursor based on handle position
+      const handle = getHandleAtPosition(e.clientX, e.clientY);
+      if (handle) {
+        const cursors: { [key: string]: string } = {
+          'top': 'n-resize',
+          'bottom': 'n-resize',
+          'left': 'w-resize',
+          'right': 'w-resize',
+          'top-left': 'nw-resize',
+          'top-right': 'ne-resize',
+          'bottom-left': 'sw-resize',
+          'bottom-right': 'se-resize'
+        };
+        canvasRef.current!.style.cursor = cursors[handle] || 'default';
+      } else {
+        canvasRef.current!.style.cursor = 'default';
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragHandle(null);
+  };
 
   if (!formData) return null;
 
@@ -439,29 +612,81 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                 {/* Left side - Image */}
                                 <div className="flex-1">
                                     <p className="text-xs text-slate-600 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
-                                        ⚠️ Sötétített rész eltávolításra kerül. Állítsd be a csúszkákkal a vágási területet.
+                                        ⚠️ Sötétített rész eltávolításra kerül. <strong>Húzd a kék sarkokat</strong> vagy <strong>zöld oldalakat</strong> a vágási terület beállításához.
                                     </p>
-                                    <canvas ref={canvasRef} className="border border-slate-300 shadow-md max-w-full rounded" />
+                                    <canvas 
+                                        ref={canvasRef} 
+                                        className="border border-slate-300 shadow-md max-w-full rounded cursor-default select-none" 
+                                        onMouseDown={handleMouseDown}
+                                        onMouseMove={handleMouseMove}
+                                        onMouseUp={handleMouseUp}
+                                        onMouseLeave={handleMouseUp}
+                                    />
                                 </div>
                                 
                                 {/* Right side - Controls */}
                                 <div className="w-80 space-y-4">
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {['top', 'bottom', 'left', 'right'].map((dir) => (
-                                            <div key={dir} className="bg-slate-50 p-3 rounded">
-                                                <label className="text-xs font-bold text-slate-600 uppercase block mb-2">
-                                                    {dir === 'top' ? 'FELÜL' : dir === 'bottom' ? 'ALUL' : dir === 'left' ? 'BALRÓL' : 'JOBBRÓL'}: {(crop as any)[dir]}%
-                                                </label>
-                                                <input 
-                                                    type="range" 
-                                                    min="0" 
-                                                    max="45" 
-                                                    value={(crop as any)[dir]} 
-                                                    onChange={(e) => setCrop({...crop, [dir]: Number(e.target.value)})} 
-                                                    className="w-full accent-brand-600 h-3"
-                                                />
-                                            </div>
-                                        ))}
+                                    {/* Interactive Instructions */}
+                                    <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                                        <h4 className="text-sm font-bold text-blue-800 mb-2">🖱️ Interaktív vágás</h4>
+                                        <ul className="text-xs text-blue-700 space-y-1">
+                                            <li>• <span className="font-medium">Kék sarkok</span>: átlós méretezés</li>
+                                            <li>• <span className="font-medium">Zöld oldalak</span>: egyenes vágás</li>
+                                            <li>• Húzd a fogantyúkat a vágási terület beállításához</li>
+                                        </ul>
+                                    </div>
+
+                                    {/* Fine-tune sliders */}
+                                    <div className="bg-slate-50 p-3 rounded">
+                                        <h4 className="text-sm font-bold text-slate-700 mb-3">🎯 Pontos beállítás</h4>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {['top', 'bottom', 'left', 'right'].map((dir) => (
+                                                <div key={dir} className="space-y-1">
+                                                    <label className="text-xs font-bold text-slate-600 uppercase block">
+                                                        {dir === 'top' ? 'FELÜL' : dir === 'bottom' ? 'ALUL' : dir === 'left' ? 'BALRÓL' : 'JOBBRÓL'}: {(crop as any)[dir]}%
+                                                    </label>
+                                                    <input 
+                                                        type="range" 
+                                                        min="0" 
+                                                        max="45" 
+                                                        value={(crop as any)[dir]} 
+                                                        onChange={(e) => setCrop({...crop, [dir]: Number(e.target.value)})} 
+                                                        className="w-full accent-brand-600 h-2"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Quick presets */}
+                                    <div className="bg-purple-50 p-3 rounded border border-purple-200">
+                                        <h4 className="text-sm font-bold text-purple-800 mb-2">⚡ Gyors beállítások</h4>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={() => setCrop({ top: 10, bottom: 10, left: 5, right: 5 })}
+                                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-medium"
+                                            >
+                                                📄 Dokumentum
+                                            </button>
+                                            <button
+                                                onClick={() => setCrop({ top: 5, bottom: 5, left: 10, right: 10 })}
+                                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-medium"
+                                            >
+                                                📱 Tájkép
+                                            </button>
+                                            <button
+                                                onClick={() => setCrop({ top: 15, bottom: 5, left: 5, right: 5 })}
+                                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-medium"
+                                            >
+                                                📋 Fejléc vágás
+                                            </button>
+                                            <button
+                                                onClick={() => setCrop({ top: 5, bottom: 15, left: 5, right: 5 })}
+                                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-medium"
+                                            >
+                                                📝 Lábléc vágás
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
