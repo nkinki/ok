@@ -390,26 +390,27 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         
         let uploadData = fullSessionData;
         
-        // If payload is too large, compress images
+        // If payload is too large, compress images (optimized for text readability)
         if (originalSizeMB > 4.0) { // 4MB threshold for compression
-          console.log('🗜️ Payload too large, compressing images...');
+          console.log('🗜️ Payload too large, compressing images (preserving text readability)...');
           
           // Import compression utility dynamically
           const { ImageCompressor } = await import('../utils/imageCompression');
           
-          // Compress with aggressive settings for large payloads
-          const quality = originalSizeMB > 6 ? 0.4 : 0.6; // More aggressive for very large payloads
-          const maxWidth = originalSizeMB > 6 ? 400 : 600;
+          // Get intelligent compression settings (assuming text-heavy content)
+          const settings = ImageCompressor.getRecommendedSettings(originalSizeMB, true);
+          console.log(`🔧 Using ${settings.description}: ${Math.round(settings.quality * 100)}% quality, ${settings.maxWidth}px max width`);
           
-          uploadData = await ImageCompressor.compressSessionImages(fullSessionData, quality, maxWidth);
+          uploadData = await ImageCompressor.compressSessionImages(fullSessionData, settings.quality, settings.maxWidth);
           
           const compressedSize = JSON.stringify(uploadData).length;
           const compressedSizeMB = Math.round((compressedSize / (1024 * 1024)) * 100) / 100;
           const savings = Math.round((1 - compressedSize / originalSize) * 100);
           
           console.log('✅ Compression complete:', Math.round(compressedSize / 1024), 'KB (', compressedSizeMB, 'MB) -', savings, '% savings');
+          console.log('📖 Text readability optimized with intelligent compression');
           
-          // If still too large after compression, show warning but try anyway
+          // If still too large after conservative compression, show warning but try anyway
           if (compressedSizeMB > 4.5) {
             console.warn('⚠️ Payload still large after compression:', compressedSizeMB, 'MB');
             setError(`⚠️ Nagy munkamenet (${compressedSizeMB}MB)! A feltöltés sikertelen lehet. Próbáld kevesebb feladattal!`);

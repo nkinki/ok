@@ -2,9 +2,9 @@
 export class ImageCompressor {
   
   /**
-   * Compress a base64 image by reducing quality
+   * Compress a base64 image by reducing quality (optimized for text readability)
    */
-  static async compressBase64Image(base64Data: string, quality: number = 0.7, maxWidth: number = 800): Promise<string> {
+  static async compressBase64Image(base64Data: string, quality: number = 0.8, maxWidth: number = 1000): Promise<string> {
     return new Promise((resolve) => {
       try {
         // Create image element
@@ -51,9 +51,9 @@ export class ImageCompressor {
   }
   
   /**
-   * Compress all images in session data
+   * Compress all images in session data (optimized for text readability)
    */
-  static async compressSessionImages(sessionData: any, quality: number = 0.6, maxWidth: number = 600): Promise<any> {
+  static async compressSessionImages(sessionData: any, quality: number = 0.75, maxWidth: number = 1000): Promise<any> {
     const compressedData = { ...sessionData };
     
     if (compressedData.exercises && Array.isArray(compressedData.exercises)) {
@@ -109,5 +109,30 @@ export class ImageCompressor {
       sizeKB: Math.round(sizeBytes / 1024),
       sizeMB: Math.round((sizeBytes / (1024 * 1024)) * 100) / 100
     };
+  }
+  
+  /**
+   * Get recommended compression settings based on payload size and content type
+   */
+  static getRecommendedSettings(sizeMB: number, hasText: boolean = true): { quality: number, maxWidth: number, description: string } {
+    if (hasText) {
+      // Conservative settings for text-heavy images
+      if (sizeMB > 8) {
+        return { quality: 0.75, maxWidth: 900, description: 'Közepes tömörítés (szöveg olvasható)' };
+      } else if (sizeMB > 6) {
+        return { quality: 0.8, maxWidth: 1000, description: 'Enyhe tömörítés (szöveg tiszta)' };
+      } else {
+        return { quality: 0.85, maxWidth: 1200, description: 'Minimális tömörítés (kiváló minőség)' };
+      }
+    } else {
+      // More aggressive settings for photo-only content
+      if (sizeMB > 8) {
+        return { quality: 0.6, maxWidth: 700, description: 'Erős tömörítés (fotókhoz)' };
+      } else if (sizeMB > 6) {
+        return { quality: 0.7, maxWidth: 800, description: 'Közepes tömörítés (fotókhoz)' };
+      } else {
+        return { quality: 0.8, maxWidth: 1000, description: 'Enyhe tömörítés (fotókhoz)' };
+      }
+    }
   }
 }
