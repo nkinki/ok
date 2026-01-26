@@ -149,13 +149,19 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
   }, [showCropMode, crop, originalImage]);
 
   // Interactive crop handlers
-  const getHandleAtPosition = (x: number, y: number): string | null => {
+  const getHandleAtPosition = (clientX: number, clientY: number): string | null => {
     if (!canvasRef.current) return null;
     
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const canvasX = x - rect.left;
-    const canvasY = y - rect.top;
+    const canvasX = clientX - rect.left;
+    const canvasY = clientY - rect.top;
+    
+    // Scale coordinates to canvas internal dimensions
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const scaledX = canvasX * scaleX;
+    const scaledY = canvasY * scaleY;
     
     const leftW = (crop.left / 100) * canvas.width;
     const topH = (crop.top / 100) * canvas.height;
@@ -167,29 +173,28 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
     const cropW = canvas.width - leftW - rightW;
     const cropH = canvas.height - topH - bottomH;
     
-    const tolerance = 25; // Large tolerance for easier clicking
+    const tolerance = 15; // Reasonable tolerance for handle detection
     
     // Check corner handles first (higher priority)
-    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top-left';
-    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top-right';
-    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom-left';
-    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom-right';
+    if (Math.abs(scaledX - cropX) < tolerance && Math.abs(scaledY - cropY) < tolerance) return 'top-left';
+    if (Math.abs(scaledX - (cropX + cropW)) < tolerance && Math.abs(scaledY - cropY) < tolerance) return 'top-right';
+    if (Math.abs(scaledX - cropX) < tolerance && Math.abs(scaledY - (cropY + cropH)) < tolerance) return 'bottom-left';
+    if (Math.abs(scaledX - (cropX + cropW)) < tolerance && Math.abs(scaledY - (cropY + cropH)) < tolerance) return 'bottom-right';
     
     // Check edge handles
-    if (Math.abs(canvasX - (cropX + cropW/2)) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top';
-    if (Math.abs(canvasX - (cropX + cropW/2)) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom';
-    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - (cropY + cropH/2)) < tolerance) return 'left';
-    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - (cropY + cropH/2)) < tolerance) return 'right';
+    if (Math.abs(scaledX - (cropX + cropW/2)) < tolerance && Math.abs(scaledY - cropY) < tolerance) return 'top';
+    if (Math.abs(scaledX - (cropX + cropW/2)) < tolerance && Math.abs(scaledY - (cropY + cropH)) < tolerance) return 'bottom';
+    if (Math.abs(scaledX - cropX) < tolerance && Math.abs(scaledY - (cropY + cropH/2)) < tolerance) return 'left';
+    if (Math.abs(scaledX - (cropX + cropW)) < tolerance && Math.abs(scaledY - (cropY + cropH/2)) < tolerance) return 'right';
     
     return null;
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!showCropMode) return;
+    if (!showCropMode || !canvasRef.current) return;
     
-    console.log('Mouse down at:', e.clientX, e.clientY);
     const handle = getHandleAtPosition(e.clientX, e.clientY);
-    console.log('Detected handle:', handle);
+    console.log('Mouse down - Handle detected:', handle);
     
     if (handle) {
       setIsDragging(true);
@@ -202,55 +207,15 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!showCropMode) return;
+    if (!showCropMode || !canvasRef.current) return;
     
-    if (isDragging && dragHandle && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const deltaX = e.clientX - dragStart.x;
-      const deltaY = e.clientY - dragStart.y;
-      
-      const deltaXPercent = (deltaX / canvas.width) * 100;
-      const deltaYPercent = (deltaY / canvas.height) * 100;
-      
-      let newCrop = { ...crop };
-      
-      switch (dragHandle) {
-        case 'top':
-          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
-          break;
-        case 'bottom':
-          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
-          break;
-        case 'left':
-          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
-          break;
-        case 'right':
-          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
-          break;
-        case 'top-left':
-          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
-          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
-          break;
-        case 'top-right':
-          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
-          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
-          break;
-        case 'bottom-left':
-          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
-          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
-          break;
-        case 'bottom-right':
-          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
-          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
-          break;
-      }
-      
-      setCrop(newCrop);
-      setDragStart({ x: e.clientX, y: e.clientY });
+    if (isDragging && dragHandle) {
+      // Handle dragging - this will be handled by global mouse move
+      return;
     } else {
       // Update cursor based on handle position
       const handle = getHandleAtPosition(e.clientX, e.clientY);
-      if (handle && canvasRef.current) {
+      if (handle) {
         const cursors: { [key: string]: string } = {
           'top': 'n-resize',
           'bottom': 'n-resize',
@@ -262,7 +227,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           'bottom-right': 'se-resize'
         };
         canvasRef.current.style.cursor = cursors[handle] || 'default';
-      } else if (canvasRef.current) {
+      } else {
         canvasRef.current.style.cursor = 'default';
       }
     }
@@ -278,11 +243,15 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (isDragging && dragHandle && canvasRef.current) {
         const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        
+        // Calculate movement delta
         const deltaX = e.clientX - dragStart.x;
         const deltaY = e.clientY - dragStart.y;
         
-        const deltaXPercent = (deltaX / canvas.width) * 100;
-        const deltaYPercent = (deltaY / canvas.height) * 100;
+        // Convert to percentage based on canvas display size
+        const deltaXPercent = (deltaX / rect.width) * 100;
+        const deltaYPercent = (deltaY / rect.height) * 100;
         
         let newCrop = { ...crop };
         
@@ -319,17 +288,24 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
         
         setCrop(newCrop);
         setDragStart({ x: e.clientX, y: e.clientY });
+        
+        // Prevent default to avoid text selection and other issues
+        e.preventDefault();
       }
     };
 
-    const handleGlobalMouseUp = () => {
-      setIsDragging(false);
-      setDragHandle(null);
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      if (isDragging) {
+        setIsDragging(false);
+        setDragHandle(null);
+        e.preventDefault();
+      }
     };
 
     if (isDragging) {
-      document.addEventListener('mousemove', handleGlobalMouseMove);
-      document.addEventListener('mouseup', handleGlobalMouseUp);
+      // Use non-passive listeners to allow preventDefault
+      document.addEventListener('mousemove', handleGlobalMouseMove, { passive: false });
+      document.addEventListener('mouseup', handleGlobalMouseUp, { passive: false });
     }
 
     return () => {
@@ -696,7 +672,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                         onMouseMove={handleMouseMove}
                                         onMouseUp={handleMouseUp}
                                         onMouseLeave={handleMouseUp}
-                                        style={{ touchAction: 'none' }}
+                                        style={{ touchAction: 'none', userSelect: 'none' }}
                                     />
                                 </div>
                                 
