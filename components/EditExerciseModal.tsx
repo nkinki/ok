@@ -497,23 +497,36 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                  </select>
             </div>
 
-            {/* Header Info - Compact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+            {/* Header Info - Large Text Blocks */}
+            <div className="space-y-4 mb-4 bg-white p-4 rounded-lg border border-slate-200">
                 <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Cím</label>
-                    <input 
-                        type="text" 
+                    <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Feladat címe
+                    </label>
+                    <textarea 
                         value={formData.title} 
                         onChange={(e) => setFormData({...formData, title: e.target.value})}
-                        className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs text-slate-800"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 resize-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 bg-slate-50"
+                        rows={3}
+                        placeholder="Írd ide a feladat címét..."
                     />
                 </div>
                 <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Utasítás</label>
-                    <input 
+                    <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Feladat utasítása
+                    </label>
+                    <textarea 
                         value={formData.instruction} 
                         onChange={(e) => setFormData({...formData, instruction: e.target.value})}
-                        className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs text-slate-800"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 resize-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 bg-slate-50"
+                        rows={4}
+                        placeholder="Írd ide a feladat részletes utasítását..."
                     />
                 </div>
             </div>
