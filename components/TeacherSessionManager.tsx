@@ -381,7 +381,41 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       // CRITICAL: Upload JSON to Google Drive for students to download (ALWAYS with images)
       console.log('📤 Uploading session JSON to Google Drive...');
       console.log('🖼️ Uploading with images:', fullSessionData.exercises.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', fullSessionData.exercises.length);
+      
       try {
+        // Check payload size and compress if needed
+        const originalSize = JSON.stringify(fullSessionData).length;
+        const originalSizeMB = Math.round((originalSize / (1024 * 1024)) * 100) / 100;
+        console.log('📊 Original payload size:', Math.round(originalSize / 1024), 'KB (', originalSizeMB, 'MB)');
+        
+        let uploadData = fullSessionData;
+        
+        // If payload is too large, compress images
+        if (originalSizeMB > 4.0) { // 4MB threshold for compression
+          console.log('🗜️ Payload too large, compressing images...');
+          
+          // Import compression utility dynamically
+          const { ImageCompressor } = await import('../utils/imageCompression');
+          
+          // Compress with aggressive settings for large payloads
+          const quality = originalSizeMB > 6 ? 0.4 : 0.6; // More aggressive for very large payloads
+          const maxWidth = originalSizeMB > 6 ? 400 : 600;
+          
+          uploadData = await ImageCompressor.compressSessionImages(fullSessionData, quality, maxWidth);
+          
+          const compressedSize = JSON.stringify(uploadData).length;
+          const compressedSizeMB = Math.round((compressedSize / (1024 * 1024)) * 100) / 100;
+          const savings = Math.round((1 - compressedSize / originalSize) * 100);
+          
+          console.log('✅ Compression complete:', Math.round(compressedSize / 1024), 'KB (', compressedSizeMB, 'MB) -', savings, '% savings');
+          
+          // If still too large after compression, show warning but try anyway
+          if (compressedSizeMB > 4.5) {
+            console.warn('⚠️ Payload still large after compression:', compressedSizeMB, 'MB');
+            setError(`⚠️ Nagy munkamenet (${compressedSizeMB}MB)! A feltöltés sikertelen lehet. Próbáld kevesebb feladattal!`);
+          }
+        }
+        
         const uploadResponse = await fetch('/api/simple-api/sessions/upload-drive', {
           method: 'POST',
           headers: {
@@ -389,7 +423,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           },
           body: JSON.stringify({
             code: sessionCode,
-            sessionJson: fullSessionData
+            sessionJson: uploadData
           })
         });
 
@@ -403,13 +437,26 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             fileId: uploadResult.fileId,
             downloadUrl: uploadResult.downloadUrl,
             uploadedAt: new Date().toISOString(),
-            hasImages: true
+            hasImages: true,
+            compressed: uploadData !== fullSessionData
           }));
+          
+          // Clear any previous error if upload succeeded
+          if (error && error.includes('Képek feltöltése sikertelen')) {
+            setError(null);
+          }
         } else {
           const errorData = await uploadResponse.json().catch(() => ({}));
           console.error('❌ Google Drive upload failed:', errorData.error || 'Unknown error');
           console.error('❌ Students will NOT see images!');
-          setError('⚠️ Képek feltöltése sikertelen! A diákok nem fogják látni a képeket. Próbáld újra!');
+          
+          // Show specific error message based on error type
+          if (uploadResponse.status === 413 || errorData.error?.includes('too large')) {
+            const sizeMB = errorData.payloadSizeKB ? Math.round(errorData.payloadSizeKB / 1024 * 100) / 100 : 'ismeretlen';
+            setError(`⚠️ Munkamenet túl nagy (${sizeMB}MB)! Próbáld kevesebb feladattal vagy kisebb képekkel. A diákok nem fogják látni a képeket.`);
+          } else {
+            setError('⚠️ Képek feltöltése sikertelen! A diákok nem fogják látni a képeket. Próbáld újra!');
+          }
         }
       } catch (uploadError) {
         console.error('❌ Google Drive upload error:', uploadError);

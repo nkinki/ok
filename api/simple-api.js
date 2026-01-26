@@ -557,6 +557,20 @@ export default async function handler(req, res) {
       try {
         console.log('📤 Google Drive upload requested for:', code.toUpperCase());
         
+        // Check payload size and reject if too large for Vercel
+        const payloadSize = JSON.stringify(sessionJson).length;
+        console.log('📊 Upload payload size:', Math.round(payloadSize / 1024), 'KB');
+        
+        if (payloadSize > 4500000) { // 4.5MB limit (Vercel has 5MB limit)
+          console.error('❌ Payload too large for Vercel:', Math.round(payloadSize / 1024), 'KB');
+          return res.status(413).json({
+            error: 'Session data too large for upload',
+            details: `Payload size: ${Math.round(payloadSize / 1024)}KB exceeds 4.5MB limit`,
+            hint: 'Try reducing image quality or number of exercises',
+            payloadSizeKB: Math.round(payloadSize / 1024)
+          });
+        }
+        
         // For now, we'll use a simple approach: store the JSON in the database
         // This allows students to download it via the API
         const { createClient } = await import('@supabase/supabase-js');
