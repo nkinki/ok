@@ -97,19 +97,39 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           ctx.setLineDash([5, 5]);
           ctx.strokeRect(leftW, topH, canvas.width - leftW - rightW, canvas.height - topH - bottomH);
           
-          // Draw resize handles - only edge handles
-          const handleSize = 16; // Increased size for easier clicking
-          ctx.fillStyle = '#3b82f6';
-          ctx.strokeStyle = '#1d4ed8';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([]);
-          
+          // Draw resize handles - corners and edges
+          const handleSize = 18; // Even larger for better visibility
           const cropX = leftW;
           const cropY = topH;
           const cropW = canvas.width - leftW - rightW;
           const cropH = canvas.height - topH - bottomH;
           
-          // Edge handles only - larger and more visible
+          // Corner handles (red for distinction)
+          ctx.fillStyle = '#ef4444';
+          ctx.strokeStyle = '#dc2626';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([]);
+          
+          // Top-left corner
+          ctx.fillRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          
+          // Top-right corner
+          ctx.fillRect(cropX + cropW - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX + cropW - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          
+          // Bottom-left corner
+          ctx.fillRect(cropX - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          
+          // Bottom-right corner
+          ctx.fillRect(cropX + cropW - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(cropX + cropW - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          
+          // Edge handles (blue)
+          ctx.fillStyle = '#3b82f6';
+          ctx.strokeStyle = '#1d4ed8';
+          
           // Top edge
           ctx.fillRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
           ctx.strokeRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
@@ -147,9 +167,15 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
     const cropW = canvas.width - leftW - rightW;
     const cropH = canvas.height - topH - bottomH;
     
-    const tolerance = 20; // Increased tolerance for easier clicking
+    const tolerance = 25; // Large tolerance for easier clicking
     
-    // Check edge handles only (no corners)
+    // Check corner handles first (higher priority)
+    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top-left';
+    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top-right';
+    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom-left';
+    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom-right';
+    
+    // Check edge handles
     if (Math.abs(canvasX - (cropX + cropW/2)) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top';
     if (Math.abs(canvasX - (cropX + cropW/2)) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom';
     if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - (cropY + cropH/2)) < tolerance) return 'left';
@@ -161,12 +187,17 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!showCropMode) return;
     
+    console.log('Mouse down at:', e.clientX, e.clientY);
     const handle = getHandleAtPosition(e.clientX, e.clientY);
+    console.log('Detected handle:', handle);
+    
     if (handle) {
       setIsDragging(true);
       setDragHandle(handle);
       setDragStart({ x: e.clientX, y: e.clientY });
+      console.log('Started dragging:', handle);
       e.preventDefault();
+      e.stopPropagation();
     }
   };
 
@@ -196,6 +227,22 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
         case 'right':
           newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
           break;
+        case 'top-left':
+          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
+          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+          break;
+        case 'top-right':
+          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
+          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+          break;
+        case 'bottom-left':
+          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
+          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+          break;
+        case 'bottom-right':
+          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
+          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+          break;
       }
       
       setCrop(newCrop);
@@ -208,7 +255,11 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           'top': 'n-resize',
           'bottom': 'n-resize',
           'left': 'w-resize',
-          'right': 'w-resize'
+          'right': 'w-resize',
+          'top-left': 'nw-resize',
+          'top-right': 'ne-resize',
+          'bottom-left': 'sw-resize',
+          'bottom-right': 'se-resize'
         };
         canvasRef.current.style.cursor = cursors[handle] || 'default';
       } else if (canvasRef.current) {
@@ -246,6 +297,22 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
             newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
             break;
           case 'right':
+            newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+            break;
+          case 'top-left':
+            newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
+            newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+            break;
+          case 'top-right':
+            newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
+            newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+            break;
+          case 'bottom-left':
+            newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
+            newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+            break;
+          case 'bottom-right':
+            newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
             newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
             break;
         }
@@ -620,7 +687,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                 {/* Left side - Image */}
                                 <div className="flex-1">
                                     <p className="text-xs text-slate-600 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
-                                        ⚠️ Sötétített rész eltávolításra kerül. <strong>Húzd a kék fogantyúkat</strong> a vágási terület beállításához.
+                                        ⚠️ Sötétített rész eltávolításra kerül. <strong>Húzd a piros sarkokat</strong> (átlós) vagy <strong>kék oldalakat</strong> (egyenes) a vágási terület beállításához.
                                     </p>
                                     <canvas 
                                         ref={canvasRef} 
@@ -639,9 +706,9 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                     <div className="bg-blue-50 p-3 rounded border border-blue-200">
                                         <h4 className="text-sm font-bold text-blue-800 mb-2">🖱️ Interaktív vágás</h4>
                                         <ul className="text-xs text-blue-700 space-y-1">
-                                            <li>• Húzd a <span className="font-medium">kék fogantyúkat</span> a vágási terület beállításához</li>
-                                            <li>• <strong>Fent/Lent</strong>: függőleges vágás</li>
-                                            <li>• <strong>Jobb/Bal</strong>: vízszintes vágás</li>
+                                            <li>• <span className="font-medium text-red-600">Piros sarkok</span>: átlós méretezés</li>
+                                            <li>• <span className="font-medium text-blue-600">Kék oldalak</span>: egyenes vágás</li>
+                                            <li>• Húzd a fogantyúkat a vágási terület beállításához</li>
                                         </ul>
                                     </div>
 
