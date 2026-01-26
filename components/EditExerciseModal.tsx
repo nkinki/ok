@@ -15,8 +15,13 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
   const [formData, setFormData] = useState<ExerciseData>(item.data);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>(item.imageUrl);
   
-  // Crop state
-  const [crop, setCrop] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
+  // Crop state - most 4 sarok koordinátákkal (százalékban)
+  const [crop, setCrop] = useState({ 
+    topLeft: { x: 0, y: 0 },
+    topRight: { x: 100, y: 0 },
+    bottomLeft: { x: 0, y: 100 },
+    bottomRight: { x: 100, y: 100 }
+  });
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [showCropMode, setShowCropMode] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -50,8 +55,13 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           img.src = currentImageUrl;
           img.onload = () => {
               setOriginalImage(img);
-              // Reset crop
-              setCrop({ top: 0, bottom: 0, left: 0, right: 0 });
+              // Reset crop - szabályos téglalap a teljes képpel
+              setCrop({ 
+                topLeft: { x: 0, y: 0 },
+                topRight: { x: 100, y: 0 },
+                bottomLeft: { x: 0, y: 100 },
+                bottomRight: { x: 100, y: 100 }
+              });
           };
       }
   }, [currentImageUrl, showCropMode]);
@@ -72,79 +82,107 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           // Draw image
           ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
 
-          // Draw dark overlay for cropped areas
+          // Convert crop percentages to canvas coordinates
+          const corners = {
+            topLeft: { 
+              x: (crop.topLeft.x / 100) * canvas.width, 
+              y: (crop.topLeft.y / 100) * canvas.height 
+            },
+            topRight: { 
+              x: (crop.topRight.x / 100) * canvas.width, 
+              y: (crop.topRight.y / 100) * canvas.height 
+            },
+            bottomLeft: { 
+              x: (crop.bottomLeft.x / 100) * canvas.width, 
+              y: (crop.bottomLeft.y / 100) * canvas.height 
+            },
+            bottomRight: { 
+              x: (crop.bottomRight.x / 100) * canvas.width, 
+              y: (crop.bottomRight.y / 100) * canvas.height 
+            }
+          };
+
+          // Draw dark overlay everywhere except the crop area
           ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-          
-          // Top
-          const topH = (crop.top / 100) * canvas.height;
-          ctx.fillRect(0, 0, canvas.width, topH);
-          
-          // Bottom
-          const bottomH = (crop.bottom / 100) * canvas.height;
-          ctx.fillRect(0, canvas.height - bottomH, canvas.width, bottomH);
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // Left
-          const leftW = (crop.left / 100) * canvas.width;
-          ctx.fillRect(0, topH, leftW, canvas.height - topH - bottomH);
+          // Clear the crop area (create a "hole" in the overlay)
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.beginPath();
+          ctx.moveTo(corners.topLeft.x, corners.topLeft.y);
+          ctx.lineTo(corners.topRight.x, corners.topRight.y);
+          ctx.lineTo(corners.bottomRight.x, corners.bottomRight.y);
+          ctx.lineTo(corners.bottomLeft.x, corners.bottomLeft.y);
+          ctx.closePath();
+          ctx.fill();
 
-          // Right
-          const rightW = (crop.right / 100) * canvas.width;
-          ctx.fillRect(canvas.width - rightW, topH, rightW, canvas.height - topH - bottomH);
+          // Reset composite operation
+          ctx.globalCompositeOperation = 'source-over';
 
           // Draw boundary lines
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2;
           ctx.setLineDash([5, 5]);
-          ctx.strokeRect(leftW, topH, canvas.width - leftW - rightW, canvas.height - topH - bottomH);
+          ctx.beginPath();
+          ctx.moveTo(corners.topLeft.x, corners.topLeft.y);
+          ctx.lineTo(corners.topRight.x, corners.topRight.y);
+          ctx.lineTo(corners.bottomRight.x, corners.bottomRight.y);
+          ctx.lineTo(corners.bottomLeft.x, corners.bottomLeft.y);
+          ctx.closePath();
+          ctx.stroke();
           
-          // Draw resize handles - corners and edges
-          const handleSize = 18; // Even larger for better visibility
-          const cropX = leftW;
-          const cropY = topH;
-          const cropW = canvas.width - leftW - rightW;
-          const cropH = canvas.height - topH - bottomH;
+          // Draw resize handles - minden sarok
+          const handleSize = 18;
+          ctx.setLineDash([]);
           
-          // Corner handles (red for distinction)
+          // Corner handles (piros)
           ctx.fillStyle = '#ef4444';
           ctx.strokeStyle = '#dc2626';
           ctx.lineWidth = 2;
-          ctx.setLineDash([]);
           
           // Top-left corner
-          ctx.fillRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          ctx.fillRect(corners.topLeft.x - handleSize/2, corners.topLeft.y - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(corners.topLeft.x - handleSize/2, corners.topLeft.y - handleSize/2, handleSize, handleSize);
           
           // Top-right corner
-          ctx.fillRect(cropX + cropW - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX + cropW - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          ctx.fillRect(corners.topRight.x - handleSize/2, corners.topRight.y - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(corners.topRight.x - handleSize/2, corners.topRight.y - handleSize/2, handleSize, handleSize);
           
           // Bottom-left corner
-          ctx.fillRect(cropX - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          ctx.fillRect(corners.bottomLeft.x - handleSize/2, corners.bottomLeft.y - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(corners.bottomLeft.x - handleSize/2, corners.bottomLeft.y - handleSize/2, handleSize, handleSize);
           
           // Bottom-right corner
-          ctx.fillRect(cropX + cropW - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX + cropW - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          ctx.fillRect(corners.bottomRight.x - handleSize/2, corners.bottomRight.y - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(corners.bottomRight.x - handleSize/2, corners.bottomRight.y - handleSize/2, handleSize, handleSize);
           
-          // Edge handles (blue)
+          // Edge handles (kék) - oldalak közepén
           ctx.fillStyle = '#3b82f6';
           ctx.strokeStyle = '#1d4ed8';
           
-          // Top edge
-          ctx.fillRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+          // Top edge (felső oldal közepe)
+          const topMidX = (corners.topLeft.x + corners.topRight.x) / 2;
+          const topMidY = (corners.topLeft.y + corners.topRight.y) / 2;
+          ctx.fillRect(topMidX - handleSize/2, topMidY - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(topMidX - handleSize/2, topMidY - handleSize/2, handleSize, handleSize);
           
-          // Bottom edge
-          ctx.fillRect(cropX + cropW/2 - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX + cropW/2 - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
+          // Bottom edge (alsó oldal közepe)
+          const bottomMidX = (corners.bottomLeft.x + corners.bottomRight.x) / 2;
+          const bottomMidY = (corners.bottomLeft.y + corners.bottomRight.y) / 2;
+          ctx.fillRect(bottomMidX - handleSize/2, bottomMidY - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(bottomMidX - handleSize/2, bottomMidY - handleSize/2, handleSize, handleSize);
           
-          // Left edge
-          ctx.fillRect(cropX - handleSize/2, cropY + cropH/2 - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX - handleSize/2, cropY + cropH/2 - handleSize/2, handleSize, handleSize);
+          // Left edge (bal oldal közepe)
+          const leftMidX = (corners.topLeft.x + corners.bottomLeft.x) / 2;
+          const leftMidY = (corners.topLeft.y + corners.bottomLeft.y) / 2;
+          ctx.fillRect(leftMidX - handleSize/2, leftMidY - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(leftMidX - handleSize/2, leftMidY - handleSize/2, handleSize, handleSize);
           
-          // Right edge
-          ctx.fillRect(cropX + cropW - handleSize/2, cropY + cropH/2 - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX + cropW - handleSize/2, cropY + cropH/2 - handleSize/2, handleSize, handleSize);
+          // Right edge (jobb oldal közepe)
+          const rightMidX = (corners.topRight.x + corners.bottomRight.x) / 2;
+          const rightMidY = (corners.topRight.y + corners.bottomRight.y) / 2;
+          ctx.fillRect(rightMidX - handleSize/2, rightMidY - handleSize/2, handleSize, handleSize);
+          ctx.strokeRect(rightMidX - handleSize/2, rightMidY - handleSize/2, handleSize, handleSize);
       }
   }, [showCropMode, crop, originalImage]);
 
@@ -163,29 +201,50 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
     const scaledX = canvasX * scaleX;
     const scaledY = canvasY * scaleY;
     
-    const leftW = (crop.left / 100) * canvas.width;
-    const topH = (crop.top / 100) * canvas.height;
-    const rightW = (crop.right / 100) * canvas.width;
-    const bottomH = (crop.bottom / 100) * canvas.height;
+    // Convert crop percentages to canvas coordinates
+    const corners = {
+      topLeft: { 
+        x: (crop.topLeft.x / 100) * canvas.width, 
+        y: (crop.topLeft.y / 100) * canvas.height 
+      },
+      topRight: { 
+        x: (crop.topRight.x / 100) * canvas.width, 
+        y: (crop.topRight.y / 100) * canvas.height 
+      },
+      bottomLeft: { 
+        x: (crop.bottomLeft.x / 100) * canvas.width, 
+        y: (crop.bottomLeft.y / 100) * canvas.height 
+      },
+      bottomRight: { 
+        x: (crop.bottomRight.x / 100) * canvas.width, 
+        y: (crop.bottomRight.y / 100) * canvas.height 
+      }
+    };
     
-    const cropX = leftW;
-    const cropY = topH;
-    const cropW = canvas.width - leftW - rightW;
-    const cropH = canvas.height - topH - bottomH;
-    
-    const tolerance = 15; // Reasonable tolerance for handle detection
+    const tolerance = 15;
     
     // Check corner handles first (higher priority)
-    if (Math.abs(scaledX - cropX) < tolerance && Math.abs(scaledY - cropY) < tolerance) return 'top-left';
-    if (Math.abs(scaledX - (cropX + cropW)) < tolerance && Math.abs(scaledY - cropY) < tolerance) return 'top-right';
-    if (Math.abs(scaledX - cropX) < tolerance && Math.abs(scaledY - (cropY + cropH)) < tolerance) return 'bottom-left';
-    if (Math.abs(scaledX - (cropX + cropW)) < tolerance && Math.abs(scaledY - (cropY + cropH)) < tolerance) return 'bottom-right';
+    if (Math.abs(scaledX - corners.topLeft.x) < tolerance && Math.abs(scaledY - corners.topLeft.y) < tolerance) return 'top-left';
+    if (Math.abs(scaledX - corners.topRight.x) < tolerance && Math.abs(scaledY - corners.topRight.y) < tolerance) return 'top-right';
+    if (Math.abs(scaledX - corners.bottomLeft.x) < tolerance && Math.abs(scaledY - corners.bottomLeft.y) < tolerance) return 'bottom-left';
+    if (Math.abs(scaledX - corners.bottomRight.x) < tolerance && Math.abs(scaledY - corners.bottomRight.y) < tolerance) return 'bottom-right';
     
-    // Check edge handles
-    if (Math.abs(scaledX - (cropX + cropW/2)) < tolerance && Math.abs(scaledY - cropY) < tolerance) return 'top';
-    if (Math.abs(scaledX - (cropX + cropW/2)) < tolerance && Math.abs(scaledY - (cropY + cropH)) < tolerance) return 'bottom';
-    if (Math.abs(scaledX - cropX) < tolerance && Math.abs(scaledY - (cropY + cropH/2)) < tolerance) return 'left';
-    if (Math.abs(scaledX - (cropX + cropW)) < tolerance && Math.abs(scaledY - (cropY + cropH/2)) < tolerance) return 'right';
+    // Check edge handles (oldalak közepén)
+    const topMidX = (corners.topLeft.x + corners.topRight.x) / 2;
+    const topMidY = (corners.topLeft.y + corners.topRight.y) / 2;
+    if (Math.abs(scaledX - topMidX) < tolerance && Math.abs(scaledY - topMidY) < tolerance) return 'top';
+    
+    const bottomMidX = (corners.bottomLeft.x + corners.bottomRight.x) / 2;
+    const bottomMidY = (corners.bottomLeft.y + corners.bottomRight.y) / 2;
+    if (Math.abs(scaledX - bottomMidX) < tolerance && Math.abs(scaledY - bottomMidY) < tolerance) return 'bottom';
+    
+    const leftMidX = (corners.topLeft.x + corners.bottomLeft.x) / 2;
+    const leftMidY = (corners.topLeft.y + corners.bottomLeft.y) / 2;
+    if (Math.abs(scaledX - leftMidX) < tolerance && Math.abs(scaledY - leftMidY) < tolerance) return 'left';
+    
+    const rightMidX = (corners.topRight.x + corners.bottomRight.x) / 2;
+    const rightMidY = (corners.topRight.y + corners.bottomRight.y) / 2;
+    if (Math.abs(scaledX - rightMidX) < tolerance && Math.abs(scaledY - rightMidY) < tolerance) return 'right';
     
     return null;
   };
@@ -256,41 +315,77 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
         let newCrop = { ...crop };
         
         switch (dragHandle) {
-          case 'top':
-            // Csak függőleges mozgás
-            newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
-            break;
-          case 'bottom':
-            // Csak függőleges mozgás
-            newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
-            break;
-          case 'left':
-            // Csak vízszintes mozgás
-            newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
-            break;
-          case 'right':
-            // Csak vízszintes mozgás
-            newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
-            break;
           case 'top-left':
-            // ÁTLÓS mozgás - mindkét irány egyszerre
-            newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
-            newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+            // Bal felső sarok mozgatása
+            newCrop.topLeft = {
+              x: Math.max(0, Math.min(100, crop.topLeft.x + deltaXPercent)),
+              y: Math.max(0, Math.min(100, crop.topLeft.y + deltaYPercent))
+            };
             break;
           case 'top-right':
-            // ÁTLÓS mozgás - mindkét irány egyszerre
-            newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
-            newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+            // Jobb felső sarok mozgatása
+            newCrop.topRight = {
+              x: Math.max(0, Math.min(100, crop.topRight.x + deltaXPercent)),
+              y: Math.max(0, Math.min(100, crop.topRight.y + deltaYPercent))
+            };
             break;
           case 'bottom-left':
-            // ÁTLÓS mozgás - mindkét irány egyszerre
-            newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
-            newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
+            // Bal alsó sarok mozgatása
+            newCrop.bottomLeft = {
+              x: Math.max(0, Math.min(100, crop.bottomLeft.x + deltaXPercent)),
+              y: Math.max(0, Math.min(100, crop.bottomLeft.y + deltaYPercent))
+            };
             break;
           case 'bottom-right':
-            // ÁTLÓS mozgás - mindkét irány egyszerre
-            newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
-            newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
+            // Jobb alsó sarok mozgatása
+            newCrop.bottomRight = {
+              x: Math.max(0, Math.min(100, crop.bottomRight.x + deltaXPercent)),
+              y: Math.max(0, Math.min(100, crop.bottomRight.y + deltaYPercent))
+            };
+            break;
+          case 'top':
+            // Felső oldal mozgatása - mindkét felső sarok együtt
+            newCrop.topLeft = {
+              ...crop.topLeft,
+              y: Math.max(0, Math.min(100, crop.topLeft.y + deltaYPercent))
+            };
+            newCrop.topRight = {
+              ...crop.topRight,
+              y: Math.max(0, Math.min(100, crop.topRight.y + deltaYPercent))
+            };
+            break;
+          case 'bottom':
+            // Alsó oldal mozgatása - mindkét alsó sarok együtt
+            newCrop.bottomLeft = {
+              ...crop.bottomLeft,
+              y: Math.max(0, Math.min(100, crop.bottomLeft.y + deltaYPercent))
+            };
+            newCrop.bottomRight = {
+              ...crop.bottomRight,
+              y: Math.max(0, Math.min(100, crop.bottomRight.y + deltaYPercent))
+            };
+            break;
+          case 'left':
+            // Bal oldal mozgatása - mindkét bal sarok együtt
+            newCrop.topLeft = {
+              ...crop.topLeft,
+              x: Math.max(0, Math.min(100, crop.topLeft.x + deltaXPercent))
+            };
+            newCrop.bottomLeft = {
+              ...crop.bottomLeft,
+              x: Math.max(0, Math.min(100, crop.bottomLeft.x + deltaXPercent))
+            };
+            break;
+          case 'right':
+            // Jobb oldal mozgatása - mindkét jobb sarok együtt
+            newCrop.topRight = {
+              ...crop.topRight,
+              x: Math.max(0, Math.min(100, crop.topRight.x + deltaXPercent))
+            };
+            newCrop.bottomRight = {
+              ...crop.bottomRight,
+              x: Math.max(0, Math.min(100, crop.bottomRight.x + deltaXPercent))
+            };
             break;
         }
         
@@ -337,15 +432,52 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
              const canvas = document.createElement('canvas');
              const ctx = canvas.getContext('2d');
              if (ctx) {
-                 const finalX = (crop.left / 100) * originalImage.width;
-                 const finalY = (crop.top / 100) * originalImage.height;
-                 const finalW = originalImage.width * (1 - (crop.left + crop.right) / 100);
-                 const finalH = originalImage.height * (1 - (crop.top + crop.bottom) / 100);
+                 // Convert percentages to actual pixel coordinates
+                 const corners = {
+                   topLeft: { 
+                     x: (crop.topLeft.x / 100) * originalImage.width, 
+                     y: (crop.topLeft.y / 100) * originalImage.height 
+                   },
+                   topRight: { 
+                     x: (crop.topRight.x / 100) * originalImage.width, 
+                     y: (crop.topRight.y / 100) * originalImage.height 
+                   },
+                   bottomLeft: { 
+                     x: (crop.bottomLeft.x / 100) * originalImage.width, 
+                     y: (crop.bottomLeft.y / 100) * originalImage.height 
+                   },
+                   bottomRight: { 
+                     x: (crop.bottomRight.x / 100) * originalImage.width, 
+                     y: (crop.bottomRight.y / 100) * originalImage.height 
+                   }
+                 };
 
-                 canvas.width = finalW;
-                 canvas.height = finalH;
+                 // Calculate bounding box
+                 const minX = Math.min(corners.topLeft.x, corners.topRight.x, corners.bottomLeft.x, corners.bottomRight.x);
+                 const maxX = Math.max(corners.topLeft.x, corners.topRight.x, corners.bottomLeft.x, corners.bottomRight.x);
+                 const minY = Math.min(corners.topLeft.y, corners.topRight.y, corners.bottomLeft.y, corners.bottomRight.y);
+                 const maxY = Math.max(corners.topLeft.y, corners.topRight.y, corners.bottomLeft.y, corners.bottomRight.y);
+
+                 canvas.width = maxX - minX;
+                 canvas.height = maxY - minY;
                  
-                 ctx.drawImage(originalImage, finalX, finalY, finalW, finalH, 0, 0, finalW, finalH);
+                 // Adjust coordinates and create clipping path
+                 const adjustedCorners = {
+                   topLeft: { x: corners.topLeft.x - minX, y: corners.topLeft.y - minY },
+                   topRight: { x: corners.topRight.x - minX, y: corners.topRight.y - minY },
+                   bottomLeft: { x: corners.bottomLeft.x - minX, y: corners.bottomLeft.y - minY },
+                   bottomRight: { x: corners.bottomRight.x - minX, y: corners.bottomRight.y - minY }
+                 };
+
+                 ctx.beginPath();
+                 ctx.moveTo(adjustedCorners.topLeft.x, adjustedCorners.topLeft.y);
+                 ctx.lineTo(adjustedCorners.topRight.x, adjustedCorners.topRight.y);
+                 ctx.lineTo(adjustedCorners.bottomRight.x, adjustedCorners.bottomRight.y);
+                 ctx.lineTo(adjustedCorners.bottomLeft.x, adjustedCorners.bottomLeft.y);
+                 ctx.closePath();
+                 ctx.clip();
+
+                 ctx.drawImage(originalImage, -minX, -minY);
                  const newImageUrl = canvas.toDataURL('image/jpeg', 0.9);
                  
                  // Create updated item with new image
@@ -386,20 +518,65 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        const finalX = (crop.left / 100) * originalImage.width;
-        const finalY = (crop.top / 100) * originalImage.height;
-        const finalW = originalImage.width * (1 - (crop.left + crop.right) / 100);
-        const finalH = originalImage.height * (1 - (crop.top + crop.bottom) / 100);
+        // Convert percentages to actual pixel coordinates
+        const corners = {
+          topLeft: { 
+            x: (crop.topLeft.x / 100) * originalImage.width, 
+            y: (crop.topLeft.y / 100) * originalImage.height 
+          },
+          topRight: { 
+            x: (crop.topRight.x / 100) * originalImage.width, 
+            y: (crop.topRight.y / 100) * originalImage.height 
+          },
+          bottomLeft: { 
+            x: (crop.bottomLeft.x / 100) * originalImage.width, 
+            y: (crop.bottomLeft.y / 100) * originalImage.height 
+          },
+          bottomRight: { 
+            x: (crop.bottomRight.x / 100) * originalImage.width, 
+            y: (crop.bottomRight.y / 100) * originalImage.height 
+          }
+        };
 
-        canvas.width = finalW;
-        canvas.height = finalH;
+        // Calculate bounding box for the canvas size
+        const minX = Math.min(corners.topLeft.x, corners.topRight.x, corners.bottomLeft.x, corners.bottomRight.x);
+        const maxX = Math.max(corners.topLeft.x, corners.topRight.x, corners.bottomLeft.x, corners.bottomRight.x);
+        const minY = Math.min(corners.topLeft.y, corners.topRight.y, corners.bottomLeft.y, corners.bottomRight.y);
+        const maxY = Math.max(corners.topLeft.y, corners.topRight.y, corners.bottomLeft.y, corners.bottomRight.y);
+
+        canvas.width = maxX - minX;
+        canvas.height = maxY - minY;
         
-        ctx.drawImage(originalImage, finalX, finalY, finalW, finalH, 0, 0, finalW, finalH);
+        // Adjust corner coordinates relative to the bounding box
+        const adjustedCorners = {
+          topLeft: { x: corners.topLeft.x - minX, y: corners.topLeft.y - minY },
+          topRight: { x: corners.topRight.x - minX, y: corners.topRight.y - minY },
+          bottomLeft: { x: corners.bottomLeft.x - minX, y: corners.bottomLeft.y - minY },
+          bottomRight: { x: corners.bottomRight.x - minX, y: corners.bottomRight.y - minY }
+        };
+
+        // Create clipping path for the irregular shape
+        ctx.beginPath();
+        ctx.moveTo(adjustedCorners.topLeft.x, adjustedCorners.topLeft.y);
+        ctx.lineTo(adjustedCorners.topRight.x, adjustedCorners.topRight.y);
+        ctx.lineTo(adjustedCorners.bottomRight.x, adjustedCorners.bottomRight.y);
+        ctx.lineTo(adjustedCorners.bottomLeft.x, adjustedCorners.bottomLeft.y);
+        ctx.closePath();
+        ctx.clip();
+
+        // Draw the original image, offset by the bounding box
+        ctx.drawImage(originalImage, -minX, -minY);
+        
         const newImageUrl = canvas.toDataURL('image/jpeg', 0.9);
         
         setCurrentImageUrl(newImageUrl);
         setShowCropMode(false);
-        setCrop({ top: 0, bottom: 0, left: 0, right: 0 });
+        setCrop({ 
+          topLeft: { x: 0, y: 0 },
+          topRight: { x: 100, y: 0 },
+          bottomLeft: { x: 0, y: 100 },
+          bottomRight: { x: 100, y: 100 }
+        });
       }
     }
   };
@@ -671,7 +848,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                 {/* Left side - Image */}
                                 <div className="flex-1">
                                     <p className="text-xs text-slate-600 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
-                                        ⚠️ Sötétített rész eltávolításra kerül. <strong>Piros sarkok</strong>: átlós húzás (mindkét irány), <strong>Kék oldalak</strong>: egyenes húzás (egy irány).
+                                        ⚠️ Sötétített rész eltávolításra kerül. <strong>Piros sarkok</strong>: szabadon mozgathatók (szabálytalan alakzat), <strong>Kék oldalak</strong>: egyenes vonalak.
                                     </p>
                                     <canvas 
                                         ref={canvasRef} 
@@ -688,34 +865,12 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                 <div className="w-80 space-y-4">
                                     {/* Interactive Instructions */}
                                     <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                                        <h4 className="text-sm font-bold text-blue-800 mb-2">🖱️ Interaktív vágás</h4>
+                                        <h4 className="text-sm font-bold text-blue-800 mb-2">🖱️ Szabálytalan vágás</h4>
                                         <ul className="text-xs text-blue-700 space-y-1">
-                                            <li>• <span className="font-medium text-red-600">Piros sarkok</span>: átlós húzás (vízszintes + függőleges egyszerre)</li>
-                                            <li>• <span className="font-medium text-blue-600">Kék oldalak</span>: egyenes húzás (csak egy irány)</li>
-                                            <li>• Húzd a fogantyúkat a vágási terület beállításához</li>
+                                            <li>• <span className="font-medium text-red-600">Piros sarkok</span>: szabadon mozgathatók (szabálytalan alakzat)</li>
+                                            <li>• <span className="font-medium text-blue-600">Kék oldalak</span>: egyenes vonalak (párhuzamos mozgatás)</li>
+                                            <li>• Lehetséges ferde, trapéz, vagy más alakzat kialakítása</li>
                                         </ul>
-                                    </div>
-
-                                    {/* Fine-tune sliders */}
-                                    <div className="bg-slate-50 p-3 rounded">
-                                        <h4 className="text-sm font-bold text-slate-700 mb-3">🎯 Pontos beállítás</h4>
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {['top', 'bottom', 'left', 'right'].map((dir) => (
-                                                <div key={dir} className="space-y-1">
-                                                    <label className="text-xs font-bold text-slate-600 uppercase block">
-                                                        {dir === 'top' ? 'FELÜL' : dir === 'bottom' ? 'ALUL' : dir === 'left' ? 'BALRÓL' : 'JOBBRÓL'}: {(crop as any)[dir]}%
-                                                    </label>
-                                                    <input 
-                                                        type="range" 
-                                                        min="0" 
-                                                        max="45" 
-                                                        value={(crop as any)[dir]} 
-                                                        onChange={(e) => setCrop({...crop, [dir]: Number(e.target.value)})} 
-                                                        className="w-full accent-brand-600 h-2"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
@@ -729,7 +884,12 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                             Vágás alkalmazása
                                         </button>
                                         <button
-                                            onClick={() => setCrop({ top: 0, bottom: 0, left: 0, right: 0 })}
+                                            onClick={() => setCrop({ 
+                                              topLeft: { x: 0, y: 0 },
+                                              topRight: { x: 100, y: 0 },
+                                              bottomLeft: { x: 0, y: 100 },
+                                              bottomRight: { x: 100, y: 100 }
+                                            })}
                                             className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium"
                                         >
                                             Visszaállítás
