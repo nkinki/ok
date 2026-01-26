@@ -435,49 +435,54 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                         </div>
 
                         {showCropMode && (
-                            <>
-                                <p className="text-xs text-slate-600 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
-                                    ⚠️ Sötétített rész eltávolításra kerül. Állítsd be a csúszkákkal a vágási területet.
-                                </p>
-                                
-                                <canvas ref={canvasRef} className="border border-slate-300 shadow-md max-w-full mb-4 rounded" />
-                                
-                                <div className="grid grid-cols-2 gap-3 mb-4">
-                                    {['top', 'bottom', 'left', 'right'].map((dir) => (
-                                        <div key={dir} className="bg-slate-50 p-2 rounded">
-                                            <label className="text-xs font-bold text-slate-600 uppercase block mb-1">
-                                                {dir === 'top' ? 'Felül' : dir === 'bottom' ? 'Alul' : dir === 'left' ? 'Balról' : 'Jobbról'}: {(crop as any)[dir]}%
-                                            </label>
-                                            <input 
-                                                type="range" 
-                                                min="0" 
-                                                max="45" 
-                                                value={(crop as any)[dir]} 
-                                                onChange={(e) => setCrop({...crop, [dir]: Number(e.target.value)})} 
-                                                className="w-full accent-brand-600 h-2"
-                                            />
-                                        </div>
-                                    ))}
+                            <div className="flex gap-4">
+                                {/* Left side - Image */}
+                                <div className="flex-1">
+                                    <p className="text-xs text-slate-600 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
+                                        ⚠️ Sötétített rész eltávolításra kerül. Állítsd be a csúszkákkal a vágási területet.
+                                    </p>
+                                    <canvas ref={canvasRef} className="border border-slate-300 shadow-md max-w-full rounded" />
                                 </div>
+                                
+                                {/* Right side - Controls */}
+                                <div className="w-80 space-y-4">
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {['top', 'bottom', 'left', 'right'].map((dir) => (
+                                            <div key={dir} className="bg-slate-50 p-3 rounded">
+                                                <label className="text-xs font-bold text-slate-600 uppercase block mb-2">
+                                                    {dir === 'top' ? 'FELÜL' : dir === 'bottom' ? 'ALUL' : dir === 'left' ? 'BALRÓL' : 'JOBBRÓL'}: {(crop as any)[dir]}%
+                                                </label>
+                                                <input 
+                                                    type="range" 
+                                                    min="0" 
+                                                    max="45" 
+                                                    value={(crop as any)[dir]} 
+                                                    onChange={(e) => setCrop({...crop, [dir]: Number(e.target.value)})} 
+                                                    className="w-full accent-brand-600 h-3"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
 
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={applyCrop}
-                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-xs font-medium flex items-center gap-2"
-                                    >
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Vágás alkalmazása
-                                    </button>
-                                    <button
-                                        onClick={() => setCrop({ top: 0, bottom: 0, left: 0, right: 0 })}
-                                        className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-medium"
-                                    >
-                                        Visszaállítás
-                                    </button>
+                                    <div className="space-y-2">
+                                        <button
+                                            onClick={applyCrop}
+                                            className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded text-sm font-medium flex items-center justify-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Vágás alkalmazása
+                                        </button>
+                                        <button
+                                            onClick={() => setCrop({ top: 0, bottom: 0, left: 0, right: 0 })}
+                                            className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium"
+                                        >
+                                            Visszaállítás
+                                        </button>
+                                    </div>
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>

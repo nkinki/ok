@@ -44,7 +44,8 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
   const [sessionDetails, setSessionDetails] = useState<SessionDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'participants' | 'results'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'participants' | 'rankings'>('participants');
+  const [selectedParticipant, setSelectedParticipant] = useState<SessionParticipant | null>(null);
 
   const fetchSessionDetails = async () => {
     try {
@@ -69,14 +70,20 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
       // Calculate performance stats
       const totalParticipants = participants.length;
       const averagePercentage = totalParticipants > 0 
-        ? Math.round(participants.reduce((sum, p) => sum + (p.percentage || 0), 0) / totalParticipants)
+        ? Math.round(participants.reduce((sum, p) => sum + (p.percentage || (p.total_score / (sessionData.session.exerciseCount * 10) * 100) || 0), 0) / totalParticipants)
         : 0;
         
+      // Calculate percentage for each participant if not already calculated
+      const participantsWithPercentage = participants.map(p => ({
+        ...p,
+        percentage: p.percentage || (sessionData.session.exerciseCount > 0 ? Math.round((p.total_score / (sessionData.session.exerciseCount * 10)) * 100) : 0)
+      }));
+        
       const performanceDistribution = {
-        excellent: participants.filter(p => (p.percentage || 0) >= 90).length,
-        good: participants.filter(p => (p.percentage || 0) >= 75 && (p.percentage || 0) < 90).length,
-        average: participants.filter(p => (p.percentage || 0) >= 60 && (p.percentage || 0) < 75).length,
-        poor: participants.filter(p => (p.percentage || 0) < 60).length
+        excellent: participantsWithPercentage.filter(p => (p.percentage || 0) >= 90).length,
+        good: participantsWithPercentage.filter(p => (p.percentage || 0) >= 75 && (p.percentage || 0) < 90).length,
+        average: participantsWithPercentage.filter(p => (p.percentage || 0) >= 60 && (p.percentage || 0) < 75).length,
+        poor: participantsWithPercentage.filter(p => (p.percentage || 0) < 60).length
       };
       
       setSessionDetails({
@@ -92,7 +99,7 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
         isActive: sessionData.session.isActive,
         createdAt: sessionData.session.createdAt,
         expiresAt: sessionData.session.expiresAt,
-        participants
+        participants: participantsWithPercentage
       });
       
     } catch (err) {
@@ -188,7 +195,8 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
         <div className="border-b border-gray-200 bg-gray-50">
           <nav className="flex space-x-4 px-3">
             {[
-              { id: 'participants', label: 'Résztvevők', icon: '👥' }
+              { id: 'participants', label: 'Résztvevők', icon: '👥' },
+              { id: 'rankings', label: 'Ranglista', icon: '🏆' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -207,78 +215,178 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-3">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm font-semibold">👥 Résztvevők ({sessionDetails.participants.length})</h3>
-              <button
-                onClick={fetchSessionDetails}
-                className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
-              >
-                🔄
-              </button>
-            </div>
-            
-            {sessionDetails.participants.length === 0 ? (
-              <div className="text-center py-6 text-gray-500 text-sm">
-                Még nincsenek résztvevők ebben a munkamenetben
+          {activeTab === 'participants' && (
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-sm font-semibold">👥 Résztvevők ({sessionDetails.participants.length})</h3>
+                <button
+                  onClick={fetchSessionDetails}
+                  className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
+                >
+                  🔄
+                </button>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 text-xs">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Név">👤</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Osztály">🏫</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Feladatok">📝</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Résztvevők">👥</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Állapot">⚡</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Létrehozva">📅</th>
-                      <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Lejárat">⏰</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {sessionDetails.participants.map((participant) => (
-                      <tr key={participant.id} className="hover:bg-gray-50">
-                        <td className="px-2 py-1 whitespace-nowrap">
-                          <div className="text-xs font-medium text-gray-900">{participant.student_name}</div>
-                        </td>
-                        <td className="px-2 py-1 whitespace-nowrap">
-                          <div className="text-xs text-gray-900">{participant.student_class}</div>
-                        </td>
-                        <td className="px-2 py-1 whitespace-nowrap">
-                          <div className="text-xs text-gray-900">{participant.completed_exercises}</div>
-                        </td>
-                        <td className="px-2 py-1 whitespace-nowrap">
-                          <div className="text-xs text-gray-900">1</div>
-                        </td>
-                        <td className="px-2 py-1 whitespace-nowrap">
-                          <span className={`text-xs ${participant.is_online ? 'text-green-600' : 'text-gray-400'}`}>
-                            {participant.is_online ? '🟢' : '⚫'}
-                          </span>
-                        </td>
-                        <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500">
-                          {new Date(participant.joined_at).toLocaleString('hu-HU', { 
-                            month: '2-digit', 
-                            day: '2-digit', 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </td>
-                        <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500">
-                          {new Date(sessionDetails.expiresAt).toLocaleString('hu-HU', { 
-                            month: '2-digit', 
-                            day: '2-digit', 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </td>
+              
+              {sessionDetails.participants.length === 0 ? (
+                <div className="text-center py-6 text-gray-500 text-sm">
+                  Még nincsenek résztvevők ebben a munkamenetben
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 text-xs">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Név">👤 Név</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Osztály">🏫 Osztály</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Feladatok">📝 Feladatok</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Pontszám">🎯 Pontszám</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Százalék">📊 %</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Állapot">⚡ Állapot</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Csatlakozott">📅 Csatlakozott</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500" title="Műveletek">⚙️ Műveletek</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {sessionDetails.participants.map((participant) => (
+                        <tr key={participant.id} className="hover:bg-gray-50">
+                          <td className="px-2 py-1 whitespace-nowrap">
+                            <div className="text-xs font-medium text-gray-900">{participant.student_name}</div>
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap">
+                            <div className="text-xs text-gray-900">{participant.student_class}</div>
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap">
+                            <div className="text-xs text-gray-900">{participant.completed_exercises}/{sessionDetails.exerciseCount}</div>
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap">
+                            <div className="text-xs font-medium text-gray-900">{participant.total_score}</div>
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap">
+                            <div className={`text-xs font-medium ${
+                              (participant.percentage || 0) >= 90 ? 'text-green-600' :
+                              (participant.percentage || 0) >= 75 ? 'text-blue-600' :
+                              (participant.percentage || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                              {participant.percentage || 0}%
+                            </div>
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap">
+                            <span className={`text-xs ${participant.is_online ? 'text-green-600' : 'text-gray-400'}`}>
+                              {participant.is_online ? '🟢 Online' : '⚫ Offline'}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap text-xs text-gray-500">
+                            {new Date(participant.joined_at).toLocaleString('hu-HU', { 
+                              month: '2-digit', 
+                              day: '2-digit', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap">
+                            <button
+                              onClick={() => setSelectedParticipant(participant)}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs"
+                            >
+                              📊 Eredmények
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'rankings' && (
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-semibold">🏆 Csoport ranglista</h3>
+                <div className="text-xs text-gray-500">
+                  Átlag: {sessionDetails.averagePercentage}% • {sessionDetails.participants.length} résztvevő
+                </div>
               </div>
-            )}
-          </div>
+
+              {sessionDetails.participants.length === 0 ? (
+                <div className="text-center py-6 text-gray-500 text-sm">
+                  Még nincsenek résztvevők a ranglistán
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sessionDetails.participants
+                    .sort((a, b) => (b.percentage || 0) - (a.percentage || 0))
+                    .map((participant, index) => {
+                      const percentage = participant.percentage || 0;
+                      const isTop3 = index < 3;
+                      const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                      
+                      return (
+                        <div
+                          key={participant.id}
+                          className={`flex items-center justify-between p-3 rounded-lg border ${
+                            isTop3 ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200' : 'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`text-lg font-bold ${isTop3 ? 'text-orange-600' : 'text-gray-600'}`}>
+                              {medal || `${index + 1}.`}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {participant.student_name}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {participant.student_class} • {participant.completed_exercises}/{sessionDetails.exerciseCount} feladat
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <div className={`text-lg font-bold ${
+                              percentage >= 90 ? 'text-green-600' :
+                              percentage >= 75 ? 'text-blue-600' :
+                              percentage >= 60 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                              {percentage}%
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {participant.total_score} pont
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+
+              {/* Performance Distribution */}
+              {sessionDetails.participants.length > 0 && (
+                <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+                  <h4 className="text-sm font-semibold mb-3">📈 Teljesítmény megoszlás</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="text-center p-2 bg-green-100 rounded">
+                      <div className="text-lg font-bold text-green-600">{sessionDetails.performanceDistribution.excellent}</div>
+                      <div className="text-xs text-green-800">Kiváló (90%+)</div>
+                    </div>
+                    <div className="text-center p-2 bg-blue-100 rounded">
+                      <div className="text-lg font-bold text-blue-600">{sessionDetails.performanceDistribution.good}</div>
+                      <div className="text-xs text-blue-800">Jó (75-89%)</div>
+                    </div>
+                    <div className="text-center p-2 bg-yellow-100 rounded">
+                      <div className="text-lg font-bold text-yellow-600">{sessionDetails.performanceDistribution.average}</div>
+                      <div className="text-xs text-yellow-800">Közepes (60-74%)</div>
+                    </div>
+                    <div className="text-center p-2 bg-red-100 rounded">
+                      <div className="text-lg font-bold text-red-600">{sessionDetails.performanceDistribution.poor}</div>
+                      <div className="text-xs text-red-800">Gyenge (<60%)</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Compact Footer */}
@@ -291,6 +399,103 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
           </button>
         </div>
       </div>
+
+      {/* Participant Results Modal */}
+      {selectedParticipant && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-2">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  📊 {selectedParticipant.student_name} eredményei
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {selectedParticipant.student_class} • {selectedParticipant.completed_exercises}/{sessionDetails.exerciseCount} feladat • {selectedParticipant.total_score} pont ({selectedParticipant.percentage || 0}%)
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedParticipant(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4">
+              {selectedParticipant.results && selectedParticipant.results.length > 0 ? (
+                <div className="space-y-4">
+                  {selectedParticipant.results.map((result: any, index: number) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-gray-900">
+                          {index + 1}. feladat: {result.title || 'Névtelen feladat'}
+                        </h4>
+                        <div className={`px-2 py-1 rounded text-xs font-medium ${
+                          result.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {result.isCorrect ? '✅ Helyes' : '❌ Helytelen'}
+                        </div>
+                      </div>
+                      
+                      {result.question && (
+                        <div className="mb-2">
+                          <p className="text-sm text-gray-700 font-medium">Kérdés:</p>
+                          <p className="text-sm text-gray-600">{result.question}</p>
+                        </div>
+                      )}
+                      
+                      <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="font-medium text-gray-700">Diák válasza:</p>
+                          <p className={`${result.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                            {result.studentAnswer || 'Nincs válasz'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-700">Helyes válasz:</p>
+                          <p className="text-green-600">{result.correctAnswer || 'Nincs megadva'}</p>
+                        </div>
+                      </div>
+                      
+                      {result.timeSpent && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          ⏱️ Időtartam: {Math.round(result.timeSpent / 1000)}s
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-4">📝</div>
+                  <h4 className="text-lg font-medium mb-2">Nincsenek részletes eredmények</h4>
+                  <p className="text-sm">
+                    A diák még nem küldte be a részletes eredményeket, vagy azok nem érhetők el.
+                  </p>
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg text-left">
+                    <p className="text-sm text-blue-800 font-medium">Elérhető információk:</p>
+                    <ul className="text-sm text-blue-700 mt-1 space-y-1">
+                      <li>• Befejezett feladatok: {selectedParticipant.completed_exercises}</li>
+                      <li>• Összpontszám: {selectedParticipant.total_score}</li>
+                      <li>• Teljesítmény: {selectedParticipant.percentage || 0}%</li>
+                      <li>• Utolsó aktivitás: {selectedParticipant.last_seen ? new Date(selectedParticipant.last_seen).toLocaleString('hu-HU') : 'Ismeretlen'}</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2 p-3 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setSelectedParticipant(null)}
+                className="px-4 py-2 text-gray-700 bg-white hover:bg-gray-100 rounded border border-gray-300 text-sm"
+              >
+                Bezárás
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

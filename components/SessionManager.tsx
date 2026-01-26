@@ -150,7 +150,7 @@ const SessionManager: React.FC = () => {
   };
 
   const enterSession = async (code: string) => {
-    // Instead of opening student interface, show session details
+    // Open session details for evaluation instead of student interface
     setSelectedSessionForDetails(code);
   };
 
@@ -408,7 +408,7 @@ const SessionManager: React.FC = () => {
                           onClick={() => enterSession(session.code)}
                           className="px-2 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded text-xs"
                         >
-                          🚪 Belépés
+                          📊 Értékelés
                         </button>
                         <button
                           onClick={() => setSelectedSessionForDetails(session.code)}
