@@ -97,39 +97,19 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           ctx.setLineDash([5, 5]);
           ctx.strokeRect(leftW, topH, canvas.width - leftW - rightW, canvas.height - topH - bottomH);
           
-          // Draw resize handles
+          // Draw resize handles - only edge handles
           const handleSize = 12;
           ctx.fillStyle = '#3b82f6';
           ctx.strokeStyle = '#1d4ed8';
           ctx.lineWidth = 2;
           ctx.setLineDash([]);
           
-          // Corner handles
           const cropX = leftW;
           const cropY = topH;
           const cropW = canvas.width - leftW - rightW;
           const cropH = canvas.height - topH - bottomH;
           
-          // Top-left
-          ctx.fillRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
-          
-          // Top-right
-          ctx.fillRect(cropX + cropW - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX + cropW - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
-          
-          // Bottom-left
-          ctx.fillRect(cropX - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
-          
-          // Bottom-right
-          ctx.fillRect(cropX + cropW - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
-          ctx.strokeRect(cropX + cropW - handleSize/2, cropY + cropH - handleSize/2, handleSize, handleSize);
-          
-          // Edge handles
-          ctx.fillStyle = '#10b981';
-          ctx.strokeStyle = '#059669';
-          
+          // Edge handles only
           // Top edge
           ctx.fillRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
           ctx.strokeRect(cropX + cropW/2 - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
@@ -167,16 +147,9 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
     const cropW = canvas.width - leftW - rightW;
     const cropH = canvas.height - topH - bottomH;
     
-    const handleSize = 12;
-    const tolerance = handleSize;
+    const tolerance = 15;
     
-    // Check corner handles
-    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top-left';
-    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top-right';
-    if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom-left';
-    if (Math.abs(canvasX - (cropX + cropW)) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom-right';
-    
-    // Check edge handles
+    // Check edge handles only (no corners)
     if (Math.abs(canvasX - (cropX + cropW/2)) < tolerance && Math.abs(canvasY - cropY) < tolerance) return 'top';
     if (Math.abs(canvasX - (cropX + cropW/2)) < tolerance && Math.abs(canvasY - (cropY + cropH)) < tolerance) return 'bottom';
     if (Math.abs(canvasX - cropX) < tolerance && Math.abs(canvasY - (cropY + cropH/2)) < tolerance) return 'left';
@@ -223,22 +196,6 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
         case 'right':
           newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
           break;
-        case 'top-left':
-          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
-          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
-          break;
-        case 'top-right':
-          newCrop.top = Math.max(0, Math.min(45, crop.top + deltaYPercent));
-          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
-          break;
-        case 'bottom-left':
-          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
-          newCrop.left = Math.max(0, Math.min(45, crop.left + deltaXPercent));
-          break;
-        case 'bottom-right':
-          newCrop.bottom = Math.max(0, Math.min(45, crop.bottom - deltaYPercent));
-          newCrop.right = Math.max(0, Math.min(45, crop.right - deltaXPercent));
-          break;
       }
       
       setCrop(newCrop);
@@ -251,11 +208,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
           'top': 'n-resize',
           'bottom': 'n-resize',
           'left': 'w-resize',
-          'right': 'w-resize',
-          'top-left': 'nw-resize',
-          'top-right': 'ne-resize',
-          'bottom-left': 'sw-resize',
-          'bottom-right': 'se-resize'
+          'right': 'w-resize'
         };
         canvasRef.current!.style.cursor = cursors[handle] || 'default';
       } else {
@@ -612,7 +565,7 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                 {/* Left side - Image */}
                                 <div className="flex-1">
                                     <p className="text-xs text-slate-600 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
-                                        ⚠️ Sötétített rész eltávolításra kerül. <strong>Húzd a kék sarkokat</strong> vagy <strong>zöld oldalakat</strong> a vágási terület beállításához.
+                                        ⚠️ Sötétített rész eltávolításra kerül. <strong>Húzd a kék fogantyúkat</strong> a vágási terület beállításához.
                                     </p>
                                     <canvas 
                                         ref={canvasRef} 
@@ -630,9 +583,9 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                     <div className="bg-blue-50 p-3 rounded border border-blue-200">
                                         <h4 className="text-sm font-bold text-blue-800 mb-2">🖱️ Interaktív vágás</h4>
                                         <ul className="text-xs text-blue-700 space-y-1">
-                                            <li>• <span className="font-medium">Kék sarkok</span>: átlós méretezés</li>
-                                            <li>• <span className="font-medium">Zöld oldalak</span>: egyenes vágás</li>
-                                            <li>• Húzd a fogantyúkat a vágási terület beállításához</li>
+                                            <li>• Húzd a <span className="font-medium">kék fogantyúkat</span> a vágási terület beállításához</li>
+                                            <li>• <strong>Fent/Lent</strong>: függőleges vágás</li>
+                                            <li>• <strong>Jobb/Bal</strong>: vízszintes vágás</li>
                                         </ul>
                                     </div>
 
@@ -655,37 +608,6 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                                     />
                                                 </div>
                                             ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Quick presets */}
-                                    <div className="bg-purple-50 p-3 rounded border border-purple-200">
-                                        <h4 className="text-sm font-bold text-purple-800 mb-2">⚡ Gyors beállítások</h4>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button
-                                                onClick={() => setCrop({ top: 10, bottom: 10, left: 5, right: 5 })}
-                                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-medium"
-                                            >
-                                                📄 Dokumentum
-                                            </button>
-                                            <button
-                                                onClick={() => setCrop({ top: 5, bottom: 5, left: 10, right: 10 })}
-                                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-medium"
-                                            >
-                                                📱 Tájkép
-                                            </button>
-                                            <button
-                                                onClick={() => setCrop({ top: 15, bottom: 5, left: 5, right: 5 })}
-                                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-medium"
-                                            >
-                                                📋 Fejléc vágás
-                                            </button>
-                                            <button
-                                                onClick={() => setCrop({ top: 5, bottom: 15, left: 5, right: 5 })}
-                                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-medium"
-                                            >
-                                                📝 Lábléc vágás
-                                            </button>
                                         </div>
                                     </div>
 
