@@ -660,23 +660,53 @@ export default async function handler(req, res) {
         
         const { data: session, error } = await supabase
           .from('teacher_sessions')
-          .select('full_session_json, json_uploaded_at')
+          .select('full_session_json, json_uploaded_at, exercises, subject, created_at, id')
           .eq('session_code', sessionCode)
           .eq('is_active', true)
           .single();
 
-        if (error || !session || !session.full_session_json) {
-          console.error('Session JSON not found:', error);
+        if (error || !session) {
+          console.error('Session not found:', error);
           return res.status(404).json({
-            error: 'Session JSON not found',
-            hint: 'Session may not have been uploaded to Drive yet'
+            error: 'Session not found',
+            hint: 'Session may not exist or may have expired'
           });
         }
 
-        console.log('✅ Session JSON found in database (Drive fallback)');
+        let sessionJson;
         
-        // Return the full session JSON
-        return res.status(200).json(session.full_session_json);
+        // Try to use full_session_json first, fallback to exercises
+        if (session.full_session_json) {
+          console.log('✅ Using stored full_session_json (Drive fallback)');
+          sessionJson = session.full_session_json;
+        } else if (session.exercises) {
+          console.log('⚠️ full_session_json not found, creating from exercises (Drive fallback)');
+          // Create session JSON from exercises data
+          sessionJson = {
+            sessionCode: sessionCode,
+            subject: session.subject || 'general',
+            createdAt: session.created_at,
+            exercises: session.exercises,
+            metadata: {
+              version: '1.0.0',
+              exportedBy: 'Okos Gyakorló API',
+              totalExercises: session.exercises.length,
+              estimatedTime: session.exercises.length * 3,
+              sessionId: session.id
+            }
+          };
+        } else {
+          console.error('No exercise data found (Drive fallback)');
+          return res.status(404).json({
+            error: 'No exercise data found',
+            hint: 'Session may be corrupted or incomplete'
+          });
+        }
+
+        console.log('✅ Session JSON prepared for Drive download');
+        
+        // Return the session JSON
+        return res.status(200).json(sessionJson);
 
       } catch (err) {
         console.error('Google Drive download error:', err);
@@ -712,23 +742,53 @@ export default async function handler(req, res) {
         
         const { data: session, error } = await supabase
           .from('teacher_sessions')
-          .select('full_session_json, json_uploaded_at')
+          .select('full_session_json, json_uploaded_at, exercises, subject, created_at, id')
           .eq('session_code', sessionCode)
           .eq('is_active', true)
           .single();
 
-        if (error || !session || !session.full_session_json) {
-          console.error('Session JSON not found:', error);
+        if (error || !session) {
+          console.error('Session not found:', error);
           return res.status(404).json({
-            error: 'Session JSON not found',
-            hint: 'Session may not have been uploaded yet'
+            error: 'Session not found',
+            hint: 'Session may not exist or may have expired'
           });
         }
 
-        console.log('✅ Session JSON found in database');
+        let sessionJson;
         
-        // Return the full session JSON
-        return res.status(200).json(session.full_session_json);
+        // Try to use full_session_json first, fallback to exercises
+        if (session.full_session_json) {
+          console.log('✅ Using stored full_session_json');
+          sessionJson = session.full_session_json;
+        } else if (session.exercises) {
+          console.log('⚠️ full_session_json not found, creating from exercises');
+          // Create session JSON from exercises data
+          sessionJson = {
+            sessionCode: sessionCode,
+            subject: session.subject || 'general',
+            createdAt: session.created_at,
+            exercises: session.exercises,
+            metadata: {
+              version: '1.0.0',
+              exportedBy: 'Okos Gyakorló API',
+              totalExercises: session.exercises.length,
+              estimatedTime: session.exercises.length * 3,
+              sessionId: session.id
+            }
+          };
+        } else {
+          console.error('No exercise data found');
+          return res.status(404).json({
+            error: 'No exercise data found',
+            hint: 'Session may be corrupted or incomplete'
+          });
+        }
+
+        console.log('✅ Session JSON prepared for download');
+        
+        // Return the session JSON
+        return res.status(200).json(sessionJson);
         
       } catch (err) {
         console.error('JSON download error:', err);
@@ -859,7 +919,20 @@ export default async function handler(req, res) {
           class_name: className.trim(),
           max_possible_score: calculatedMaxScore,
           is_active: true,
-          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 60 minutes
+          full_session_json: fullExercises ? {
+            sessionCode: code.toUpperCase(),
+            subject: subject,
+            createdAt: new Date().toISOString(),
+            exercises: fullExercises,
+            metadata: {
+              version: '1.0.0',
+              exportedBy: 'Okos Gyakorló API',
+              totalExercises: fullExercises.length,
+              estimatedTime: fullExercises.length * 3
+            }
+          } : null, // Store full session JSON if available
+          json_uploaded_at: fullExercises ? new Date().toISOString() : null
         };
 
         console.log('💾 Inserting session with', exercises.length, 'exercises, subject:', subject, 'class:', className.trim());
