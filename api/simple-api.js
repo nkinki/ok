@@ -728,8 +728,8 @@ export default async function handler(req, res) {
           .update({
             completed_exercises: Math.max(summary.completedExercises || 0, currentParticipant?.completed_exercises || 0),
             total_score: newTotalScore,
-            // percentage: percentage,  // Will be enabled after DB migration
-            // performance_category: performanceCategory,  // Will be enabled after DB migration
+            percentage: percentage,  // Re-enabled after DB migration
+            performance_category: performanceCategory,  // Re-enabled after DB migration
             results: newResults,
             last_seen: new Date().toISOString(),
             is_online: summary.completedExercises >= summary.totalExercises ? false : true // Mark as completed only when all exercises done
