@@ -439,15 +439,46 @@ export default async function handler(req, res) {
           });
         }
 
+        // Get current participant data first
+        const { data: currentParticipant, error: fetchError } = await supabase
+          .from('session_participants')
+          .select('total_score, results, completed_exercises')
+          .eq('id', studentId)
+          .single();
+
+        if (fetchError) {
+          console.error('Failed to fetch current participant data:', fetchError);
+          return res.status(500).json({ 
+            error: 'Hiba a résztvevő adatok lekérésekor',
+            details: fetchError.message
+          });
+        }
+
+        // Merge results: add new results to existing ones
+        const existingResults = currentParticipant?.results || [];
+        const newResults = [...existingResults, ...results];
+        
+        // Calculate cumulative score: add new score to existing score
+        const currentScore = currentParticipant?.total_score || 0;
+        const newTotalScore = currentScore + (summary.totalScore || 0);
+        
+        console.log('📊 Score calculation:', {
+          currentScore,
+          newScore: summary.totalScore,
+          newTotalScore,
+          existingResultsCount: existingResults.length,
+          newResultsCount: results.length
+        });
+
         // Update participant results
         const { error: updateError } = await supabase
           .from('session_participants')
           .update({
-            completed_exercises: summary.completedExercises,
-            total_score: summary.totalScore,
-            results: results,
+            completed_exercises: Math.max(summary.completedExercises || 0, currentParticipant?.completed_exercises || 0),
+            total_score: newTotalScore,
+            results: newResults,
             last_seen: new Date().toISOString(),
-            is_online: false // Mark as completed
+            is_online: summary.completedExercises >= summary.totalExercises ? false : true // Mark as completed only when all exercises done
           })
           .eq('id', studentId);
 

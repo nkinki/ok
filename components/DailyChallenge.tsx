@@ -183,7 +183,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             sessionCode: currentSessionCode,
             totalExercises: playlist.length,
             completedExercises: exerciseIndex + 1,
-            totalScore: score,
+            totalScore: score, // Only the current exercise score, API will accumulate
             completedAt: new Date().toISOString()
           }
         })
@@ -687,10 +687,41 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       if (currentIndex < playlist.length - 1) {
           setCurrentIndex(prev => prev + 1);
       } else {
-          // Session completed - save final summary and send results to API
+          // Session completed - just mark as completed, don't resend all results
           if (student && currentSessionCode) {
             try {
-              // Prepare results for API
+              // Just mark the session as completed for this student
+              if (student.id && student.id !== 'offline-' && !student.id.startsWith('student_')) {
+                try {
+                  const completionResponse = await fetch(`/api/simple-api/sessions/${currentSessionCode}/results`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      studentId: student.id,
+                      results: [], // Empty results, just marking completion
+                      summary: {
+                        studentName: student.name,
+                        studentClass: student.className,
+                        sessionCode: currentSessionCode,
+                        totalExercises: playlist.length,
+                        completedExercises: playlist.length, // All exercises completed
+                        totalScore: 0, // Don't add any more score
+                        completedAt: new Date().toISOString()
+                      }
+                    })
+                  });
+                  
+                  if (completionResponse.ok) {
+                    console.log('✅ Session completion marked successfully');
+                  }
+                } catch (error) {
+                  console.warn('⚠️ Failed to mark session completion:', error);
+                }
+              }
+              
+              // Also save locally (fallback)
               const sessionKey = `session_${currentSessionCode}_results`;
               const existingResults = localStorage.getItem(sessionKey);
               const results = existingResults ? JSON.parse(existingResults) : [];
@@ -700,37 +731,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 studentClass: student.className,
                 sessionCode: currentSessionCode,
                 totalExercises: playlist.length,
-                completedExercises: completedCount + 1,
+                completedExercises: playlist.length,
                 totalScore: results.reduce((sum: number, r: any) => sum + (r.score || 0), 0),
                 completedAt: new Date().toISOString()
               };
               
-              // Send results to API for teacher statistics
-              if (student.id && student.id !== 'offline-' && !student.id.startsWith('student_')) {
-                try {
-                  const resultResponse = await fetch(`/api/simple-api/sessions/${currentSessionCode}/results`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                      studentId: student.id,
-                      results: results,
-                      summary: summary
-                    })
-                  });
-                  
-                  if (resultResponse.ok) {
-                    console.log('📊 Results sent to teacher successfully');
-                  } else {
-                    console.warn('⚠️ Failed to send results to teacher');
-                  }
-                } catch (apiError) {
-                  console.warn('⚠️ API result submission failed:', apiError);
-                }
-              }
-              
-              // Also save locally (fallback)
               const summaryKey = `session_${currentSessionCode}_summary`;
               const existingSummaries = localStorage.getItem(summaryKey);
               const summaries = existingSummaries ? JSON.parse(existingSummaries) : [];
