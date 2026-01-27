@@ -157,43 +157,56 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
   // Submit exercise result to API
   const submitExerciseResult = async (exerciseIndex: number, isCorrect: boolean, score: number, timeSpent: number, answer?: any) => {
-    if (!currentSessionCode || !student?.id) return;
+    console.log('📊 submitExerciseResult called with:', { exerciseIndex, isCorrect, score, timeSpent, hasAnswer: !!answer });
+    
+    if (!currentSessionCode || !student?.id) {
+      console.warn('⚠️ Cannot submit result: missing sessionCode or student.id', { currentSessionCode, studentId: student?.id });
+      return;
+    }
 
     try {
       console.log('📊 Submitting result to API:', { studentId: student.id, exerciseIndex, isCorrect, score, timeSpent });
+      
+      const payload = {
+        studentId: student.id,
+        results: [{
+          exerciseIndex,
+          isCorrect,
+          score,
+          timeSpent,
+          answer,
+          completedAt: new Date().toISOString()
+        }],
+        summary: {
+          studentName: student.name,
+          studentClass: student.className,
+          sessionCode: currentSessionCode,
+          totalExercises: playlist.length,
+          completedExercises: exerciseIndex + 1,
+          totalScore: score, // Only the current exercise score, API will accumulate
+          completedAt: new Date().toISOString()
+        }
+      };
+      
+      console.log('📤 API payload:', JSON.stringify(payload, null, 2));
       
       const response = await fetch(`/api/simple-api/sessions/${currentSessionCode}/results`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          studentId: student.id,
-          results: [{
-            exerciseIndex,
-            isCorrect,
-            score,
-            timeSpent,
-            answer,
-            completedAt: new Date().toISOString()
-          }],
-          summary: {
-            studentName: student.name,
-            studentClass: student.className,
-            sessionCode: currentSessionCode,
-            totalExercises: playlist.length,
-            completedExercises: exerciseIndex + 1,
-            totalScore: score, // Only the current exercise score, API will accumulate
-            completedAt: new Date().toISOString()
-          }
-        })
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
         console.log('✅ Result submitted to API successfully');
+        const responseData = await response.json();
+        console.log('📊 API response:', responseData);
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.warn('⚠️ API result submission failed:', errorData.error || 'Unknown error');
+        console.warn('📊 Response status:', response.status);
+        console.warn('📊 Error details:', errorData);
       }
     } catch (error) {
       console.warn('❌ Failed to submit result to API:', error);
@@ -611,6 +624,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   };
 
   const handleExerciseComplete = async (isCorrect: boolean = false, score: number = 0, timeSpent: number = 0, answer?: any) => {
+      console.log('🎯 handleExerciseComplete called with:', { isCorrect, score, timeSpent, hasAnswer: !!answer });
+      
       // Skip saving in preview mode
       if (isPreviewMode) {
         console.log('🔍 Preview mode: skipping result save');
@@ -626,6 +641,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       }
 
       // Submit result to API if connected
+      console.log('📤 About to submit exercise result:', { currentIndex, isCorrect, score, timeSpent });
       await submitExerciseResult(currentIndex, isCorrect, score, timeSpent, answer);
       
       setCompletedCount(prev => prev + 1);
