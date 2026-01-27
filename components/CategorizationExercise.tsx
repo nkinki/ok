@@ -101,6 +101,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
     if (onNext) {
       const timeSpent = Math.floor((new Date().getTime() - exerciseStartTime.getTime()) / 1000);
       const correctCount = Object.values(results).filter(Boolean).length;
+      const totalScore = correctCount * 10; // 10 points per correct item
       const isCorrect = correctCount === items.length;
       
       const categorizationAnswer = {
@@ -115,7 +116,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
         correctItems: correctCount
       };
       
-      onNext(isCorrect, correctCount, timeSpent, categorizationAnswer);
+      onNext(isCorrect, totalScore, timeSpent, categorizationAnswer);
     }
   };
 

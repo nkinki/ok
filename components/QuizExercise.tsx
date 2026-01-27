@@ -78,8 +78,9 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
         }
     }
 
+    // Award 10 points per correct answer (question-based scoring)
     if (isCorrect) {
-      setScore(prev => prev + 1);
+      setScore(prev => prev + 10);
     }
     
     // Calculate response time and call onAnswer callback
@@ -111,7 +112,7 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
           }))
         };
         
-        const isCorrect = score === content.questions.length;
+        const isCorrect = score === content.questions.length * 10;
         onNext(isCorrect, score, totalTimeSpent, quizAnswer);
       }
     }
@@ -128,7 +129,7 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
         <h3 className="text-2xl font-bold text-brand-900 mb-2">Szép munka!</h3>
         <p className="text-gray-600 mb-8">
           Sikeresen befejezted a feladatsort.<br/>
-          Eredményed: <strong className="text-brand-600">{score} / {content.questions.length}</strong>
+          Eredményed: <strong className="text-brand-600">{score} / {content.questions.length * 10}</strong> pont
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
             <button 
@@ -152,7 +153,7 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
                         }))
                       };
                       
-                      const isCorrect = score === content.questions.length;
+                      const isCorrect = score === content.questions.length * 10;
                       onNext(isCorrect, score, totalTimeSpent, quizAnswer);
                     }} 
                     className="bg-brand-600 text-white px-8 py-3 rounded-full font-bold hover:bg-brand-700 transition-colors shadow-lg flex items-center gap-2"

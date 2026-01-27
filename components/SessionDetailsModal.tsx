@@ -23,6 +23,7 @@ interface SessionDetails {
   maxPossibleScore: number;
   participantCount: number;
   averagePercentage: number;
+  totalPossibleQuestions?: number; // Add this field
   performanceDistribution: {
     excellent: number;
     good: number;
@@ -67,16 +68,37 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
         participants = participantsData.participants || [];
       }
       
-      // Calculate performance stats
+      // Calculate performance stats with new scoring system
       const totalParticipants = participants.length;
+      
+      // Calculate total possible questions across all exercises
+      const totalPossibleQuestions = sessionData.session.exercises.reduce((total, exercise) => {
+        if (exercise.type === 'QUIZ') {
+          return total + (exercise.content?.questions?.length || 0);
+        } else if (exercise.type === 'MATCHING') {
+          return total + (exercise.content?.pairs?.length || 0);
+        } else if (exercise.type === 'CATEGORIZATION') {
+          return total + (exercise.content?.items?.length || 0);
+        }
+        return total;
+      }, 0);
+      
       const averagePercentage = totalParticipants > 0 
-        ? Math.round(participants.reduce((sum, p) => sum + (p.percentage || (p.total_score / (sessionData.session.exerciseCount * 10) * 100) || 0), 0) / totalParticipants)
+        ? Math.round(participants.reduce((sum, p) => {
+            // Calculate percentage based on total questions, not exercises
+            const percentage = totalPossibleQuestions > 0 
+              ? Math.round((p.total_score / (totalPossibleQuestions * 10)) * 100)
+              : 0;
+            return sum + percentage;
+          }, 0) / totalParticipants)
         : 0;
         
-      // Calculate percentage for each participant if not already calculated
+      // Calculate percentage for each participant based on total questions
       const participantsWithPercentage = participants.map(p => ({
         ...p,
-        percentage: p.percentage || (sessionData.session.exerciseCount > 0 ? Math.round((p.total_score / (sessionData.session.exerciseCount * 10)) * 100) : 0)
+        percentage: totalPossibleQuestions > 0 
+          ? Math.round((p.total_score / (totalPossibleQuestions * 10)) * 100) 
+          : 0
       }));
         
       const performanceDistribution = {
@@ -92,9 +114,10 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
         subject: 'general', // Default, could be enhanced
         className: 'N/A', // Could be enhanced
         exerciseCount: sessionData.session.exerciseCount,
-        maxPossibleScore: sessionData.session.exerciseCount * 10, // Assuming 10 points per exercise
+        maxPossibleScore: totalPossibleQuestions * 10, // 10 points per question
         participantCount: totalParticipants,
         averagePercentage,
+        totalPossibleQuestions, // Add this for display
         performanceDistribution,
         isActive: sessionData.session.isActive,
         createdAt: sessionData.session.createdAt,
@@ -180,7 +203,10 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
               📊 {sessionDetails.code} • {sessionDetails.participantCount} résztvevő • {sessionDetails.averagePercentage}% átlag
             </h2>
             <p className="text-xs text-gray-600">
-              {sessionDetails.exerciseCount} feladat • {sessionDetails.isActive ? '🟢 Aktív' : '🔴 Inaktív'}
+              {sessionDetails.totalPossibleQuestions ? 
+                `${sessionDetails.totalPossibleQuestions} kérdés • ${sessionDetails.exerciseCount} feladat • ${sessionDetails.isActive ? '🟢 Aktív' : '🔴 Inaktív'}` :
+                `${sessionDetails.exerciseCount} feladat • ${sessionDetails.isActive ? '🟢 Aktív' : '🔴 Inaktív'}`
+              }
             </p>
           </div>
           <button

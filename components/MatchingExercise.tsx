@@ -74,6 +74,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
     if (onNext) {
       const timeSpent = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
       const correctCount = content.pairs.filter(p => matches[p.id] === p.id).length;
+      const totalScore = correctCount * 10; // 10 points per correct pair
       const isCorrect = correctCount === content.pairs.length;
       
       const matchingAnswer = {
@@ -87,7 +88,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
         correctPairs: correctCount
       };
       
-      onNext(isCorrect, correctCount, timeSpent, matchingAnswer);
+      onNext(isCorrect, totalScore, timeSpent, matchingAnswer);
     }
   };
 

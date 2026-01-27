@@ -163,6 +163,18 @@ export default async function handler(req, res) {
 
         const participantCount = participantError ? 0 : (participants?.length || 0);
 
+        // Calculate total questions across all exercises for question-based scoring
+        const totalQuestions = data.exercises.reduce((total, exercise) => {
+          if (exercise.type === 'QUIZ') {
+            return total + (exercise.content?.questions?.length || 0);
+          } else if (exercise.type === 'MATCHING') {
+            return total + (exercise.content?.pairs?.length || 0);
+          } else if (exercise.type === 'CATEGORIZATION') {
+            return total + (exercise.content?.items?.length || 0);
+          }
+          return total;
+        }, 0);
+
         return res.status(200).json({
           exists: true,
           isActive: data.is_active,
@@ -170,10 +182,12 @@ export default async function handler(req, res) {
             id: data.id,
             code: data.session_code,
             exerciseCount: data.exercises.length,
+            totalQuestions: totalQuestions, // Add total questions for question-based scoring
             participantCount: participantCount,
             createdAt: data.created_at,
             expiresAt: data.expires_at,
-            updatedAt: data.updated_at
+            updatedAt: data.updated_at,
+            exercises: data.exercises // Include exercises for question counting
           }
         });
         
@@ -1536,8 +1550,21 @@ export default async function handler(req, res) {
           });
         }
 
-        // Calculate performance categories and percentages
-        const maxPossibleScore = session.exercises.length * 10; // Assuming 10 points per exercise
+        // Calculate performance categories and percentages based on questions, not exercises
+        // Count total questions across all exercises
+        const totalQuestions = session.exercises.reduce((total, exercise) => {
+          if (exercise.type === 'QUIZ') {
+            return total + (exercise.content?.questions?.length || 0);
+          } else if (exercise.type === 'MATCHING') {
+            return total + (exercise.content?.pairs?.length || 0);
+          } else if (exercise.type === 'CATEGORIZATION') {
+            return total + (exercise.content?.items?.length || 0);
+          }
+          return total;
+        }, 0);
+        
+        const maxPossibleScore = totalQuestions * 10; // 10 points per question
+        
         const enhancedParticipants = (participants || []).map(participant => {
           const percentage = maxPossibleScore > 0 
             ? Math.round((participant.total_score / maxPossibleScore) * 100)
@@ -1560,6 +1587,7 @@ export default async function handler(req, res) {
           sessionCode: sessionCode,
           sessionId: session.id,
           exerciseCount: session.exercises.length,
+          totalQuestions: totalQuestions, // Add total questions count
           maxPossibleScore,
           participants: enhancedParticipants,
           participantCount: enhancedParticipants.length,
