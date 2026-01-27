@@ -61,6 +61,105 @@ export default async function handler(req, res) {
       }
     }
 
+    // Debug percentage calculation endpoint
+    if (method === 'POST' && path.includes('/debug/percentage')) {
+      const { sessionCode, studentId, score } = req.body;
+
+      if (!sessionCode || !studentId || score === undefined) {
+        return res.status(400).json({ error: 'sessionCode, studentId és score megadása kötelező' });
+      }
+
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Get session data for debugging
+        const { data: sessionData, error: sessionDataError } = await supabase
+          .from('teacher_sessions')
+          .select('exercises, full_session_json')
+          .eq('session_code', sessionCode.toUpperCase())
+          .single();
+
+        const debugInfo = {
+          sessionFound: !!sessionData,
+          sessionError: sessionDataError?.message || null,
+          hasExercises: !!sessionData?.exercises,
+          hasFullJson: !!sessionData?.full_session_json,
+          exerciseCount: sessionData?.exercises?.length || 0,
+          fullJsonExerciseCount: sessionData?.full_session_json?.exercises?.length || 0
+        };
+
+        let totalQuestions = 0;
+        let exercisesToAnalyze = null;
+        let dataSource = 'none';
+
+        // Use full_session_json if available, otherwise use exercises
+        if (sessionData?.full_session_json?.exercises) {
+          dataSource = 'full_session_json';
+          exercisesToAnalyze = sessionData.full_session_json.exercises;
+        } else if (sessionData?.exercises) {
+          dataSource = 'exercises';
+          exercisesToAnalyze = sessionData.exercises;
+        }
+
+        const exerciseAnalysis = [];
+
+        if (exercisesToAnalyze) {
+          exercisesToAnalyze.forEach((exercise, index) => {
+            let exerciseQuestions = 0;
+            if (exercise.type === 'QUIZ') {
+              exerciseQuestions = exercise.content?.questions?.length || 0;
+            } else if (exercise.type === 'MATCHING') {
+              exerciseQuestions = exercise.content?.pairs?.length || 0;
+            } else if (exercise.type === 'CATEGORIZATION') {
+              exerciseQuestions = exercise.content?.items?.length || 0;
+            }
+            
+            exerciseAnalysis.push({
+              index: index + 1,
+              type: exercise.type,
+              title: exercise.title?.substring(0, 50) || 'No title',
+              hasContent: !!exercise.content,
+              contentKeys: exercise.content ? Object.keys(exercise.content) : [],
+              questionCount: exerciseQuestions
+            });
+            
+            totalQuestions += exerciseQuestions;
+          });
+        }
+
+        // Calculate percentage
+        const maxPossibleScore = totalQuestions * 10;
+        const percentage = maxPossibleScore > 0 ? Math.round((score / maxPossibleScore) * 100) : 0;
+
+        return res.status(200).json({
+          debug: debugInfo,
+          dataSource: dataSource,
+          exerciseAnalysis: exerciseAnalysis,
+          calculation: {
+            totalQuestions: totalQuestions,
+            maxPossibleScore: maxPossibleScore,
+            currentScore: score,
+            percentage: percentage,
+            formula: `(${score} / ${maxPossibleScore}) * 100 = ${percentage}%`
+          }
+        });
+
+      } catch (err) {
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Health check
     if (method === 'GET' && (path === '/api/test' || path === '/api/simple-api')) {
       return res.status(200).json({ 
@@ -422,6 +521,13 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Student ID, eredmények és összesítő megadása kötelező' });
       }
 
+      // Add debug flag to response
+      let debugInfo = {
+        step: 'starting',
+        sessionCode: sessionCode,
+        studentId: studentId
+      };
+
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -443,13 +549,21 @@ export default async function handler(req, res) {
           .single();
 
         if (sessionError || !session) {
+          debugInfo.step = 'session_not_found';
+          debugInfo.sessionError = sessionError?.message || 'Session not found';
           return res.status(404).json({ 
-            error: 'Munkamenet nem található vagy nem aktív'
+            error: 'Munkamenet nem található vagy nem aktív',
+            debug: debugInfo
           });
         }
 
+        debugInfo.step = 'session_found';
+        debugInfo.sessionId = session.id;
+
         // Get current participant data first
         console.log('🔍 Looking for participant with ID:', studentId);
+        debugInfo.step = 'looking_for_participant';
+        
         let { data: currentParticipant, error: fetchError } = await supabase
           .from('session_participants')
           .select('total_score, results, completed_exercises')
@@ -464,12 +578,17 @@ export default async function handler(req, res) {
           existingResults: currentParticipant?.results?.length || 0
         });
 
+        debugInfo.participantFound = !!currentParticipant;
+        debugInfo.participantError = fetchError?.message || null;
+
         if (fetchError) {
           console.error('Failed to fetch current participant data:', fetchError);
+          debugInfo.step = 'participant_lookup_failed';
           
           // If participant not found, try to find by name and session
           if (fetchError.code === 'PGRST116') { // No rows returned
             console.log('🔍 Participant not found by ID, trying to find by name and session...');
+            debugInfo.step = 'trying_fallback_lookup';
             
             // Get session first
             const { data: session } = await supabase
@@ -492,18 +611,24 @@ export default async function handler(req, res) {
                 // Use the found participant
                 currentParticipant = participantByName;
                 studentId = participantByName.id; // Update studentId for the update query
+                debugInfo.step = 'fallback_lookup_success';
+                debugInfo.fallbackStudentId = participantByName.id;
               } else {
                 console.error('❌ Participant not found by name either');
+                debugInfo.step = 'fallback_lookup_failed';
                 return res.status(404).json({ 
                   error: 'Résztvevő nem található',
-                  details: 'A diák nincs regisztrálva ehhez a munkamenethez'
+                  details: 'A diák nincs regisztrálva ehhez a munkamenethez',
+                  debug: debugInfo
                 });
               }
             }
           } else {
+            debugInfo.step = 'participant_error';
             return res.status(500).json({ 
               error: 'Hiba a résztvevő adatok lekérésekor',
-              details: fetchError.message
+              details: fetchError.message,
+              debug: debugInfo
             });
           }
         }
@@ -524,11 +649,77 @@ export default async function handler(req, res) {
           newResultsCount: results.length
         });
 
-        // Update participant results
+        // Get session data to calculate total questions for percentage
+        // Try full_session_json first, then fallback to exercises
+        const { data: sessionData, error: sessionDataError } = await supabase
+          .from('teacher_sessions')
+          .select('exercises, full_session_json')
+          .eq('session_code', sessionCode)
+          .single();
+
+        console.log('📊 Session data for percentage calculation:', {
+          found: !!sessionData,
+          error: sessionDataError?.message || null,
+          hasFullJson: !!sessionData?.full_session_json,
+          exerciseCount: sessionData?.exercises?.length || 0
+        });
+
+        let totalQuestions = 0;
+        let exercisesToAnalyze = null;
+
+        // Use full_session_json if available, otherwise use exercises
+        if (sessionData?.full_session_json?.exercises) {
+          console.log('📊 Using full_session_json for question counting');
+          exercisesToAnalyze = sessionData.full_session_json.exercises;
+        } else if (sessionData?.exercises) {
+          console.log('📊 Using exercises field for question counting');
+          exercisesToAnalyze = sessionData.exercises;
+        } else {
+          console.error('❌ No exercise data found for percentage calculation');
+        }
+
+        if (exercisesToAnalyze) {
+          console.log('📊 Analyzing exercises for question count...');
+          exercisesToAnalyze.forEach((exercise, index) => {
+            let exerciseQuestions = 0;
+            if (exercise.type === 'QUIZ') {
+              exerciseQuestions = exercise.content?.questions?.length || 0;
+            } else if (exercise.type === 'MATCHING') {
+              exerciseQuestions = exercise.content?.pairs?.length || 0;
+            } else if (exercise.type === 'CATEGORIZATION') {
+              exerciseQuestions = exercise.content?.items?.length || 0;
+            }
+            console.log(`📊 Exercise ${index + 1} (${exercise.type}): ${exerciseQuestions} questions`);
+            totalQuestions += exerciseQuestions;
+          });
+        }
+
+        console.log('📊 Total questions in session:', totalQuestions);
+
+        // Calculate percentage based on total questions (10 points per question)
+        const maxPossibleScore = totalQuestions * 10;
+        const percentage = maxPossibleScore > 0 ? Math.round((newTotalScore / maxPossibleScore) * 100) : 0;
+        
+        console.log('📊 Percentage calculation:', {
+          newTotalScore,
+          maxPossibleScore,
+          percentage,
+          formula: `(${newTotalScore} / ${maxPossibleScore}) * 100 = ${percentage}%`
+        });
+
+        // Determine performance category
+        let performanceCategory = 'poor';
+        if (percentage >= 90) performanceCategory = 'excellent';
+        else if (percentage >= 75) performanceCategory = 'good';
+        else if (percentage >= 60) performanceCategory = 'average';
+
+        // Update participant results (temporarily without percentage to test)
         console.log('💾 Updating participant with:', {
           studentId,
           completedExercises: Math.max(summary.completedExercises || 0, currentParticipant?.completed_exercises || 0),
           newTotalScore,
+          percentage,
+          performanceCategory,
           newResultsCount: newResults.length
         });
         
@@ -537,6 +728,8 @@ export default async function handler(req, res) {
           .update({
             completed_exercises: Math.max(summary.completedExercises || 0, currentParticipant?.completed_exercises || 0),
             total_score: newTotalScore,
+            // percentage: percentage,  // Temporarily commented out
+            // performance_category: performanceCategory,  // Temporarily commented out
             results: newResults,
             last_seen: new Date().toISOString(),
             is_online: summary.completedExercises >= summary.totalExercises ? false : true // Mark as completed only when all exercises done
@@ -555,7 +748,17 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
           success: true,
-          message: 'Eredmények sikeresen elmentve!'
+          message: 'Eredmények sikeresen elmentve!',
+          debug: {
+            ...debugInfo,
+            step: 'completed',
+            totalQuestions: totalQuestions,
+            maxPossibleScore: maxPossibleScore,
+            newTotalScore: newTotalScore,
+            calculatedPercentage: percentage,
+            performanceCategory: performanceCategory,
+            dataSource: sessionData?.full_session_json ? 'full_session_json' : 'exercises'
+          }
         });
 
       } catch (err) {
@@ -691,7 +894,10 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        // Store the full session JSON in the database
+        // Store the full session JSON in the database (this OVERWRITES any previous data)
+        console.log('💾 Storing full session JSON with images in database...');
+        console.log('🖼️ Session JSON contains', sessionJson.exercises?.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length || 0, 'exercises with images');
+        
         const { error: updateError } = await supabase
           .from('teacher_sessions')
           .update({
@@ -852,9 +1058,11 @@ export default async function handler(req, res) {
         // Try to use full_session_json first, fallback to exercises
         if (session.full_session_json) {
           console.log('✅ Using stored full_session_json');
+          console.log('🖼️ Full session JSON contains', session.full_session_json.exercises?.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length || 0, 'exercises with images');
           sessionJson = session.full_session_json;
         } else if (session.exercises) {
           console.log('⚠️ full_session_json not found, creating from exercises');
+          console.log('🖼️ Fallback exercises contain', session.exercises.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length || 0, 'exercises with images');
           // Create session JSON from exercises data
           sessionJson = {
             sessionCode: sessionCode,

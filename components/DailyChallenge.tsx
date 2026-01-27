@@ -164,6 +164,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       return;
     }
 
+    // Check if student ID looks like an offline ID
+    if (student.id.startsWith('student_') || student.id.startsWith('offline-')) {
+      console.error('❌ Student has offline ID, cannot submit to API:', student.id);
+      console.error('❌ This indicates session join failed or student ID was not updated properly');
+      return;
+    }
+
     try {
       console.log('📊 Submitting result to API:', { studentId: student.id, exerciseIndex, isCorrect, score, timeSpent });
       
@@ -365,19 +372,30 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 const joinData = await joinResponse.json();
                 console.log('✅ Joined session:', joinData);
                 
-                // Store student ID for later use and session metadata
-                if (studentData && joinData.student?.id) {
+                // CRITICAL: Update student ID immediately after successful join
+                if (joinData.student?.id) {
+                  console.log('🆔 Updating student ID from', student?.id, 'to', joinData.student.id);
                   setStudent(prev => prev ? { 
                     ...prev, 
                     id: joinData.student.id,
                     sessionId: joinData.student.sessionId 
                   } : null);
+                  
+                  // Also update the studentData parameter for immediate use
+                  studentData.id = joinData.student.id;
+                  console.log('✅ Student ID updated successfully:', joinData.student.id);
+                } else {
+                  console.error('❌ No student ID returned from join response');
                 }
 
                 // Start heartbeat to keep connection alive
                 if (joinData.student?.id) {
                   startHeartbeat(code.toUpperCase(), joinData.student.id);
                 }
+              } else {
+                console.error('❌ Session join failed:', joinResponse.status);
+                const joinError = await joinResponse.json().catch(() => ({}));
+                console.error('❌ Join error details:', joinError);
               }
 
               // Try to load from Google Drive first (faster)
