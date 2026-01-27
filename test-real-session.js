@@ -11,7 +11,7 @@ async function testRealSession() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionCode: 'HYM7L0',
+        sessionCode: '8N717X',
         name: 'Percentage Test Student',
         className: '8.a'
       })
@@ -53,7 +53,7 @@ async function testRealSession() {
       summary: {
         studentName: 'Percentage Test Student',
         studentClass: '8.a',
-        sessionCode: 'HYM7L0',
+        sessionCode: '8N717X',
         totalExercises: 2,
         completedExercises: 1,
         totalScore: 10,
@@ -64,9 +64,9 @@ async function testRealSession() {
     console.log('📊 Submitting result with 10 points...');
     console.log('📊 Expected percentage: (10 / 40) * 100 = 25%');
     
-    console.log('📊 Submitting test result to:', `${API_BASE}/api/simple-api/sessions/HYM7L0/results`);
+    console.log('📊 Submitting test result to:', `${API_BASE}/api/simple-api/sessions/8N717X/results`);
     
-    const resultResponse = await fetch(`${API_BASE}/api/simple-api/sessions/HYM7L0/results`, {
+    const resultResponse = await fetch(`${API_BASE}/api/simple-api/sessions/8N717X/results`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(resultPayload)
@@ -108,7 +108,7 @@ async function testRealSession() {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Check participants to see the calculated percentage
-    const participantsResponse = await fetch(`${API_BASE}/api/simple-api/sessions/HYM7L0/participants`);
+    const participantsResponse = await fetch(`${API_BASE}/api/simple-api/sessions/8N717X/participants`);
     
     if (participantsResponse.ok) {
       const participantsData = await participantsResponse.json();
