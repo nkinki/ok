@@ -407,9 +407,18 @@ export default async function handler(req, res) {
       }
 
       const sessionCode = codeMatch[1].toUpperCase();
-      const { studentId, results, summary } = req.body;
+      let { studentId, results, summary } = req.body;
+
+      console.log('📊 Results endpoint called:', {
+        sessionCode,
+        studentId,
+        resultsCount: results?.length || 0,
+        summaryScore: summary?.totalScore || 0,
+        summaryExercises: summary?.completedExercises || 0
+      });
 
       if (!studentId || !results || !summary) {
+        console.error('❌ Missing required data:', { studentId: !!studentId, results: !!results, summary: !!summary });
         return res.status(400).json({ error: 'Student ID, eredmények és összesítő megadása kötelező' });
       }
 
@@ -440,18 +449,63 @@ export default async function handler(req, res) {
         }
 
         // Get current participant data first
-        const { data: currentParticipant, error: fetchError } = await supabase
+        console.log('🔍 Looking for participant with ID:', studentId);
+        let { data: currentParticipant, error: fetchError } = await supabase
           .from('session_participants')
           .select('total_score, results, completed_exercises')
           .eq('id', studentId)
           .single();
 
+        console.log('📊 Participant lookup result:', {
+          found: !!currentParticipant,
+          error: fetchError?.message || null,
+          currentScore: currentParticipant?.total_score || 0,
+          currentExercises: currentParticipant?.completed_exercises || 0,
+          existingResults: currentParticipant?.results?.length || 0
+        });
+
         if (fetchError) {
           console.error('Failed to fetch current participant data:', fetchError);
-          return res.status(500).json({ 
-            error: 'Hiba a résztvevő adatok lekérésekor',
-            details: fetchError.message
-          });
+          
+          // If participant not found, try to find by name and session
+          if (fetchError.code === 'PGRST116') { // No rows returned
+            console.log('🔍 Participant not found by ID, trying to find by name and session...');
+            
+            // Get session first
+            const { data: session } = await supabase
+              .from('teacher_sessions')
+              .select('id')
+              .eq('session_code', sessionCode)
+              .single();
+              
+            if (session) {
+              const { data: participantByName } = await supabase
+                .from('session_participants')
+                .select('*')
+                .eq('session_id', session.id)
+                .eq('student_name', summary.studentName)
+                .eq('student_class', summary.studentClass)
+                .single();
+                
+              if (participantByName) {
+                console.log('✅ Found participant by name:', participantByName.id);
+                // Use the found participant
+                currentParticipant = participantByName;
+                studentId = participantByName.id; // Update studentId for the update query
+              } else {
+                console.error('❌ Participant not found by name either');
+                return res.status(404).json({ 
+                  error: 'Résztvevő nem található',
+                  details: 'A diák nincs regisztrálva ehhez a munkamenethez'
+                });
+              }
+            }
+          } else {
+            return res.status(500).json({ 
+              error: 'Hiba a résztvevő adatok lekérésekor',
+              details: fetchError.message
+            });
+          }
         }
 
         // Merge results: add new results to existing ones
@@ -471,6 +525,13 @@ export default async function handler(req, res) {
         });
 
         // Update participant results
+        console.log('💾 Updating participant with:', {
+          studentId,
+          completedExercises: Math.max(summary.completedExercises || 0, currentParticipant?.completed_exercises || 0),
+          newTotalScore,
+          newResultsCount: newResults.length
+        });
+        
         const { error: updateError } = await supabase
           .from('session_participants')
           .update({
@@ -490,7 +551,7 @@ export default async function handler(req, res) {
           });
         }
 
-        console.log('✅ Results submitted for student:', studentId, 'in session:', sessionCode);
+        console.log('✅ Results updated successfully for student:', studentId, 'in session:', sessionCode);
 
         return res.status(200).json({
           success: true,
