@@ -134,6 +134,16 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
 
   useEffect(() => {
     fetchSessionDetails();
+    
+    // Set up auto-refresh every 5 seconds for session details (more frequent for real-time monitoring)
+    const interval = setInterval(() => {
+      if (!loading) {
+        fetchSessionDetails();
+      }
+    }, 5000); // 5 seconds
+
+    // Cleanup interval on unmount or session change
+    return () => clearInterval(interval);
   }, [sessionCode]);
 
   const getPerformanceColor = (category: string) => {
@@ -206,7 +216,8 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
               {sessionDetails.totalPossibleQuestions ? 
                 `${sessionDetails.totalPossibleQuestions} kérdés • ${sessionDetails.exerciseCount} feladat • ${sessionDetails.isActive ? '🟢 Aktív' : '🔴 Inaktív'}` :
                 `${sessionDetails.exerciseCount} feladat • ${sessionDetails.isActive ? '🟢 Aktív' : '🔴 Inaktív'}`
-              }
+              } • 
+              <span className="text-green-600">🔄 Élő frissítés (5s)</span>
             </p>
           </div>
           <button

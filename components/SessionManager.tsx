@@ -182,6 +182,18 @@ const SessionManager: React.FC = () => {
     };
 
     loadData();
+    
+    // Set up auto-refresh every 10 seconds for real-time updates
+    const interval = setInterval(async () => {
+      // Only refresh if not loading to avoid conflicts
+      if (!loading) {
+        await Promise.all([fetchSessions(), fetchStats()]);
+      }
+    }, 10000); // 10 seconds
+
+    // Cleanup interval on unmount or subject change
+    return () => clearInterval(interval);
+    
     // Reload data when subject changes
   }, [currentSubject]);
 
@@ -196,7 +208,13 @@ const SessionManager: React.FC = () => {
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Munkamenet Kezelő</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Munkamenet Kezelő</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            🔄 Automatikus frissítés 10 másodpercenként • 
+            <span className="text-green-600">● Élő adatok</span>
+          </p>
+        </div>
         <button
           onClick={async () => {
             setLoading(true);
