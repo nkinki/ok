@@ -119,6 +119,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [playlist, setPlaylist] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
+  const [finalPercentage, setFinalPercentage] = useState<number | null>(null);
+  const [showPercentage, setShowPercentage] = useState(false);
 
   // Initialize playlist in preview mode
   useEffect(() => {
@@ -174,13 +176,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       return;
     }
 
-    // Check if student ID looks like an offline ID - try to reconnect
+    // Check if student ID looks like an offline ID - try to reconnect AUTOMATICALLY
     if (student.id.startsWith('student_') || student.id.startsWith('offline-')) {
-      console.error('❌ Student has offline ID, attempting automatic reconnection:', student.id);
+      console.log('🔄 Student has offline ID, attempting SILENT automatic reconnection:', student.id);
       
-      // Try to rejoin the session automatically
+      // Try to rejoin the session automatically (no user interaction needed)
       try {
-        console.log('🔄 Attempting automatic reconnection...');
+        console.log('🔄 Silent automatic reconnection in progress...');
         const rejoinResponse = await fetch(`/api/simple-api/sessions/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -194,9 +196,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         if (rejoinResponse.ok) {
           const rejoinData = await rejoinResponse.json();
           if (rejoinData.student?.id && !rejoinData.student.id.startsWith('student_') && !rejoinData.student.id.startsWith('offline-')) {
-            console.log('✅ Automatic reconnection successful! New ID:', rejoinData.student.id);
+            console.log('✅ Silent automatic reconnection successful! New ID:', rejoinData.student.id);
             
-            // Update student with new ID
+            // Update student with new ID SILENTLY
             setStudent(prev => prev ? {
               ...prev,
               id: rejoinData.student.id,
@@ -211,12 +213,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           }
         }
       } catch (reconnectError) {
-        console.error('❌ Automatic reconnection failed:', reconnectError);
+        console.error('❌ Silent automatic reconnection failed:', reconnectError);
       }
       
-      console.error('❌ Student remains offline - results will not be saved');
-      console.error('❌ Student should manually rejoin the session');
-      return;
+      console.warn('⚠️ Student remains offline - results will not be saved to server');
+      console.warn('⚠️ But exercise will continue normally');
+      // Don't return here - let the exercise continue even if offline
     }
 
     try {
@@ -811,6 +813,54 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           setCurrentIndex(prev => prev + 1);
       } else {
           console.log('🏁 All exercises completed, showing results');
+          
+          // Calculate final percentage based on total questions across all exercises
+          let totalQuestions = 0;
+          let totalScore = 0;
+          
+          // Calculate total questions from all exercises
+          playlist.forEach(exercise => {
+            const exerciseData = getExerciseData(exercise);
+            if (exerciseData.type === 'QUIZ') {
+              totalQuestions += exerciseData.content?.questions?.length || 0;
+            } else if (exerciseData.type === 'MATCHING') {
+              totalQuestions += exerciseData.content?.pairs?.length || 0;
+            } else if (exerciseData.type === 'CATEGORIZATION') {
+              totalQuestions += exerciseData.content?.items?.length || 0;
+            }
+          });
+          
+          // Get total score from localStorage or calculate from current session
+          if (student && currentSessionCode) {
+            try {
+              const sessionKey = `session_${currentSessionCode}_results`;
+              const existingResults = localStorage.getItem(sessionKey);
+              const results = existingResults ? JSON.parse(existingResults) : [];
+              
+              // Add current exercise score
+              totalScore = results.reduce((sum: number, r: any) => sum + (r.score || 0), 0) + score;
+              
+              console.log('📊 Final score calculation:', {
+                totalQuestions,
+                totalScore,
+                maxPossibleScore: totalQuestions * 10
+              });
+              
+              // Calculate percentage
+              const percentage = totalQuestions > 0 ? Math.round((totalScore / (totalQuestions * 10)) * 100) : 0;
+              setFinalPercentage(percentage);
+              setShowPercentage(true);
+              
+              // Hide percentage after 10 seconds
+              setTimeout(() => {
+                setShowPercentage(false);
+              }, 10000);
+              
+            } catch (error) {
+              console.error('Error calculating final percentage:', error);
+            }
+          }
+          
           // Session completed - just mark as completed, don't resend all results
           if (student && currentSessionCode) {
             try {
@@ -1187,7 +1237,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
                       {/* Task Description Block - Separate with Different Background */}
                       <div className="mx-2 mb-3">
-                          {/* Offline Mode Warning */}
+                          {/* Offline Mode Warning - Only show if not automatically reconnecting */}
                           {student && (!currentSessionCode || student.id.startsWith('student_') || student.id.startsWith('offline-')) && (
                               <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3 shadow-sm">
                                   <div className="flex items-start gap-2">
@@ -1197,7 +1247,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                       <div className="flex-1">
                                           <div className="text-orange-800 font-medium text-sm">⚠️ Offline mód</div>
                                           <div className="text-orange-700 text-xs mt-1 mb-2">
-                                              Az eredményeid nem kerülnek mentésre. Csatlakozz újra a munkamenethez az eredmények mentéséhez.
+                                              A rendszer automatikusan próbál újracsatlakozni. Ha ez nem sikerül, az eredmények nem kerülnek mentésre.
                                           </div>
                                           <button
                                               onClick={async () => {
@@ -1232,7 +1282,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                               }}
                                               className="bg-orange-600 text-white text-xs px-3 py-1 rounded-full hover:bg-orange-700 transition-colors"
                                           >
-                                              🔄 Újracsatlakozás
+                                              🔄 Manuális újracsatlakozás
                                           </button>
                                       </div>
                                   </div>
@@ -1290,6 +1340,37 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   // --- RENDER: RESULT ---
   return (
       <div className="max-w-lg mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 text-center relative">
+          {/* Show percentage for 10 seconds */}
+          {showPercentage && finalPercentage !== null && (
+              <div className="absolute inset-0 bg-white rounded-2xl flex flex-col items-center justify-center z-10">
+                  <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 text-6xl font-bold ${
+                      finalPercentage >= 80 
+                          ? 'bg-green-100 text-green-600' 
+                          : 'bg-red-100 text-red-600'
+                  }`}>
+                      {finalPercentage}%
+                  </div>
+                  
+                  <h2 className={`text-3xl font-bold mb-4 ${
+                      finalPercentage >= 80 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                  }`}>
+                      {finalPercentage >= 80 ? '🎉 Megfelelt!' : '📚 Próbáld újra!'}
+                  </h2>
+                  
+                  <p className="text-slate-600 text-lg">
+                      {finalPercentage >= 80 
+                          ? 'Szuper teljesítmény! Gratulálunk!' 
+                          : 'Ne add fel! Gyakorolj még egy kicsit!'}
+                  </p>
+                  
+                  <div className="mt-4 text-sm text-slate-500">
+                      Ez az üzenet 10 másodperc múlva eltűnik...
+                  </div>
+              </div>
+          )}
+          
           <div className="w-24 h-24 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 text-5xl animate-bounce">
               {isPreviewMode ? '👁️' : '🏆'}
           </div>
@@ -1311,6 +1392,25 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               <div className="text-sm font-medium text-slate-600 mt-2">
                   {isPreviewMode ? 'feladat megtekintve' : 'feladat sikeresen megoldva'}
               </div>
+              
+              {/* Show final percentage if available and not in preview mode */}
+              {!isPreviewMode && finalPercentage !== null && !showPercentage && (
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                      <div className="text-sm text-slate-500 uppercase font-bold tracking-wider mb-1">
+                          Végeredmény
+                      </div>
+                      <div className={`text-3xl font-bold ${
+                          finalPercentage >= 80 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                          {finalPercentage}%
+                      </div>
+                      <div className={`text-sm font-medium mt-1 ${
+                          finalPercentage >= 80 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                          {finalPercentage >= 80 ? 'Megfelelt' : 'Próbáld újra'}
+                      </div>
+                  </div>
+              )}
           </div>
 
           {!isPreviewMode && (
@@ -1319,21 +1419,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
                       </svg>
-                      <span className="font-medium">Eredmények mentve!</span>
+                      <span className="font-medium">Eredmények automatikusan mentve</span>
                   </div>
-                  <p className="text-sm text-green-600 mt-1">A tanár láthatja a teljesítményedet a munkamenet kezelőben.</p>
-              </div>
-          )}
-
-          {isPreviewMode && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <div className="flex items-center justify-center gap-2 text-blue-700">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                      </svg>
-                      <span className="font-medium">Szerkesztés elérhető!</span>
-                  </div>
-                  <p className="text-sm text-blue-600 mt-1">A könyvtárban szerkesztheted a feladat tartalmát és képét.</p>
               </div>
           )}
 
