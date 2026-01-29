@@ -418,19 +418,22 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           console.log('✅ Session data downloaded from database JSON');
           console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
           
-          // Convert database JSON to playlist format - USE NEW FORMAT
+          // Convert database JSON to playlist format - USE NEW FORMAT [DEBUG v3.0]
+          console.log('🔍 CONVERSION STARTING - Raw sessionData.exercises:', sessionData.exercises?.length || 0);
+          
           const playlist = sessionData.exercises.map((exercise: any, index: number) => {
             // DEBUG: Log the raw exercise data to see what we're working with
-            console.log(`🔍 Raw exercise ${index} data:`, {
+            console.log(`🔍 Raw exercise ${index} data [v3.0]:`, {
               id: exercise.id,
               hasImageUrl: exercise.hasOwnProperty('imageUrl'),
               imageUrlType: typeof exercise.imageUrl,
               imageUrlLength: exercise.imageUrl?.length || 0,
               imageUrlTruthy: !!exercise.imageUrl,
+              imageUrlPreview: exercise.imageUrl ? exercise.imageUrl.substring(0, 50) + '...' : 'NONE',
               allKeys: Object.keys(exercise)
             });
             
-            return {
+            const mappedExercise = {
               id: exercise.id,
               fileName: exercise.fileName || exercise.title,
               imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
@@ -447,6 +450,16 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 content: exercise.content
               }
             };
+            
+            // DEBUG: Log the mapped result
+            console.log(`🔍 Mapped exercise ${index} result [v3.0]:`, {
+              id: mappedExercise.id,
+              hasImageUrl: !!mappedExercise.imageUrl,
+              imageUrlLength: mappedExercise.imageUrl?.length || 0,
+              imageUrlPreview: mappedExercise.imageUrl ? mappedExercise.imageUrl.substring(0, 50) + '...' : 'NONE'
+            });
+            
+            return mappedExercise;
           });
           
           console.log('🖼️ Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
