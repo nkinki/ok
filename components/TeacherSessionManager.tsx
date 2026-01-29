@@ -398,22 +398,49 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           const { ImageCompressor } = await import('../utils/imageCompression');
           
           // Get intelligent compression settings (assuming text-heavy content)
-          const settings = ImageCompressor.getRecommendedSettings(originalSizeMB, true);
+          let settings = ImageCompressor.getRecommendedSettings(originalSizeMB, true);
           console.log(`🔧 Using ${settings.description}: ${Math.round(settings.quality * 100)}% quality, ${settings.maxWidth}px max width`);
           
           uploadData = await ImageCompressor.compressSessionImages(fullSessionData, settings.quality, settings.maxWidth);
           
-          const compressedSize = JSON.stringify(uploadData).length;
-          const compressedSizeMB = Math.round((compressedSize / (1024 * 1024)) * 100) / 100;
-          const savings = Math.round((1 - compressedSize / originalSize) * 100);
+          let compressedSize = JSON.stringify(uploadData).length;
+          let compressedSizeMB = Math.round((compressedSize / (1024 * 1024)) * 100) / 100;
+          let savings = Math.round((1 - compressedSize / originalSize) * 100);
           
           console.log('✅ Compression complete:', Math.round(compressedSize / 1024), 'KB (', compressedSizeMB, 'MB) -', savings, '% savings');
           console.log('📖 Text readability optimized with intelligent compression');
           
-          // If still too large after conservative compression, show warning but try anyway
-          if (compressedSizeMB > 4.5) {
-            console.warn('⚠️ Payload still large after compression:', compressedSizeMB, 'MB');
-            setError(`⚠️ Nagy munkamenet (${compressedSizeMB}MB)! A feltöltés sikertelen lehet. Próbáld kevesebb feladattal!`);
+          // If still too large after conservative compression, apply more aggressive compression
+          if (compressedSizeMB > 4.3) {
+            console.log('🗜️ Still too large, applying more aggressive compression...');
+            
+            // More aggressive settings for very large sessions
+            const aggressiveSettings = {
+              quality: Math.max(0.6, settings.quality - 0.2), // Reduce quality but not below 60%
+              maxWidth: Math.max(800, settings.maxWidth - 200), // Reduce size but not below 800px
+              description: 'Agresszív tömörítés (nagy munkamenet)'
+            };
+            
+            console.log(`🔧 Using ${aggressiveSettings.description}: ${Math.round(aggressiveSettings.quality * 100)}% quality, ${aggressiveSettings.maxWidth}px max width`);
+            
+            uploadData = await ImageCompressor.compressSessionImages(fullSessionData, aggressiveSettings.quality, aggressiveSettings.maxWidth);
+            
+            compressedSize = JSON.stringify(uploadData).length;
+            compressedSizeMB = Math.round((compressedSize / (1024 * 1024)) * 100) / 100;
+            savings = Math.round((1 - compressedSize / originalSize) * 100);
+            
+            console.log('✅ Aggressive compression complete:', Math.round(compressedSize / 1024), 'KB (', compressedSizeMB, 'MB) -', savings, '% savings');
+          }
+          
+          // If still too large, show error and suggest alternatives
+          if (compressedSizeMB > 4.4) {
+            console.error('❌ Payload still too large after aggressive compression:', compressedSizeMB, 'MB');
+            setError(`❌ Munkamenet túl nagy (${compressedSizeMB}MB)! Próbáld kevesebb feladattal (max 6-8 feladat) vagy kisebb képekkel!`);
+            setLoading(false);
+            return;
+          } else if (compressedSizeMB > 4.0) {
+            console.warn('⚠️ Large payload after compression:', compressedSizeMB, 'MB - upload may be slow');
+            // Continue with upload but show warning
           }
         }
         
