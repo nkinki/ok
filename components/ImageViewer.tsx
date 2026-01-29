@@ -143,6 +143,16 @@ interface Props {
 }
 
 const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = false }) => {
+  // CRITICAL DEBUG: Log what ImageViewer receives
+  console.log('🎯 ImageViewer received:', {
+    hasSrc: !!src,
+    srcLength: src?.length || 0,
+    srcPreview: src ? src.substring(0, 50) + '...' : 'NONE',
+    srcType: typeof src,
+    alt: alt,
+    studentMode: studentMode
+  });
+
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0);
@@ -487,6 +497,20 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
             transformOrigin: 'center center'
           }}
           draggable={false}
+          onLoad={() => {
+            console.log('🎯 ImageViewer - Image loaded successfully:', {
+              src: src.substring(0, 50) + '...',
+              naturalWidth: (document.querySelector('img') as HTMLImageElement)?.naturalWidth,
+              naturalHeight: (document.querySelector('img') as HTMLImageElement)?.naturalHeight
+            });
+          }}
+          onError={(e) => {
+            console.error('🎯 ImageViewer - Image load error:', {
+              src: src.substring(0, 50) + '...',
+              error: e,
+              srcLength: src.length
+            });
+          }}
         />
       </div>
 

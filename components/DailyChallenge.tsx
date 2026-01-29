@@ -83,6 +83,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     // If imageUrl is directly available, use it
     if (item.imageUrl) {
       console.log('✅ Direct imageUrl found for item:', item.id);
+      console.log('🎯 RETURNING IMAGE URL:', {
+        length: item.imageUrl.length,
+        isBase64: item.imageUrl.startsWith('data:'),
+        preview: item.imageUrl.substring(0, 100) + '...'
+      });
       return item.imageUrl;
     }
     
@@ -401,6 +406,20 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setLoading(true);
     setError(null);
 
+    // CRITICAL DEBUG: Log the exact session code being used
+    console.log('🎯 STUDENT LOGIN - Session code being used:', code.toUpperCase());
+    console.log('🎯 STUDENT LOGIN - Student data:', { name: studentData.name, className: studentData.className });
+
+    // CRITICAL DEBUG: Check what's in localStorage
+    console.log('🎯 CRITICAL DEBUG - All localStorage keys:');
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('session') || key.includes('exercise'))) {
+        const value = localStorage.getItem(key);
+        console.log(`  ${key}: ${value ? value.length + ' chars' : 'null'}`);
+      }
+    }
+
     // CLEAR localStorage results for this session to prevent accumulation
     const sessionKey = `session_${code.toUpperCase()}_results`;
     localStorage.removeItem(sessionKey);
@@ -411,11 +430,21 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
       // NEW APPROACH: Try database JSON first (with images)
       console.log('☁️ Checking database for session JSON with images...');
+      console.log('🎯 CRITICAL DEBUG - Session code for API call:', code.toUpperCase());
       try {
         const cloudResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/download-json`);
+        console.log('🎯 CRITICAL DEBUG - API response status:', cloudResponse.status);
+        console.log('🎯 CRITICAL DEBUG - API response URL:', cloudResponse.url);
+        
         if (cloudResponse.ok) {
           const sessionData = await cloudResponse.json();
           console.log('✅ Session data downloaded from database JSON');
+          console.log('🎯 CRITICAL DEBUG - Session data structure:', {
+            hasExercises: !!sessionData.exercises,
+            exerciseCount: sessionData.exercises?.length || 0,
+            sessionCode: sessionData.sessionCode || 'not set',
+            firstExerciseId: sessionData.exercises?.[0]?.id || 'none'
+          });
           console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
           
           // Convert database JSON to playlist format - USE NEW FORMAT [DEBUG v3.0]
@@ -528,6 +557,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           }
         } else {
           console.log('⚠️ Database JSON download failed, trying localStorage...');
+          console.log('🎯 CRITICAL DEBUG - Failed response details:', {
+            status: cloudResponse.status,
+            statusText: cloudResponse.statusText,
+            url: cloudResponse.url
+          });
         }
       } catch (cloudError) {
         console.warn('⚠️ Database JSON error, trying localStorage:', cloudError);
@@ -536,8 +570,15 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       // Fallback 1: Try localStorage (same device)
       if (!sessionFound) {
         console.log('💾 Checking localStorage for session data...');
+        console.log('🎯 CRITICAL DEBUG - Looking for localStorage key:', `session_${code.toUpperCase()}`);
+        
         const sessionKey = `session_${code.toUpperCase()}`;
         const localSessionData = localStorage.getItem(sessionKey);
+        
+        console.log('🎯 CRITICAL DEBUG - localStorage data found:', !!localSessionData);
+        if (localSessionData) {
+          console.log('🎯 CRITICAL DEBUG - localStorage data length:', localSessionData.length);
+        }
         
         if (localSessionData) {
           try {
@@ -1359,33 +1400,54 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           <div className={`${isStudentMode && !isPreviewMode ? 'h-screen' : 'h-[calc(100vh-80px)]'} flex flex-col lg:flex-row overflow-hidden`}>
               {/* Left Side: Original Image - Optimized for 15.6" monitors */}
               <div className="lg:w-2/5 h-[35vh] lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
-                   {getImageUrl(currentItem) ? (
-                        <ImageViewer 
-                          src={getImageUrl(currentItem)} 
-                          alt="Feladat forrása"
-                          studentMode={true}
-                          // No onImageUpdate in student mode - students can't edit exercises
-                        />
-                   ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500">
-                          <div className="text-center">
-                            <div className="text-4xl mb-2">📷</div>
-                            <div className="text-sm font-medium mb-2">Kép nem található</div>
-                            <div className="text-xs mb-4">
-                              A feladat képe nem töltődött be. Ez nem akadályozza a feladat megoldását.
-                            </div>
-                            <button
-                              onClick={() => window.location.reload()}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-                            >
-                              🔄 Oldal újratöltése
-                            </button>
-                            <div className="text-xs mt-2 text-slate-400">
-                              Feladat ID: {currentItem?.id || 'Ismeretlen'}
-                            </div>
-                          </div>
-                        </div>
-                   )}
+                   {(() => {
+                     const imageUrl = getImageUrl(currentItem);
+                     console.log('🎯 CRITICAL DEBUG - Image rendering:', {
+                       currentItemId: currentItem?.id,
+                       hasImageUrl: !!imageUrl,
+                       imageUrlLength: imageUrl?.length || 0,
+                       imageUrlPreview: imageUrl ? imageUrl.substring(0, 50) + '...' : 'NONE',
+                       imageUrlType: typeof imageUrl,
+                       willRenderImageViewer: !!imageUrl
+                     });
+                     
+                     if (imageUrl) {
+                       console.log('🎯 RENDERING ImageViewer with src length:', imageUrl.length);
+                       return (
+                         <ImageViewer 
+                           src={imageUrl} 
+                           alt="Feladat forrása"
+                           studentMode={true}
+                           // No onImageUpdate in student mode - students can't edit exercises
+                         />
+                       );
+                     } else {
+                       console.log('🎯 CRITICAL DEBUG - No image URL, showing placeholder');
+                       return (
+                         <div className="w-full h-full flex items-center justify-center text-slate-500">
+                           <div className="text-center">
+                             <div className="text-4xl mb-2">📷</div>
+                             <div className="text-sm font-medium mb-2">Kép nem található</div>
+                             <div className="text-xs mb-4">
+                               A feladat képe nem töltődött be. Ez nem akadályozza a feladat megoldását.
+                             </div>
+                             <button
+                               onClick={() => window.location.reload()}
+                               className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                             >
+                               🔄 Oldal újratöltése
+                             </button>
+                             <div className="text-xs mt-2 text-slate-400">
+                               Feladat ID: {currentItem?.id || 'Ismeretlen'}
+                             </div>
+                             <div className="text-xs mt-1 text-slate-400">
+                               Debug: imageUrl = {String(imageUrl)}
+                             </div>
+                           </div>
+                         </div>
+                       );
+                     }
+                   })()}
                    <div className="absolute top-2 left-2 z-10 bg-black/50 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
                         Forrás: {currentItem.fileName}
                    </div>

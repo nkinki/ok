@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kép Debug - Okos Gyakorló</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Kép Debug Eszköz</h1>
+    <p>Ez az eszköz segít diagnosztizálni a "nincs kép" problémát.</p>
+
+    <div class="debug-section">
+        <h2>1. Session Kód Tesztelése</h2>
+        <p>Add meg a tanári kódot amit használsz:</p>
+        <input type="text" id="sessionCode" placeholder="Pl: YAE92F" maxlength="10">
+        <button onclick="testSession()">Session Tesztelése</button>
+        <div id="sessionResult" class="log"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>2. localStorage Ellenőrzése</h2>
+        <p>Ellenőrizzük mi van a böngésző helyi tárolójában:</p>
+        <button onclick="checkLocalStorage()">localStorage Ellenőrzése</button>
+        <div id="localStorageResult" class="log"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>3. Kép Betöltés Tesztelése</h2>
+        <p>Ha van session adat, teszteljük a képek betöltését:</p>
+        <button onclick="testImageLoading()">Képek Tesztelése</button>
+        <div id="imageResult" class="log"></div>
+        <div id="imagePreview"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>4. Böngésző Információk</h2>
+        <button onclick="showBrowserInfo()">Böngésző Info</button>
+        <div id="browserInfo" class="log"></div>
+    </div>
+
+    <script>
+        let currentSessionData = null;
+
+        function log(elementId, message) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            element.textContent += `[${timestamp}] ${message}\n`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).textContent = '';
+        }
+
+        async function testSession() {
+            const sessionCode = document.getElementById('sessionCode').value.trim().toUpperCase();
+            if (!sessionCode) {
+                alert('Kérlek add meg a session kódot!');
+                return;
+            }
+
+            clearLog('sessionResult');
+            log('sessionResult', `🧪 Session tesztelése: ${sessionCode}`);
+
+            try {
+                // Test session check
+                log('sessionResult', '1. Session létezésének ellenőrzése...');
+                const checkResponse = await fetch(`/api/simple-api/sessions/${sessionCode}/check`);
+                log('sessionResult', `   Status: ${checkResponse.status}`);
+                
+                if (checkResponse.ok) {
+                    const checkData = await checkResponse.json();
+                    log('sessionResult', `   ✅ Session létezik: ${checkData.exists}`);
+                    log('sessionResult', `   Feladatok száma: ${checkData.session?.exerciseCount || 'N/A'}`);
+                } else {
+                    log('sessionResult', `   ❌ Session check failed: ${checkResponse.status}`);
+                }
+
+                // Test JSON download
+                log('sessionResult', '2. JSON letöltés tesztelése...');
+                const jsonResponse = await fetch(`/api/simple-api/sessions/${sessionCode}/download-json`);
+                log('sessionResult', `   Status: ${jsonResponse.status}`);
+
+                if (jsonResponse.ok) {
+                    const sessionData = await jsonResponse.json();
+                    currentSessionData = sessionData;
+                    
+                    log('sessionResult', `   ✅ JSON letöltve sikeresen`);
+                    log('sessionResult', `   Feladatok száma: ${sessionData.exercises?.length || 0}`);
+                    
+                    const imagesCount = sessionData.exercises?.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length || 0;
+                    log('sessionResult', `   Képekkel rendelkező feladatok: ${imagesCount}/${sessionData.exercises?.length || 0}`);
+                    
+                    if (sessionData.exercises && sessionData.exercises.length > 0) {
+                        log('sessionResult', '   Első 3 feladat részletei:');
+                        sessionData.exercises.slice(0, 3).forEach((ex, i) => {
+                            log('sessionResult', `     ${i + 1}. ${ex.id} - ${ex.title?.substring(0, 30) || 'Nincs cím'}`);
+                            log('sessionResult', `        Kép: ${ex.imageUrl ? ex.imageUrl.length + ' karakter' : 'NINCS'}`);
+                        });
+                    }
+                } else {
+                    log('sessionResult', `   ❌ JSON letöltés failed: ${jsonResponse.status}`);
+                    const errorText = await jsonResponse.text();
+                    log('sessionResult', `   Hiba: ${errorText}`);
+                }
+
+            } catch (error) {
+                log('sessionResult', `❌ Hiba: ${error.message}`);
+            }
+        }
+
+        function checkLocalStorage() {
+            clearLog('localStorageResult');
+            log('localStorageResult', '🔍 localStorage tartalmának ellenőrzése...');
+
+            const sessionKeys = [];
+            const exerciseKeys = [];
+            const otherKeys = [];
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('session')) {
+                    sessionKeys.push(key);
+                } else if (key.includes('exercise')) {
+                    exerciseKeys.push(key);
+                } else {
+                    otherKeys.push(key);
+                }
+            }
+
+            log('localStorageResult', `Összes kulcs száma: ${localStorage.length}`);
+            log('localStorageResult', `Session kulcsok (${sessionKeys.length}):`);
+            sessionKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                log('localStorageResult', `  ${key}: ${value ? value.length + ' karakter' : 'null'}`);
+            });
+
+            log('localStorageResult', `Exercise kulcsok (${exerciseKeys.length}):`);
+            exerciseKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                log('localStorageResult', `  ${key}: ${value ? value.length + ' karakter' : 'null'}`);
+            });
+
+            if (otherKeys.length > 0) {
+                log('localStorageResult', `Egyéb kulcsok (${otherKeys.length}):`);
+                otherKeys.slice(0, 10).forEach(key => {
+                    log('localStorageResult', `  ${key}`);
+                });
+            }
+        }
+
+        async function testImageLoading() {
+            clearLog('imageResult');
+            document.getElementById('imagePreview').innerHTML = '';
+
+            if (!currentSessionData) {
+                log('imageResult', '❌ Nincs session adat. Először tesztelj egy session kódot!');
+                return;
+            }
+
+            log('imageResult', '🖼️ Képek betöltésének tesztelése...');
+
+            const exercises = currentSessionData.exercises || [];
+            log('imageResult', `Feladatok száma: ${exercises.length}`);
+
+            for (let i = 0; i < Math.min(exercises.length, 3); i++) {
+                const exercise = exercises[i];
+                log('imageResult', `\n${i + 1}. feladat: ${exercise.id}`);
+                log('imageResult', `   Cím: ${exercise.title || 'Nincs cím'}`);
+                log('imageResult', `   Kép URL hossza: ${exercise.imageUrl?.length || 0}`);
+
+                if (exercise.imageUrl && exercise.imageUrl.length > 0) {
+                    log('imageResult', '   🧪 Kép betöltés tesztelése...');
+                    
+                    try {
+                        // Create image element to test loading
+                        const img = new Image();
+                        
+                        await new Promise((resolve, reject) => {
+                            img.onload = () => {
+                                log('imageResult', `   ✅ Kép betöltve: ${img.naturalWidth}x${img.naturalHeight}`);
+                                
+                                // Add to preview
+                                const previewDiv = document.createElement('div');
+                                previewDiv.innerHTML = `
+                                    <h4>Feladat ${i + 1}: ${exercise.title || 'Nincs cím'}</h4>
+                                    <img src="${exercise.imageUrl}" class="image-preview" alt="Feladat ${i + 1}">
+                                `;
+                                document.getElementById('imagePreview').appendChild(previewDiv);
+                                
+                                resolve();
+                            };
+                            
+                            img.onerror = (error) => {
+                                log('imageResult', `   ❌ Kép betöltés hiba: ${error}`);
+                                reject(error);
+                            };
+                            
+                            img.src = exercise.imageUrl;
+                        });
+                        
+                    } catch (error) {
+                        log('imageResult', `   ❌ Kép betöltési hiba: ${error.message}`);
+                    }
+                } else {
+                    log('imageResult', '   ⚠️ Nincs kép URL');
+                }
+            }
+        }
+
+        function showBrowserInfo() {
+            clearLog('browserInfo');
+            log('browserInfo', '🌐 Böngésző információk:');
+            log('browserInfo', `User Agent: ${navigator.userAgent}`);
+            log('browserInfo', `Platform: ${navigator.platform}`);
+            log('browserInfo', `Language: ${navigator.language}`);
+            log('browserInfo', `Cookies enabled: ${navigator.cookieEnabled}`);
+            log('browserInfo', `Online: ${navigator.onLine}`);
+            log('browserInfo', `Screen: ${screen.width}x${screen.height}`);
+            log('browserInfo', `Viewport: ${window.innerWidth}x${window.innerHeight}`);
+            log('browserInfo', `localStorage available: ${typeof(Storage) !== "undefined"}`);
+            log('browserInfo', `Current URL: ${window.location.href}`);
+            log('browserInfo', `Referrer: ${document.referrer || 'Nincs'}`);
+        }
+
+        // Auto-fill session code from URL if present
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionCode = urlParams.get('session');
+            if (sessionCode) {
+                document.getElementById('sessionCode').value = sessionCode.toUpperCase();
+            }
+        });
+    </script>
+
+    <div class="debug-section">
+        <h2>📋 Használati útmutató</h2>
+        <ol>
+            <li><strong>Session Kód:</strong> Add meg ugyanazt a kódot amit a diák módban használsz</li>
+            <li><strong>localStorage:</strong> Ellenőrizd hogy nincs-e régi adat ami zavarja a működést</li>
+            <li><strong>Képek:</strong> Teszteld hogy a képek ténylegesen betöltődnek-e</li>
+            <li><strong>Böngésző:</strong> Ellenőrizd a böngésző beállításait</li>
+        </ol>
+        
+        <p><strong>Ha továbbra is "nincs kép" hibaüzenetet kapsz:</strong></p>
+        <ul>
+            <li>Próbáld meg egy másik böngészőben</li>
+            <li>Töröld a böngésző cache-t és cookie-kat</li>
+            <li>Ellenőrizd hogy nincs-e ad-blocker ami blokkolja a képeket</li>
+            <li>Próbáld inkognito/privát módban</li>
+        </ul>
+    </div>
+</body>
+</html>
