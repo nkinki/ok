@@ -154,16 +154,67 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         }
       });
       
-      // Get total score from localStorage
-      if (student && currentSessionCode) {
+      // FIXED: Get score from API instead of localStorage to avoid accumulation
+      if (student && currentSessionCode && student.id && !student.id.startsWith('offline-') && !student.id.startsWith('student_')) {
+        console.log('📊 Fetching final score from API for accurate percentage...');
+        
+        // Try to get the actual score from the API
+        fetch(`/api/simple-api/sessions/${currentSessionCode}/participants`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success && data.participants) {
+              const currentStudent = data.participants.find(p => p.id === student.id);
+              if (currentStudent) {
+                totalScore = currentStudent.total_score || 0;
+                console.log('📊 Final score from API:', {
+                  totalQuestions,
+                  totalScore,
+                  maxPossibleScore: totalQuestions * 10,
+                  apiPercentage: currentStudent.percentage
+                });
+                
+                // Use the API calculated percentage for consistency
+                const percentage = currentStudent.percentage || 0;
+                setFinalPercentage(percentage);
+                setShowPercentage(true);
+                
+                console.log('🎯 Final percentage from API:', percentage + '%');
+                
+                // Hide percentage after 10 seconds
+                setTimeout(() => {
+                  console.log('⏰ Hiding percentage display after 10 seconds');
+                  setShowPercentage(false);
+                }, 10000);
+              } else {
+                console.warn('⚠️ Student not found in API participants');
+                // Fallback to localStorage calculation
+                fallbackToLocalStorage();
+              }
+            } else {
+              console.warn('⚠️ API participants fetch failed, using localStorage fallback');
+              fallbackToLocalStorage();
+            }
+          })
+          .catch(error => {
+            console.error('❌ Error fetching from API, using localStorage fallback:', error);
+            fallbackToLocalStorage();
+          });
+      } else {
+        // Offline mode or no proper student ID - use localStorage
+        console.log('📊 Using localStorage for offline/preview mode');
+        fallbackToLocalStorage();
+      }
+      
+      // Fallback function for localStorage calculation
+      function fallbackToLocalStorage() {
         try {
           const sessionKey = `session_${currentSessionCode}_results`;
           const existingResults = localStorage.getItem(sessionKey);
           const results = existingResults ? JSON.parse(existingResults) : [];
           
-          totalScore = results.reduce((sum: number, r: any) => sum + (r.score || 0), 0);
+          totalScore = results.reduce((sum, r) => sum + (r.score || 0), 0);
           
-          console.log('📊 Final score calculation:', {
+          console.log('📊 Final score calculation (localStorage fallback):', {
             totalQuestions,
             totalScore,
             maxPossibleScore: totalQuestions * 10,
@@ -175,7 +226,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           setFinalPercentage(percentage);
           setShowPercentage(true);
           
-          console.log('🎯 Final percentage calculated:', percentage + '%');
+          console.log('🎯 Final percentage calculated (localStorage):', percentage + '%');
           
           // Hide percentage after 10 seconds
           setTimeout(() => {
@@ -333,6 +384,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setCurrentSessionCode(code);
     setLoading(true);
     setError(null);
+
+    // CLEAR localStorage results for this session to prevent accumulation
+    const sessionKey = `session_${code.toUpperCase()}_results`;
+    localStorage.removeItem(sessionKey);
+    console.log('🧹 Cleared localStorage results for session:', code.toUpperCase());
 
     try {
       let sessionFound = false;
@@ -976,7 +1032,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 sessionCode: currentSessionCode,
                 totalExercises: playlist.length,
                 completedExercises: playlist.length,
-                totalScore: results.reduce((sum: number, r: any) => sum + (r.score || 0), 0),
+                totalScore: results.reduce((sum, r) => sum + (r.score || 0), 0),
                 completedAt: new Date().toISOString()
               };
               
