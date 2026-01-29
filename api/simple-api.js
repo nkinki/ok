@@ -637,11 +637,11 @@ export default async function handler(req, res) {
         const existingResults = currentParticipant?.results || [];
         
         // Remove any existing results for the same exercise index to prevent duplicates
-        const filteredResults = existingResults.filter((result: any) => result.exerciseIndex !== results[0]?.exerciseIndex);
+        const filteredResults = existingResults.filter((result) => result.exerciseIndex !== results[0]?.exerciseIndex);
         const newResults = [...filteredResults, ...results];
         
         // FIXED: Calculate total score from all results, don't accumulate
-        const totalScoreFromResults = newResults.reduce((sum: number, result: any) => sum + (result.score || 0), 0);
+        const totalScoreFromResults = newResults.reduce((sum, result) => sum + (result.score || 0), 0);
         
         console.log('📊 Score calculation (FIXED):', {
           exerciseIndex: results[0]?.exerciseIndex,
