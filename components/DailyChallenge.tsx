@@ -419,23 +419,35 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
           
           // Convert database JSON to playlist format - USE NEW FORMAT
-          const playlist = sessionData.exercises.map((exercise: any) => ({
-            id: exercise.id,
-            fileName: exercise.fileName || exercise.title,
-            imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
-            // NEW FORMAT: properties directly on the object
-            type: exercise.type,
-            title: exercise.title,
-            instruction: exercise.instruction,
-            content: exercise.content,
-            // OLD FORMAT: keep for compatibility
-            data: {
+          const playlist = sessionData.exercises.map((exercise: any, index: number) => {
+            // DEBUG: Log the raw exercise data to see what we're working with
+            console.log(`🔍 Raw exercise ${index} data:`, {
+              id: exercise.id,
+              hasImageUrl: exercise.hasOwnProperty('imageUrl'),
+              imageUrlType: typeof exercise.imageUrl,
+              imageUrlLength: exercise.imageUrl?.length || 0,
+              imageUrlTruthy: !!exercise.imageUrl,
+              allKeys: Object.keys(exercise)
+            });
+            
+            return {
+              id: exercise.id,
+              fileName: exercise.fileName || exercise.title,
+              imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
+              // NEW FORMAT: properties directly on the object
               type: exercise.type,
               title: exercise.title,
               instruction: exercise.instruction,
-              content: exercise.content
-            }
-          }));
+              content: exercise.content,
+              // OLD FORMAT: keep for compatibility
+              data: {
+                type: exercise.type,
+                title: exercise.title,
+                instruction: exercise.instruction,
+                content: exercise.content
+              }
+            };
+          });
           
           console.log('🖼️ Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
           console.log('🖼️ Image check - Has images:', playlist.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', playlist.length);
