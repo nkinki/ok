@@ -392,7 +392,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         
         // If payload is too large, compress images (optimized for text readability)
         if (originalSizeMB > 4.0) { // 4MB threshold for compression
-          console.log('🗜️ Payload too large, compressing images (preserving text readability)...');
+          console.log('🗜️ Payload too large, compressing images (preserving text readability)... [v2.1]');
           
           // Import compression utility dynamically
           const { ImageCompressor } = await import('../utils/imageCompression');
@@ -412,7 +412,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           
           // If still too large after conservative compression, apply more aggressive compression
           if (compressedSizeMB > 4.3) {
-            console.log('🗜️ Still too large, applying more aggressive compression...');
+            console.log('🗜️ Still too large, applying more aggressive compression... (v2)');
             
             // More aggressive settings for very large sessions
             const aggressiveSettings = {
