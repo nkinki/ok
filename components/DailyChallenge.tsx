@@ -174,11 +174,48 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       return;
     }
 
-    // Check if student ID looks like an offline ID
+    // Check if student ID looks like an offline ID - try to reconnect
     if (student.id.startsWith('student_') || student.id.startsWith('offline-')) {
-      console.error('❌ Student has offline ID, cannot submit to API:', student.id);
-      console.error('❌ This indicates session join failed or student ID was not updated properly');
-      console.error('❌ Student should rejoin the session to get a proper database ID');
+      console.error('❌ Student has offline ID, attempting automatic reconnection:', student.id);
+      
+      // Try to rejoin the session automatically
+      try {
+        console.log('🔄 Attempting automatic reconnection...');
+        const rejoinResponse = await fetch(`/api/simple-api/sessions/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionCode: currentSessionCode,
+            name: student.name,
+            className: student.className
+          })
+        });
+        
+        if (rejoinResponse.ok) {
+          const rejoinData = await rejoinResponse.json();
+          if (rejoinData.student?.id && !rejoinData.student.id.startsWith('student_') && !rejoinData.student.id.startsWith('offline-')) {
+            console.log('✅ Automatic reconnection successful! New ID:', rejoinData.student.id);
+            
+            // Update student with new ID
+            setStudent(prev => prev ? {
+              ...prev,
+              id: rejoinData.student.id,
+              sessionId: rejoinData.student.sessionId
+            } : null);
+            
+            // Continue with result submission using new ID
+            console.log('🔄 Retrying result submission with new ID...');
+            // Recursively call this function with updated student
+            setTimeout(() => submitExerciseResult(exerciseIndex, isCorrect, score, timeSpent, answer), 100);
+            return;
+          }
+        }
+      } catch (reconnectError) {
+        console.error('❌ Automatic reconnection failed:', reconnectError);
+      }
+      
+      console.error('❌ Student remains offline - results will not be saved');
+      console.error('❌ Student should manually rejoin the session');
       return;
     }
 
@@ -1048,11 +1085,46 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                       <svg className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 15.5c-.77.833.192 2.5 1.732 2.5z"/>
                                       </svg>
-                                      <div>
+                                      <div className="flex-1">
                                           <div className="text-orange-800 font-medium text-sm">⚠️ Offline mód</div>
-                                          <div className="text-orange-700 text-xs mt-1">
+                                          <div className="text-orange-700 text-xs mt-1 mb-2">
                                               Az eredményeid nem kerülnek mentésre. Csatlakozz újra a munkamenethez az eredmények mentéséhez.
                                           </div>
+                                          <button
+                                              onClick={async () => {
+                                                  if (currentSessionCode && student) {
+                                                      console.log('🔄 Manual reconnection attempt...');
+                                                      try {
+                                                          const rejoinResponse = await fetch(`/api/simple-api/sessions/join`, {
+                                                              method: 'POST',
+                                                              headers: { 'Content-Type': 'application/json' },
+                                                              body: JSON.stringify({
+                                                                  sessionCode: currentSessionCode,
+                                                                  name: student.name,
+                                                                  className: student.className
+                                                              })
+                                                          });
+                                                          
+                                                          if (rejoinResponse.ok) {
+                                                              const rejoinData = await rejoinResponse.json();
+                                                              if (rejoinData.student?.id && !rejoinData.student.id.startsWith('student_') && !rejoinData.student.id.startsWith('offline-')) {
+                                                                  console.log('✅ Manual reconnection successful!');
+                                                                  setStudent(prev => prev ? {
+                                                                      ...prev,
+                                                                      id: rejoinData.student.id,
+                                                                      sessionId: rejoinData.student.sessionId
+                                                                  } : null);
+                                                              }
+                                                          }
+                                                      } catch (error) {
+                                                          console.error('❌ Manual reconnection failed:', error);
+                                                      }
+                                                  }
+                                              }}
+                                              className="bg-orange-600 text-white text-xs px-3 py-1 rounded-full hover:bg-orange-700 transition-colors"
+                                          >
+                                              🔄 Újracsatlakozás
+                                          </button>
                                       </div>
                                   </div>
                               </div>
