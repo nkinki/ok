@@ -159,8 +159,18 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const submitExerciseResult = async (exerciseIndex: number, isCorrect: boolean, score: number, timeSpent: number, answer?: any) => {
     console.log('📊 submitExerciseResult called with:', { exerciseIndex, isCorrect, score, timeSpent, hasAnswer: !!answer });
     
+    // Enhanced debugging
+    console.log('🔍 Debug info:', {
+      currentSessionCode,
+      studentId: student?.id,
+      studentName: student?.name,
+      isPreviewMode,
+      hasStudent: !!student
+    });
+    
     if (!currentSessionCode || !student?.id) {
       console.warn('⚠️ Cannot submit result: missing sessionCode or student.id', { currentSessionCode, studentId: student?.id });
+      console.warn('⚠️ This means the student is in offline mode or session join failed');
       return;
     }
 
@@ -168,6 +178,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     if (student.id.startsWith('student_') || student.id.startsWith('offline-')) {
       console.error('❌ Student has offline ID, cannot submit to API:', student.id);
       console.error('❌ This indicates session join failed or student ID was not updated properly');
+      console.error('❌ Student should rejoin the session to get a proper database ID');
       return;
     }
 
@@ -643,6 +654,14 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
   const handleExerciseComplete = async (isCorrect: boolean = false, score: number = 0, timeSpent: number = 0, answer?: any) => {
       console.log('🎯 handleExerciseComplete called with:', { isCorrect, score, timeSpent, hasAnswer: !!answer });
+      console.log('🔍 Current state:', {
+        isPreviewMode,
+        currentSessionCode,
+        studentId: student?.id,
+        studentName: student?.name,
+        currentIndex,
+        playlistLength: playlist.length
+      });
       
       // Skip saving in preview mode
       if (isPreviewMode) {
@@ -660,6 +679,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
       // Submit result to API if connected
       console.log('📤 About to submit exercise result:', { currentIndex, isCorrect, score, timeSpent });
+      console.log('📤 Session info:', { currentSessionCode, studentId: student?.id });
       await submitExerciseResult(currentIndex, isCorrect, score, timeSpent, answer);
       
       setCompletedCount(prev => prev + 1);
@@ -977,6 +997,18 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                               </div>
                               <div className="flex items-center gap-2">
                                   <span className="text-xs font-medium text-slate-500">{student?.name} - {student?.className}</span>
+                                  {/* Offline Mode Warning */}
+                                  {student && (!currentSessionCode || student.id.startsWith('student_') || student.id.startsWith('offline-')) && (
+                                      <span className="bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded-full font-medium" title="Az eredmények nem kerülnek mentésre">
+                                          ⚠️ Offline
+                                      </span>
+                                  )}
+                                  {/* Online Mode Indicator */}
+                                  {student && currentSessionCode && !student.id.startsWith('student_') && !student.id.startsWith('offline-') && (
+                                      <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium" title="Az eredmények mentésre kerülnek">
+                                          ✅ Online
+                                      </span>
+                                  )}
                                   <button
                                       onClick={(e) => {
                                           e.preventDefault();
@@ -1009,6 +1041,23 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
                       {/* Task Description Block - Separate with Different Background */}
                       <div className="mx-2 mb-3">
+                          {/* Offline Mode Warning */}
+                          {student && (!currentSessionCode || student.id.startsWith('student_') || student.id.startsWith('offline-')) && (
+                              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3 shadow-sm">
+                                  <div className="flex items-start gap-2">
+                                      <svg className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                      </svg>
+                                      <div>
+                                          <div className="text-orange-800 font-medium text-sm">⚠️ Offline mód</div>
+                                          <div className="text-orange-700 text-xs mt-1">
+                                              Az eredményeid nem kerülnek mentésre. Csatlakozz újra a munkamenethez az eredmények mentéséhez.
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          )}
+                          
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm">
                               <div className="flex items-start gap-2">
                                   <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
