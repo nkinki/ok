@@ -799,9 +799,18 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         }
       }
       
+      // Safe navigation to next exercise
+      console.log('🔄 Navigation check:', {
+        currentIndex,
+        playlistLength: playlist.length,
+        hasNextExercise: currentIndex < playlist.length - 1
+      });
+      
       if (currentIndex < playlist.length - 1) {
+          console.log('➡️ Moving to next exercise:', currentIndex + 1);
           setCurrentIndex(prev => prev + 1);
       } else {
+          console.log('🏁 All exercises completed, showing results');
           // Session completed - just mark as completed, don't resend all results
           if (student && currentSessionCode) {
             try {
@@ -1018,6 +1027,29 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           hasContent: !!item?.content
         }))
       });
+
+      // Safety check: if currentIndex is out of bounds, reset to last valid index or show results
+      if (currentIndex >= playlist.length) {
+        console.error('❌ currentIndex out of bounds!', {
+          currentIndex,
+          playlistLength: playlist.length
+        });
+        
+        if (playlist.length > 0) {
+          // If we have exercises but index is too high, go to results
+          console.log('🏁 All exercises completed, showing results');
+          setStep('RESULT');
+          return null;
+        } else {
+          // If no exercises at all, show error
+          return <div className="p-8 text-center text-red-500">
+            Hiba: Nincsenek feladatok a munkamenetben.
+            <div className="text-sm mt-2 text-gray-600">
+              Debug: playlist üres
+            </div>
+          </div>;
+        }
+      }
 
       const currentItem = playlist[currentIndex];
       
