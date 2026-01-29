@@ -72,11 +72,21 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   };
 
   // Helper function to get image URL (with lazy loading support)
-  const getImageUrl = (item: any) => {
+  const getImageUrl = (item) => {
+    console.log('🖼️ getImageUrl called for item:', {
+      id: item?.id,
+      hasImageUrl: !!item?.imageUrl,
+      imageUrlLength: item?.imageUrl?.length || 0,
+      imageUrlPreview: item?.imageUrl?.substring(0, 50) || 'none'
+    });
+    
     // If imageUrl is directly available, use it
     if (item.imageUrl) {
+      console.log('✅ Direct imageUrl found for item:', item.id);
       return item.imageUrl;
     }
+    
+    console.log('⚠️ No direct imageUrl for item:', item.id, '- trying localStorage fallback...');
     
     // For optimized format without imageUrl, try to construct from localStorage
     // This is a fallback for exercises that were created before the optimization
@@ -85,15 +95,21 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       const savedLibrary = localStorage.getItem(libraryKey);
       if (savedLibrary) {
         const library = JSON.parse(savedLibrary);
-        const foundItem = library.find((libItem: any) => libItem.id === item.id);
+        const foundItem = library.find((libItem) => libItem.id === item.id);
         if (foundItem && foundItem.imageUrl) {
+          console.log('✅ Found imageUrl in localStorage for item:', item.id);
           return foundItem.imageUrl;
+        } else {
+          console.log('❌ Item not found in localStorage or no imageUrl:', item.id);
         }
+      } else {
+        console.log('❌ No exerciseLibrary in localStorage');
       }
     } catch (error) {
-      console.warn('Could not load image from localStorage:', error);
+      console.warn('❌ localStorage fallback error for item:', item.id, error);
     }
     
+    console.log('❌ No image found for item:', item.id, '- returning empty string');
     // Return empty string if no image found
     return '';
   };
@@ -423,6 +439,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           
           console.log('🖼️ Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
           console.log('🖼️ Image check - Has images:', playlist.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', playlist.length);
+          
+          // DEBUG: Log all exercises and their image status
+          console.log('🔍 All exercises image status:');
+          playlist.forEach((ex, index) => {
+            console.log(`  Exercise ${index}: ${ex.id} - imageUrl: ${ex.imageUrl ? ex.imageUrl.length + ' chars' : 'MISSING'}`);
+          });
           console.log('📝 Playlist format check - First exercise:', {
             hasType: !!playlist[0]?.type,
             hasTitle: !!playlist[0]?.title,
@@ -1296,8 +1318,21 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                         <div className="w-full h-full flex items-center justify-center text-slate-500">
                           <div className="text-center">
                             <div className="text-4xl mb-2">📷</div>
-                            <div>Kép betöltése...</div>
-                            <div className="text-xs mt-1">Próbáld újra később</div>
+                            <div className="text-sm font-medium mb-2">Kép nem található</div>
+                            <div className="text-xs mb-4">
+                              A feladat képe nem töltődött be. Ez nem akadályozza a feladat megoldását.
+                            </div>
+                            <button
+                              onClick={() => window.location.reload()}
+                              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                            >
+                              🔄 Oldal újratöltése
+                            </button>
+                            <div className="text-xs mt-2 text-slate-400">
+                              Feladat ID: {currentItem?.id || 'Ismeretlen'}
+                            </div>
+                          </div>
+                        </div>
                           </div>
                         </div>
                    )}
