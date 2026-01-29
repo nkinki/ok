@@ -119,6 +119,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [playlist, setPlaylist] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
+  const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set()); // Track completed exercises
   const [finalPercentage, setFinalPercentage] = useState<number | null>(null);
   const [showPercentage, setShowPercentage] = useState(false);
 
@@ -129,6 +130,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       setPlaylist(library);
       setCurrentIndex(0);
       setCompletedCount(0);
+      setCompletedExercises(new Set()); // Reset completed exercises
     }
   }, [isPreviewMode, library]);
 
@@ -375,6 +377,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           setPlaylist(playlist);
           setCurrentIndex(0);
           setCompletedCount(0);
+          setCompletedExercises(new Set()); // Reset completed exercises for new session
           setStep('PLAYING');
           sessionFound = true;
           
@@ -470,6 +473,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             setPlaylist(playlist);
             setCurrentIndex(0);
             setCompletedCount(0);
+            setCompletedExercises(new Set()); // Reset completed exercises for new session
             setStep('PLAYING');
             sessionFound = true;
             
@@ -584,6 +588,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                     setPlaylist(playlist);
                     setCurrentIndex(0);
                     setCompletedCount(0);
+                    setCompletedExercises(new Set()); // Reset completed exercises for new session
                     
                     // Store session metadata for result submission
                     setCurrentSessionCode(code.toUpperCase());
@@ -631,6 +636,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                     setPlaylist(playlist);
                     setCurrentIndex(0);
                     setCompletedCount(0);
+                    setCompletedExercises(new Set()); // Reset completed exercises for new session
                     
                     // Store session metadata for result submission
                     setCurrentSessionCode(code.toUpperCase());
@@ -681,6 +687,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setPlaylist(selected);
     setCurrentIndex(0);
     setCompletedCount(0);
+    setCompletedExercises(new Set()); // Reset completed exercises for fallback
     setStep('PLAYING');
   };
 
@@ -722,6 +729,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           setPlaylist(importedExercises);
           setCurrentIndex(0);
           setCompletedCount(0);
+          setCompletedExercises(new Set()); // Reset completed exercises for imported session;
           
           // Set student info for offline mode
           setStudent({
@@ -786,6 +794,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       setPlaylist(exercisePlaylist);
       setCurrentIndex(0);
       setCompletedCount(0);
+      setCompletedExercises(new Set()); // Reset completed exercises for manual session
       setStep('PLAYING');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Ismeretlen hiba');
@@ -802,13 +811,29 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         studentId: student?.id,
         studentName: student?.name,
         currentIndex,
-        playlistLength: playlist.length
+        playlistLength: playlist.length,
+        isAlreadyCompleted: completedExercises.has(currentIndex)
       });
+      
+      // PREVENT RE-COMPLETION: If this exercise is already completed, don't allow re-submission
+      if (completedExercises.has(currentIndex)) {
+        console.log('⚠️ Exercise already completed, preventing re-submission');
+        console.log('✅ Moving to next exercise instead');
+        
+        // Just move to next exercise
+        if (currentIndex < playlist.length - 1) {
+          setCurrentIndex(prev => prev + 1);
+        } else {
+          setStep('RESULT');
+        }
+        return;
+      }
       
       // Skip saving in preview mode
       if (isPreviewMode) {
         console.log('🔍 Preview mode: skipping result save');
         setCompletedCount(prev => prev + 1);
+        setCompletedExercises(prev => new Set([...prev, currentIndex])); // Mark as completed
         
         // Move to next exercise or finish
         if (currentIndex < playlist.length - 1) {
@@ -827,6 +852,10 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       
       // Set flag to prevent double execution
       (window as any).processingExerciseComplete = true;
+
+      // Mark this exercise as completed IMMEDIATELY to prevent re-submission
+      setCompletedExercises(prev => new Set([...prev, currentIndex]));
+      console.log('✅ Exercise marked as completed:', currentIndex);
 
       // Submit result to API if connected
       console.log('📤 About to submit exercise result:', { currentIndex, isCorrect, score, timeSpent });
@@ -1274,10 +1303,22 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                           {/* Exercise Info with Better Styling */}
                           <div className="bg-white rounded-lg p-2 border border-slate-200">
                               <div className="flex justify-between items-center mb-1">
-                                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Feladat {currentIndex + 1} / {playlist.length}</span>
+                                  <div className="flex items-center gap-2">
+                                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Feladat {currentIndex + 1} / {playlist.length}</span>
+                                      {completedExercises.has(currentIndex) && (
+                                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                              ✅ Befejezve
+                                          </span>
+                                      )}
+                                  </div>
                                   <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{exerciseData.type}</span>
                               </div>
                               <h3 className="text-sm font-bold text-slate-800 mb-2 leading-tight">{exerciseData.title}</h3>
+                              {completedExercises.has(currentIndex) && (
+                                  <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200">
+                                      Ez a feladat már be van fejezve. Csak a következő feladatra léphetsz.
+                                  </div>
+                              )}
                           </div>
                       </div>
 
@@ -1299,32 +1340,62 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
                       {/* Scrollable Content - More Compact */}
                       <div className="p-4 pt-0">
-                          {/* Render Dynamic Component based on Type */}
-                          {exerciseData.type === ExerciseType.MATCHING && (
-                              <MatchingExercise 
-                                key={uniqueKey}
-                                content={exerciseData.content as MatchingContent}
-                                onComplete={() => {}} // Handled by Next button
-                                onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)} 
-                              />
-                          )}
-                          
-                          {exerciseData.type === ExerciseType.CATEGORIZATION && (
-                              <CategorizationExercise
-                                key={uniqueKey}
-                                content={exerciseData.content as CategorizationContent}
-                                onComplete={() => {}} 
-                                onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)}
-                              />
-                          )}
+                          {/* Show "Next Exercise" button if current exercise is completed */}
+                          {completedExercises.has(currentIndex) ? (
+                              <div className="text-center py-8">
+                                  <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-4">
+                                      <div className="text-green-600 text-4xl mb-3">✅</div>
+                                      <h3 className="text-lg font-bold text-green-800 mb-2">Feladat befejezve!</h3>
+                                      <p className="text-green-700 text-sm mb-4">
+                                          Ez a feladat már sikeresen be van fejezve. Az eredményed el van mentve.
+                                      </p>
+                                      {currentIndex < playlist.length - 1 ? (
+                                          <button
+                                              onClick={() => setCurrentIndex(prev => prev + 1)}
+                                              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                                          >
+                                              ➡️ Következő feladat
+                                          </button>
+                                      ) : (
+                                          <button
+                                              onClick={() => setStep('RESULT')}
+                                              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                                          >
+                                              🏁 Eredmények megtekintése
+                                          </button>
+                                      )}
+                                  </div>
+                              </div>
+                          ) : (
+                              <>
+                                  {/* Render Dynamic Component based on Type - Only if not completed */}
+                                  {exerciseData.type === ExerciseType.MATCHING && (
+                                      <MatchingExercise 
+                                        key={uniqueKey}
+                                        content={exerciseData.content as MatchingContent}
+                                        onComplete={() => {}} // Handled by Next button
+                                        onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)} 
+                                      />
+                                  )}
+                                  
+                                  {exerciseData.type === ExerciseType.CATEGORIZATION && (
+                                      <CategorizationExercise
+                                        key={uniqueKey}
+                                        content={exerciseData.content as CategorizationContent}
+                                        onComplete={() => {}} 
+                                        onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)}
+                                      />
+                                  )}
 
-                          {exerciseData.type === ExerciseType.QUIZ && (
-                              <QuizExercise
-                                key={uniqueKey}
-                                content={exerciseData.content as QuizContent}
-                                onComplete={() => {}}
-                                onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)}
-                              />
+                                  {exerciseData.type === ExerciseType.QUIZ && (
+                                      <QuizExercise
+                                        key={uniqueKey}
+                                        content={exerciseData.content as QuizContent}
+                                        onComplete={() => {}}
+                                        onNext={(isCorrect, score, timeSpent, answer) => handleExerciseComplete(isCorrect, score, timeSpent, answer)}
+                                      />
+                                  )}
+                              </>
                           )}
                       </div>
                   </div>

@@ -633,20 +633,24 @@ export default async function handler(req, res) {
           }
         }
 
-        // Merge results: add new results to existing ones
+        // FIXED: Don't accumulate scores - replace results for the same exercise
         const existingResults = currentParticipant?.results || [];
-        const newResults = [...existingResults, ...results];
         
-        // Calculate cumulative score: add new score to existing score
-        const currentScore = currentParticipant?.total_score || 0;
-        const newTotalScore = currentScore + (summary.totalScore || 0);
+        // Remove any existing results for the same exercise index to prevent duplicates
+        const filteredResults = existingResults.filter((result: any) => result.exerciseIndex !== results[0]?.exerciseIndex);
+        const newResults = [...filteredResults, ...results];
         
-        console.log('📊 Score calculation:', {
-          currentScore,
-          newScore: summary.totalScore,
-          newTotalScore,
+        // FIXED: Calculate total score from all results, don't accumulate
+        const totalScoreFromResults = newResults.reduce((sum: number, result: any) => sum + (result.score || 0), 0);
+        
+        console.log('📊 Score calculation (FIXED):', {
+          exerciseIndex: results[0]?.exerciseIndex,
+          newExerciseScore: summary.totalScore,
+          totalScoreFromResults,
           existingResultsCount: existingResults.length,
-          newResultsCount: results.length
+          filteredResultsCount: filteredResults.length,
+          newResultsCount: newResults.length,
+          replacedExistingResult: existingResults.length > filteredResults.length
         });
 
         // Get session data to calculate total questions for percentage
@@ -699,7 +703,7 @@ export default async function handler(req, res) {
 
         // Calculate percentage based on total questions (10 points per question)
         const maxPossibleScore = totalQuestions * 10;
-        let percentage = maxPossibleScore > 0 ? Math.round((newTotalScore / maxPossibleScore) * 100) : 0;
+        let percentage = maxPossibleScore > 0 ? Math.round((totalScoreFromResults / maxPossibleScore) * 100) : 0;
         
         // SAFETY FIX: Cap percentage at 100% maximum
         if (percentage > 100) {
@@ -708,11 +712,11 @@ export default async function handler(req, res) {
         }
         
         console.log('📊 Percentage calculation:', {
-          newTotalScore,
+          totalScoreFromResults,
           maxPossibleScore,
           percentage,
-          capped: percentage === 100 && newTotalScore > maxPossibleScore,
-          formula: `(${newTotalScore} / ${maxPossibleScore}) * 100 = ${Math.round((newTotalScore / maxPossibleScore) * 100)}% → ${percentage}%`
+          capped: percentage === 100 && totalScoreFromResults > maxPossibleScore,
+          formula: `(${totalScoreFromResults} / ${maxPossibleScore}) * 100 = ${Math.round((totalScoreFromResults / maxPossibleScore) * 100)}% → ${percentage}%`
         });
 
         // Determine performance category
@@ -721,11 +725,11 @@ export default async function handler(req, res) {
         else if (percentage >= 75) performanceCategory = 'good';
         else if (percentage >= 60) performanceCategory = 'average';
 
-        // Update participant results (temporarily without percentage to test)
+        // Update participant results (FIXED: use calculated total score)
         console.log('💾 Updating participant with:', {
           studentId,
           completedExercises: Math.max(summary.completedExercises || 0, currentParticipant?.completed_exercises || 0),
-          newTotalScore,
+          totalScoreFromResults,
           percentage,
           performanceCategory,
           newResultsCount: newResults.length
@@ -735,7 +739,7 @@ export default async function handler(req, res) {
           .from('session_participants')
           .update({
             completed_exercises: Math.max(summary.completedExercises || 0, currentParticipant?.completed_exercises || 0),
-            total_score: newTotalScore,
+            total_score: totalScoreFromResults, // FIXED: use calculated total, not accumulated
             percentage: percentage,  // Re-enabled after DB migration
             performance_category: performanceCategory,  // Re-enabled after DB migration
             results: newResults,
@@ -762,7 +766,7 @@ export default async function handler(req, res) {
             step: 'completed',
             totalQuestions: totalQuestions,
             maxPossibleScore: maxPossibleScore,
-            newTotalScore: newTotalScore,
+            totalScoreFromResults: totalScoreFromResults,
             calculatedPercentage: percentage,
             performanceCategory: performanceCategory,
             dataSource: sessionData?.full_session_json ? 'full_session_json' : 'exercises'
