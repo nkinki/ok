@@ -898,10 +898,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         console.log('⚠️ Exercise already completed, preventing re-submission');
         console.log('✅ Moving to next exercise instead');
         
-        // Just move to next exercise
-        if (currentIndex < playlist.length - 1) {
-          setCurrentIndex(prev => prev + 1);
+        // Just move to next exercise with safety check
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < playlist.length) {
+          console.log('➡️ Moving to next uncompleted exercise:', nextIndex);
+          setCurrentIndex(nextIndex);
         } else {
+          console.log('🏁 All exercises completed, showing results');
           setStep('RESULT');
         }
         return;
@@ -913,10 +916,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         setCompletedCount(prev => prev + 1);
         setCompletedExercises(prev => new Set([...prev, currentIndex])); // Mark as completed
         
-        // Move to next exercise or finish
-        if (currentIndex < playlist.length - 1) {
-          setCurrentIndex(prev => prev + 1);
+        // Move to next exercise or finish with safety check
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < playlist.length) {
+          console.log('➡️ Preview mode: moving to next exercise:', nextIndex);
+          setCurrentIndex(nextIndex);
         } else {
+          console.log('🏁 Preview mode: all exercises completed');
           setStep('RESULT');
         }
         return;
@@ -1004,8 +1010,20 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       });
       
       if (currentIndex < playlist.length - 1) {
-          console.log('➡️ Moving to next exercise:', currentIndex + 1);
-          setCurrentIndex(prev => prev + 1);
+          const nextIndex = currentIndex + 1;
+          console.log('➡️ Moving to next exercise:', nextIndex);
+          
+          // SAFETY CHECK: Ensure next index is valid before setting
+          if (nextIndex < playlist.length) {
+            setCurrentIndex(nextIndex);
+          } else {
+            console.error('❌ Next index would be out of bounds!', {
+              nextIndex,
+              playlistLength: playlist.length
+            });
+            console.log('🏁 Forcing results display due to bounds error');
+            setStep('RESULT');
+          }
       } else {
           console.log('🏁 All exercises completed, showing results');
           
@@ -1235,14 +1253,23 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       if (currentIndex >= playlist.length) {
         console.error('❌ currentIndex out of bounds!', {
           currentIndex,
-          playlistLength: playlist.length
+          playlistLength: playlist.length,
+          playlistIds: playlist.map(p => p?.id || 'no-id')
         });
         
         if (playlist.length > 0) {
-          // If we have exercises but index is too high, go to results
-          console.log('🏁 All exercises completed, showing results');
-          setStep('RESULT');
-          return null;
+          // If we have exercises but index is too high, check if we should show results
+          if (currentIndex >= playlist.length) {
+            console.log('🏁 Index beyond playlist, showing results');
+            setStep('RESULT');
+            return null;
+          } else {
+            // Reset to last valid index
+            const lastValidIndex = playlist.length - 1;
+            console.log('🔄 Resetting to last valid index:', lastValidIndex);
+            setCurrentIndex(lastValidIndex);
+            return null; // Re-render with corrected index
+          }
         } else {
           // If no exercises at all, show error
           return <div className="p-8 text-center text-red-500">
