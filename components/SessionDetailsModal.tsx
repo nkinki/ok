@@ -94,12 +94,22 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
         : 0;
         
       // Calculate percentage for each participant based on total questions
-      const participantsWithPercentage = participants.map(p => ({
-        ...p,
-        percentage: totalPossibleQuestions > 0 
+      const participantsWithPercentage = participants.map(p => {
+        let percentage = totalPossibleQuestions > 0 
           ? Math.round((p.total_score / (totalPossibleQuestions * 10)) * 100) 
-          : 0
-      }));
+          : 0;
+        
+        // SAFETY FIX: Cap percentage at 100% maximum
+        if (percentage > 100) {
+          console.warn(`⚠️ Participant ${p.student_name} percentage over 100%: ${percentage}% - capping at 100%`);
+          percentage = 100;
+        }
+        
+        return {
+          ...p,
+          percentage
+        };
+      });
         
       const performanceDistribution = {
         excellent: participantsWithPercentage.filter(p => (p.percentage || 0) >= 90).length,

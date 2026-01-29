@@ -650,7 +650,7 @@ export default async function handler(req, res) {
         });
 
         // Get session data to calculate total questions for percentage
-        // Try full_session_json first, then fallback to exercises
+        // IMPORTANT: Use the same logic as participants endpoint for consistency
         const { data: sessionData, error: sessionDataError } = await supabase
           .from('teacher_sessions')
           .select('exercises, full_session_json')
@@ -667,13 +667,14 @@ export default async function handler(req, res) {
         let totalQuestions = 0;
         let exercisesToAnalyze = null;
 
-        // Use full_session_json if available, otherwise use exercises
-        if (sessionData?.full_session_json?.exercises) {
-          console.log('📊 Using full_session_json for question counting');
-          exercisesToAnalyze = sessionData.full_session_json.exercises;
-        } else if (sessionData?.exercises) {
-          console.log('📊 Using exercises field for question counting');
+        // CONSISTENCY FIX: Always use exercises field first (same as participants endpoint)
+        // Only use full_session_json as fallback if exercises field is empty
+        if (sessionData?.exercises && sessionData.exercises.length > 0) {
+          console.log('📊 Using exercises field for question counting (consistent with participants endpoint)');
           exercisesToAnalyze = sessionData.exercises;
+        } else if (sessionData?.full_session_json?.exercises) {
+          console.log('📊 Using full_session_json as fallback for question counting');
+          exercisesToAnalyze = sessionData.full_session_json.exercises;
         } else {
           console.error('❌ No exercise data found for percentage calculation');
         }
@@ -698,13 +699,20 @@ export default async function handler(req, res) {
 
         // Calculate percentage based on total questions (10 points per question)
         const maxPossibleScore = totalQuestions * 10;
-        const percentage = maxPossibleScore > 0 ? Math.round((newTotalScore / maxPossibleScore) * 100) : 0;
+        let percentage = maxPossibleScore > 0 ? Math.round((newTotalScore / maxPossibleScore) * 100) : 0;
+        
+        // SAFETY FIX: Cap percentage at 100% maximum
+        if (percentage > 100) {
+          console.warn(`⚠️ Percentage over 100% detected: ${percentage}% - capping at 100%`);
+          percentage = 100;
+        }
         
         console.log('📊 Percentage calculation:', {
           newTotalScore,
           maxPossibleScore,
           percentage,
-          formula: `(${newTotalScore} / ${maxPossibleScore}) * 100 = ${percentage}%`
+          capped: percentage === 100 && newTotalScore > maxPossibleScore,
+          formula: `(${newTotalScore} / ${maxPossibleScore}) * 100 = ${Math.round((newTotalScore / maxPossibleScore) * 100)}% → ${percentage}%`
         });
 
         // Determine performance category
@@ -1939,9 +1947,15 @@ export default async function handler(req, res) {
         const maxPossibleScore = totalQuestions * 10; // 10 points per question
         
         const enhancedParticipants = (participants || []).map(participant => {
-          const percentage = maxPossibleScore > 0 
+          let percentage = maxPossibleScore > 0 
             ? Math.round((participant.total_score / maxPossibleScore) * 100)
             : 0;
+          
+          // SAFETY FIX: Cap percentage at 100% maximum
+          if (percentage > 100) {
+            console.warn(`⚠️ Participant ${participant.student_name} percentage over 100%: ${percentage}% - capping at 100%`);
+            percentage = 100;
+          }
           
           let performance_category = 'poor';
           if (percentage >= 90) performance_category = 'excellent';
