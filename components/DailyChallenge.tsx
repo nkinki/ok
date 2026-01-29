@@ -131,6 +131,62 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       setCompletedCount(0);
     }
   }, [isPreviewMode, library]);
+
+  // Calculate final percentage when step changes to RESULT
+  useEffect(() => {
+    if (step === 'RESULT' && !isPreviewMode && playlist.length > 0 && !finalPercentage) {
+      console.log('📊 Calculating final percentage for results...');
+      
+      let totalQuestions = 0;
+      let totalScore = 0;
+      
+      // Calculate total questions from all exercises
+      playlist.forEach(exercise => {
+        const exerciseData = getExerciseData(exercise);
+        if (exerciseData.type === 'QUIZ') {
+          totalQuestions += exerciseData.content?.questions?.length || 0;
+        } else if (exerciseData.type === 'MATCHING') {
+          totalQuestions += exerciseData.content?.pairs?.length || 0;
+        } else if (exerciseData.type === 'CATEGORIZATION') {
+          totalQuestions += exerciseData.content?.items?.length || 0;
+        }
+      });
+      
+      // Get total score from localStorage
+      if (student && currentSessionCode) {
+        try {
+          const sessionKey = `session_${currentSessionCode}_results`;
+          const existingResults = localStorage.getItem(sessionKey);
+          const results = existingResults ? JSON.parse(existingResults) : [];
+          
+          totalScore = results.reduce((sum: number, r: any) => sum + (r.score || 0), 0);
+          
+          console.log('📊 Final score calculation:', {
+            totalQuestions,
+            totalScore,
+            maxPossibleScore: totalQuestions * 10,
+            results: results.length
+          });
+          
+          // Calculate percentage
+          const percentage = totalQuestions > 0 ? Math.round((totalScore / (totalQuestions * 10)) * 100) : 0;
+          setFinalPercentage(percentage);
+          setShowPercentage(true);
+          
+          console.log('🎯 Final percentage calculated:', percentage + '%');
+          
+          // Hide percentage after 10 seconds
+          setTimeout(() => {
+            console.log('⏰ Hiding percentage display after 10 seconds');
+            setShowPercentage(false);
+          }, 10000);
+          
+        } catch (error) {
+          console.error('Error calculating final percentage:', error);
+        }
+      }
+    }
+  }, [step, isPreviewMode, playlist, finalPercentage, student, currentSessionCode]);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -324,9 +380,10 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           
           console.log('🎯 Session loaded from database JSON with', playlist.length, 'exercises');
           
-          // Still try to join session for statistics (non-blocking)
+          // AUTOMATIC JOIN: Try to join session for statistics (and get proper student ID)
           try {
-            await fetch(`/api/simple-api/sessions/join`, {
+            console.log('🔄 Attempting automatic session join...');
+            const joinResponse = await fetch(`/api/simple-api/sessions/join`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -337,7 +394,29 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 className: studentData.className
               })
             });
-            console.log('📊 Joined session for statistics');
+            
+            if (joinResponse.ok) {
+              const joinData = await joinResponse.json();
+              if (joinData.student?.id && !joinData.student.id.startsWith('student_') && !joinData.student.id.startsWith('offline-')) {
+                console.log('✅ Automatic session join successful! Student ID:', joinData.student.id);
+                
+                // Update student with proper ID immediately
+                setStudent(prev => prev ? {
+                  ...prev,
+                  id: joinData.student.id,
+                  sessionId: joinData.student.sessionId
+                } : null);
+                
+                // Update the original studentData as well
+                studentData.id = joinData.student.id;
+                
+                console.log('📊 Student now has proper online ID for result submission');
+              } else {
+                console.warn('⚠️ Join response did not provide proper student ID');
+              }
+            } else {
+              console.warn('⚠️ Automatic session join failed, student will be in offline mode');
+            }
           } catch (joinError) {
             console.warn('⚠️ Could not join for statistics (continuing anyway):', joinError);
           }
@@ -740,6 +819,15 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         return;
       }
 
+      // CRITICAL: Prevent double execution by checking if we're already processing
+      if ((window as any).processingExerciseComplete) {
+        console.log('⚠️ Exercise completion already in progress, skipping...');
+        return;
+      }
+      
+      // Set flag to prevent double execution
+      (window as any).processingExerciseComplete = true;
+
       // Submit result to API if connected
       console.log('📤 About to submit exercise result:', { currentIndex, isCorrect, score, timeSpent });
       console.log('📤 Session info:', { currentSessionCode, studentId: student?.id });
@@ -813,53 +901,6 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           setCurrentIndex(prev => prev + 1);
       } else {
           console.log('🏁 All exercises completed, showing results');
-          
-          // Calculate final percentage based on total questions across all exercises
-          let totalQuestions = 0;
-          let totalScore = 0;
-          
-          // Calculate total questions from all exercises
-          playlist.forEach(exercise => {
-            const exerciseData = getExerciseData(exercise);
-            if (exerciseData.type === 'QUIZ') {
-              totalQuestions += exerciseData.content?.questions?.length || 0;
-            } else if (exerciseData.type === 'MATCHING') {
-              totalQuestions += exerciseData.content?.pairs?.length || 0;
-            } else if (exerciseData.type === 'CATEGORIZATION') {
-              totalQuestions += exerciseData.content?.items?.length || 0;
-            }
-          });
-          
-          // Get total score from localStorage or calculate from current session
-          if (student && currentSessionCode) {
-            try {
-              const sessionKey = `session_${currentSessionCode}_results`;
-              const existingResults = localStorage.getItem(sessionKey);
-              const results = existingResults ? JSON.parse(existingResults) : [];
-              
-              // Add current exercise score
-              totalScore = results.reduce((sum: number, r: any) => sum + (r.score || 0), 0) + score;
-              
-              console.log('📊 Final score calculation:', {
-                totalQuestions,
-                totalScore,
-                maxPossibleScore: totalQuestions * 10
-              });
-              
-              // Calculate percentage
-              const percentage = totalQuestions > 0 ? Math.round((totalScore / (totalQuestions * 10)) * 100) : 0;
-              setFinalPercentage(percentage);
-              setShowPercentage(true);
-              
-              // Hide percentage after 10 seconds
-              setTimeout(() => {
-                setShowPercentage(false);
-              }, 10000);
-              
-            } catch (error) {
-              console.error('Error calculating final percentage:', error);
-            }
-          }
           
           // Session completed - just mark as completed, don't resend all results
           if (student && currentSessionCode) {
@@ -938,6 +979,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
           setStep('RESULT');
       }
+      
+      // Clear the processing flag after navigation is complete
+      setTimeout(() => {
+        (window as any).processingExerciseComplete = false;
+      }, 100);
   };
 
   // --- RENDER: LOGIN ---
