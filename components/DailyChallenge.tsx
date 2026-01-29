@@ -286,11 +286,17 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           console.log('✅ Session data downloaded from database JSON');
           console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
           
-          // Convert database JSON to playlist format - PRESERVE IMAGE URLs
+          // Convert database JSON to playlist format - USE NEW FORMAT
           const playlist = sessionData.exercises.map((exercise: any) => ({
             id: exercise.id,
             fileName: exercise.fileName || exercise.title,
             imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
+            // NEW FORMAT: properties directly on the object
+            type: exercise.type,
+            title: exercise.title,
+            instruction: exercise.instruction,
+            content: exercise.content,
+            // OLD FORMAT: keep for compatibility
             data: {
               type: exercise.type,
               title: exercise.title,
@@ -301,6 +307,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           
           console.log('🖼️ Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
           console.log('🖼️ Image check - Has images:', playlist.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', playlist.length);
+          console.log('📝 Playlist format check - First exercise:', {
+            hasType: !!playlist[0]?.type,
+            hasTitle: !!playlist[0]?.title,
+            hasContent: !!playlist[0]?.content,
+            hasData: !!playlist[0]?.data
+          });
           
           setPlaylist(playlist);
           setCurrentIndex(0);
@@ -346,11 +358,17 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             console.log('✅ Session data found in localStorage');
             console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
             
-            // Convert localStorage JSON to playlist format - PRESERVE IMAGE URLs
+            // Convert localStorage JSON to playlist format - USE NEW FORMAT
             const playlist = sessionData.exercises.map((exercise: any) => ({
               id: exercise.id,
               fileName: exercise.fileName,
               imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
+              // NEW FORMAT: properties directly on the object
+              type: exercise.type,
+              title: exercise.title,
+              instruction: exercise.instruction,
+              content: exercise.content,
+              // OLD FORMAT: keep for compatibility
               data: {
                 type: exercise.type,
                 title: exercise.title,
@@ -361,6 +379,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             
             console.log('🖼️ localStorage Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
             console.log('🖼️ localStorage Image check - Has images:', playlist.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', playlist.length);
+            console.log('📝 localStorage Playlist format check - First exercise:', {
+              hasType: !!playlist[0]?.type,
+              hasTitle: !!playlist[0]?.title,
+              hasContent: !!playlist[0]?.content,
+              hasData: !!playlist[0]?.data
+            });
             
             setPlaylist(playlist);
             setCurrentIndex(0);
@@ -981,13 +1005,59 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
   // --- RENDER: PLAYING ---
   if (step === 'PLAYING') {
+      console.log('🎮 PLAYING step - Debug info:', {
+        playlistLength: playlist.length,
+        currentIndex,
+        hasCurrentItem: !!playlist[currentIndex],
+        playlistItems: playlist.map((item, index) => ({
+          index,
+          id: item?.id,
+          hasData: !!item?.data,
+          hasType: !!item?.type,
+          hasTitle: !!item?.title,
+          hasContent: !!item?.content
+        }))
+      });
+
       const currentItem = playlist[currentIndex];
       
       if (!currentItem) {
-          return <div className="p-8 text-center text-red-500">Hiba: A feladat nem tölthető be.</div>;
+          console.error('❌ No current item found!', {
+            playlistLength: playlist.length,
+            currentIndex,
+            playlist: playlist
+          });
+          return <div className="p-8 text-center text-red-500">
+            Hiba: A feladat nem tölthető be.
+            <div className="text-sm mt-2 text-gray-600">
+              Debug: playlist[{currentIndex}] üres (összesen: {playlist.length} feladat)
+            </div>
+          </div>;
       }
 
       const exerciseData = getExerciseData(currentItem);
+      console.log('📝 Exercise data:', {
+        currentIndex,
+        itemId: currentItem.id,
+        exerciseData,
+        hasType: !!exerciseData.type,
+        hasTitle: !!exerciseData.title,
+        hasContent: !!exerciseData.content
+      });
+
+      if (!exerciseData.type || !exerciseData.content) {
+          console.error('❌ Invalid exercise data!', {
+            exerciseData,
+            currentItem
+          });
+          return <div className="p-8 text-center text-red-500">
+            Hiba: A feladat adatai hiányosak.
+            <div className="text-sm mt-2 text-gray-600">
+              Debug: type={exerciseData.type}, content={!!exerciseData.content}
+            </div>
+          </div>;
+      }
+
       const progress = ((currentIndex + 1) / playlist.length) * 100;
       const uniqueKey = `${currentItem.id}-${currentIndex}`; // Force re-render on change
 
