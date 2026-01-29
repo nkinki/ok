@@ -1060,10 +1060,17 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             playlist: playlist
           });
           return <div className="p-8 text-center text-red-500">
-            Hiba: A feladat nem tölthető be.
-            <div className="text-sm mt-2 text-gray-600">
-              Debug: playlist[{currentIndex}] üres (összesen: {playlist.length} feladat)
-            </div>
+            <div className="text-4xl mb-4">⚠️</div>
+            <h3 className="text-lg font-semibold mb-2">A feladat nem tölthető be</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Hiba történt a feladat betöltésekor. Kérlek próbáld újra!
+            </p>
+            <button 
+              onClick={onExit}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Vissza a főoldalra
+            </button>
           </div>;
       }
 
