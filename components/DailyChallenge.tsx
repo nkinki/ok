@@ -541,12 +541,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 content: exercise.content,
                 // OLD FORMAT: keep for compatibility
                 data: {
-                type: exercise.type,
-                title: exercise.title,
-                instruction: exercise.instruction,
-                content: exercise.content
-              }
-            };
+                  type: exercise.type,
+                  title: exercise.title,
+                  instruction: exercise.instruction,
+                  content: exercise.content
+                }
+              };
             
             // DEBUG: Log the mapped result
             console.log(`🔍 Mapped exercise ${index} result [v3.0]:`, {
@@ -814,57 +814,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               } catch (driveError) {
                 console.warn('⚠️ Google Drive load failed, trying API fallback:', driveError);
               }
-
-              // Fallback to API if Google Drive failed
-              if (!sessionFound) {
-                console.log('🌐 Checking API for session...');
-                // Get exercises from API (now returns full JSON)
-                const exercisesResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/exercises`);
-                console.log('📡 API exercises response status:', exercisesResponse.status);
-                if (exercisesResponse.ok) {
-                  const sessionData = await exercisesResponse.json();
-                  console.log('📡 API session data:', sessionData);
-                  
-                  if (sessionData.exercises && sessionData.exercises.length > 0) {
-                    console.log('✅ Session JSON loaded from API');
-                    console.log('📊 Exercise count:', sessionData.exercises.length);
-                    
-                    // Convert API JSON to playlist format - PRESERVE IMAGE URLs
-                    const playlist = sessionData.exercises.map((exercise: any) => ({
-                      id: exercise.id,
-                      fileName: exercise.fileName,
-                      imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
-                      data: {
-                        type: exercise.type,
-                        title: exercise.title,
-                        instruction: exercise.instruction,
-                        content: exercise.content
-                      }
-                    }));
-                    
-                    console.log('🖼️ API Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
-                    console.log('🖼️ API Image check - Has images:', playlist.filter(ex => ex.imageUrl && ex.imageUrl.length > 0).length, 'out of', playlist.length);
-                    
-                    setPlaylist(playlist);
-                    setCurrentIndex(0);
-                    setCompletedCount(0);
-                    setCompletedExercises(new Set()); // Reset completed exercises for new session
-                    
-                    // Store session metadata for result submission
-                    setCurrentSessionCode(code.toUpperCase());
-                    
-                    setStep('PLAYING');
-                    sessionFound = true;
-                  } else {
-                    console.log('❌ No exercises found in API response');
-                  }
-                } else {
-                  console.log('❌ API exercises request failed');
-                }
-              }
-            } else {
-              console.log('❌ Session not found in API');
-            }
+            } // Close the if (data.exists) block
           } else {
             console.log('⚠️ API session check failed with status:', response.status);
           }
@@ -877,6 +827,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       if (!sessionFound) {
         throw new Error('A megadott tanári kód nem található vagy a munkamenet nem aktív.\n\n🔄 Lehetséges okok:\n• A munkamenet lejárt (60 perc után)\n• Hibás kód\n• Hálózati probléma\n• Adatbázis nem elérhető\n\n💡 Megoldás: Kérj új kódot a tanártól!');
       }
+      } // Added missing closing brace
       
     } catch (error) {
       console.error('❌ Error loading session exercises:', error);
