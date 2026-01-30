@@ -1434,7 +1434,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       return (
           <div className={`${isStudentMode && !isPreviewMode ? 'h-screen' : 'h-[calc(100vh-80px)]'} flex flex-col lg:flex-row overflow-hidden`}>
               {/* Left Side: Original Image - Optimized for all screen sizes */}
-              <div className="lg:w-2/5 h-[45vh] lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
+              <div className="lg:w-2/5 h-[60vh] lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
                    {(() => {
                      const imageUrl = getImageUrl(currentItem);
                      console.log('🎯 CRITICAL DEBUG - Image rendering:', {
@@ -1489,7 +1489,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               </div>
 
               {/* Right Side: Exercise - Optimized for all screen sizes */}
-              <div className="lg:w-3/5 h-[55vh] lg:h-full bg-slate-50 overflow-y-auto order-2 lg:order-2 relative">
+              <div className="lg:w-3/5 h-[40vh] lg:h-full bg-slate-50 overflow-y-auto order-2 lg:order-2 relative">
                   <div className="max-w-2xl mx-auto">
                       {/* Exercise Header - Always Visible */}
                       <div className="sticky top-0 z-20 bg-slate-50 p-2 pb-1 border-b border-slate-200 mb-2 shadow-sm opacity-95 backdrop-blur">
