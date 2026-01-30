@@ -1633,8 +1633,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           {showPercentage && finalPercentage !== null && (
               <div className="absolute inset-0 bg-white rounded-2xl flex flex-col z-10 overflow-y-auto">
                   {/* Header with percentage */}
-                  <div className="text-center py-4 border-b border-slate-200">
-                      <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl font-bold ${
+                  <div className="text-center py-6 border-b border-slate-200">
+                      <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-4 text-5xl font-bold ${
                           finalPercentage >= 80 
                               ? 'bg-green-100 text-green-600' 
                               : 'bg-red-100 text-red-600'

@@ -2023,6 +2023,7 @@ export default async function handler(req, res) {
         }
 
         // Get session participants with their scores, ordered by total_score DESC
+        // Only include participants who have actually submitted results
         const { data: participants, error } = await supabase
           .from('session_participants')
           .select(`
@@ -2033,6 +2034,8 @@ export default async function handler(req, res) {
             results
           `)
           .eq('session_id', session.id)
+          .not('results', 'is', null) // Only participants with results
+          .neq('results', '[]') // Exclude empty results arrays
           .order('total_score', { ascending: false })
           .limit(20); // Top 20 students
 
