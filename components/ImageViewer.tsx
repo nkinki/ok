@@ -357,7 +357,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
         <button
           onClick={handleZoomOut}
           disabled={zoom <= zoomLevels[0]}
-          className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center text-lg font-bold transition-all hover:scale-110"
+          className="w-10 h-10 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center text-lg font-bold transition-all hover:scale-110"
           title="Kicsinyítés"
         >
           −
@@ -370,7 +370,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
         <button
           onClick={handleZoomIn}
           disabled={zoom >= zoomLevels[zoomLevels.length - 1]}
-          className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center text-lg font-bold transition-all hover:scale-110"
+          className="w-10 h-10 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center text-lg font-bold transition-all hover:scale-110"
           title="Nagyítás"
         >
           +
@@ -380,7 +380,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
         
         <button
           onClick={handleZoomReset}
-          className="w-8 h-8 bg-white/20 hover:bg-white/30 text-white rounded flex items-center justify-center text-xs font-bold transition-all hover:scale-110"
+          className="w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded flex items-center justify-center text-xs font-bold transition-all hover:scale-110"
           title="Eredeti méret"
         >
           1:1
