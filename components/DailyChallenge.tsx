@@ -136,8 +136,30 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   // Student mode fullscreen handler - hide browser chrome
   useEffect(() => {
     if (isStudentMode && !isPreviewMode && step === 'PLAYING') {
+      // Change page title to something shorter for student mode
+      const originalTitle = document.title;
+      document.title = "Feladat";
+      
       // Add class to body to prevent browser chrome
       document.body.classList.add('student-fullscreen');
+      
+      // Request fullscreen API to completely hide browser chrome
+      const requestFullscreen = async () => {
+        try {
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+          } else if ((document.documentElement as any).webkitRequestFullscreen) {
+            await (document.documentElement as any).webkitRequestFullscreen();
+          } else if ((document.documentElement as any).msRequestFullscreen) {
+            await (document.documentElement as any).msRequestFullscreen();
+          }
+        } catch (error) {
+          console.log('Fullscreen request failed:', error);
+        }
+      };
+      
+      // Auto-request fullscreen after a short delay
+      const fullscreenTimeout = setTimeout(requestFullscreen, 1000);
       
       // Prevent context menu on right click
       const preventContextMenu = (e: MouseEvent) => {
@@ -155,7 +177,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       document.addEventListener('selectstart', preventSelection);
       document.addEventListener('dragstart', preventSelection);
       
-      // Hide cursor after inactivity (optional)
+      // Hide cursor after inactivity
       let cursorTimeout: NodeJS.Timeout;
       const hideCursor = () => {
         document.body.style.cursor = 'none';
@@ -164,13 +186,16 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       const showCursor = () => {
         document.body.style.cursor = 'default';
         clearTimeout(cursorTimeout);
-        cursorTimeout = setTimeout(hideCursor, 3000); // Hide after 3 seconds of inactivity
+        cursorTimeout = setTimeout(hideCursor, 3000);
       };
       
       document.addEventListener('mousemove', showCursor);
-      showCursor(); // Initialize
+      showCursor();
       
       return () => {
+        // Restore original title
+        document.title = originalTitle;
+        
         document.body.classList.remove('student-fullscreen');
         document.body.style.cursor = 'default';
         document.removeEventListener('contextmenu', preventContextMenu);
@@ -178,6 +203,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         document.removeEventListener('dragstart', preventSelection);
         document.removeEventListener('mousemove', showCursor);
         clearTimeout(cursorTimeout);
+        clearTimeout(fullscreenTimeout);
+        
+        // Exit fullscreen when leaving student mode
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
       };
     }
   }, [isStudentMode, isPreviewMode, step]);
