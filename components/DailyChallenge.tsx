@@ -1489,10 +1489,10 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               </div>
 
               {/* Right Side: Exercise - Optimized for all screen sizes */}
-              <div className="lg:w-3/5 h-[40vh] lg:h-full bg-slate-50 overflow-y-auto order-2 lg:order-2 relative">
-                  <div className="max-w-2xl mx-auto">
+              <div className="lg:w-3/5 h-[40vh] lg:h-full bg-slate-50 order-2 lg:order-2 relative flex flex-col">
+                  <div className="max-w-2xl mx-auto flex-1 flex flex-col">
                       {/* Exercise Header - Always Visible */}
-                      <div className="sticky top-0 z-20 bg-slate-50 p-2 pb-1 border-b border-slate-200 mb-2 shadow-sm opacity-95 backdrop-blur">
+                      <div className="flex-shrink-0 bg-white p-2 pb-1 border-b border-slate-200 mb-2 shadow-lg z-20" style={{ position: 'sticky', top: '0px' }}>
                           <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-2">
                                   <span className="font-bold text-purple-900 text-sm">
@@ -1560,24 +1560,26 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                           </div>
                       </div>
 
-                      {/* Task Description Block - Separate with Different Background */}
-                      <div className="mx-2 mb-3">
-                          {/* Offline Mode Warning removed - automatic reconnection now works silently */}
-                          
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm">
-                              <div className="flex items-start gap-2">
-                                  <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                  </svg>
-                                  <div className="text-blue-800 font-medium text-sm leading-relaxed">
-                                      {exerciseData.instruction}
+                      {/* Scrollable Content Container */}
+                      <div className="flex-1 overflow-y-auto">
+                          {/* Task Description Block - Separate with Different Background */}
+                          <div className="mx-2 mb-3">
+                              {/* Offline Mode Warning removed - automatic reconnection now works silently */}
+                              
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm">
+                                  <div className="flex items-start gap-2">
+                                      <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                      </svg>
+                                      <div className="text-blue-800 font-medium text-sm leading-relaxed">
+                                          {exerciseData.instruction}
+                                      </div>
                                   </div>
                               </div>
                           </div>
-                      </div>
 
-                      {/* Scrollable Content - More Compact */}
-                      <div className="p-4 pt-0">
+                          {/* Scrollable Content - More Compact */}
+                          <div className="p-4 pt-0">
                           {/* Show "Next Exercise" button if current exercise is completed */}
                           {completedExercises.has(currentIndex) ? (
                               <div className="text-center py-8">
@@ -1636,6 +1638,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                               </>
                           )}
                       </div>
+                      </div> {/* End Scrollable Content Container */}
                   </div>
               </div>
           </div>
