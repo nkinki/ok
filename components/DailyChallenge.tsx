@@ -1644,13 +1644,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
   // --- RENDER: RESULT ---
   return (
-      <div className="max-w-lg mx-auto mt-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-200 text-center relative">
+      <div className="max-w-2xl mx-auto mt-4 bg-white p-6 rounded-2xl shadow-xl border border-slate-200 text-center relative min-h-[80vh]">
           {/* Complete results overlay with percentage, leaderboard and retry */}
           {showPercentage && finalPercentage !== null && (
               <div className="absolute inset-0 bg-white rounded-2xl flex flex-col z-10 overflow-y-auto">
                   {/* Header with percentage */}
                   <div className="text-center py-6 border-b border-slate-200">
-                      <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-4 text-5xl font-bold ${
+                      <div className={`w-40 h-40 rounded-full flex items-center justify-center mx-auto mb-4 text-6xl font-bold ${
                           finalPercentage >= 80 
                               ? 'bg-green-100 text-green-600' 
                               : 'bg-red-100 text-red-600'
@@ -1737,7 +1737,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                                           </div>
                                                       </div>
                                                       <div className="text-right">
-                                                          <div className={`font-bold text-sm ${
+                                                          <div className={`font-bold text-base ${
                                                               participant.percentage >= 80 ? 'text-green-600' : 'text-red-600'
                                                           }`}>
                                                               {participant.percentage}%
@@ -1930,7 +1930,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                                   </div>
                                               </div>
                                               <div className="text-right">
-                                                  <div className={`font-bold text-sm ${
+                                                  <div className={`font-bold text-base ${
                                                       participant.percentage >= 80 ? 'text-green-600' : 'text-red-600'
                                                   }`}>
                                                       {participant.percentage}%
