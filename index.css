@@ -77,3 +77,37 @@ code {
     transform: translateX(0);
   }
 }
+
+/* Student mode - hide browser chrome interactions */
+.student-fullscreen {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.student-fullscreen * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Prevent browser chrome from showing on mouse movement */
+.student-fullscreen:hover {
+  cursor: default;
+}
+
+/* Hide scrollbars in student mode but keep functionality */
+.student-fullscreen::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+.student-fullscreen *::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}

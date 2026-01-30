@@ -132,6 +132,56 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       document.removeEventListener('keydown', handleEscKey);
     };
   }, [onExit]);
+
+  // Student mode fullscreen handler - hide browser chrome
+  useEffect(() => {
+    if (isStudentMode && !isPreviewMode && step === 'PLAYING') {
+      // Add class to body to prevent browser chrome
+      document.body.classList.add('student-fullscreen');
+      
+      // Prevent context menu on right click
+      const preventContextMenu = (e: MouseEvent) => {
+        e.preventDefault();
+        return false;
+      };
+      
+      // Prevent text selection
+      const preventSelection = (e: Event) => {
+        e.preventDefault();
+        return false;
+      };
+      
+      document.addEventListener('contextmenu', preventContextMenu);
+      document.addEventListener('selectstart', preventSelection);
+      document.addEventListener('dragstart', preventSelection);
+      
+      // Hide cursor after inactivity (optional)
+      let cursorTimeout: NodeJS.Timeout;
+      const hideCursor = () => {
+        document.body.style.cursor = 'none';
+      };
+      
+      const showCursor = () => {
+        document.body.style.cursor = 'default';
+        clearTimeout(cursorTimeout);
+        cursorTimeout = setTimeout(hideCursor, 3000); // Hide after 3 seconds of inactivity
+      };
+      
+      document.addEventListener('mousemove', showCursor);
+      showCursor(); // Initialize
+      
+      return () => {
+        document.body.classList.remove('student-fullscreen');
+        document.body.style.cursor = 'default';
+        document.removeEventListener('contextmenu', preventContextMenu);
+        document.removeEventListener('selectstart', preventSelection);
+        document.removeEventListener('dragstart', preventSelection);
+        document.removeEventListener('mousemove', showCursor);
+        clearTimeout(cursorTimeout);
+      };
+    }
+  }, [isStudentMode, isPreviewMode, step]);
+
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
@@ -1432,7 +1482,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       const uniqueKey = `${currentItem.id}-${currentIndex}`; // Force re-render on change
 
       return (
-          <div className={`${isStudentMode && !isPreviewMode ? 'h-screen' : 'h-[calc(100vh-80px)]'} flex flex-col lg:flex-row overflow-hidden`}>
+          <div className={`${isStudentMode && !isPreviewMode ? 'h-screen student-fullscreen' : 'h-[calc(100vh-80px)]'} flex flex-col lg:flex-row overflow-hidden`}>
               {/* Left Side: Original Image - Optimized for all screen sizes */}
               <div className="lg:w-2/5 h-[60vh] lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
                    {(() => {
