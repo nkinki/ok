@@ -1800,11 +1800,28 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       )}
                       
                       <button 
-                          onClick={onExit} 
+                          onClick={() => {
+                              // For students, go back to login instead of main menu
+                              if (isStudentMode && !isPreviewMode) {
+                                  setStep('LOGIN');
+                                  setStudent(null);
+                                  setCurrentSessionCode(null);
+                                  setPlaylist([]);
+                                  setCurrentIndex(0);
+                                  setCompletedCount(0);
+                                  setCompletedExercises(new Set());
+                                  setShowPercentage(false);
+                                  setFinalPercentage(null);
+                                  setShowLeaderboard(false);
+                                  setCalculatingPercentage(false);
+                              } else {
+                                  onExit();
+                              }
+                          }}
                           className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
                       >
                           <span className="text-lg">🏠</span>
-                          {isPreviewMode ? 'Vissza a könyvtárba' : 'Vissza a főoldalra'}
+                          {isPreviewMode ? 'Vissza a könyvtárba' : (isStudentMode ? 'Vissza a bejelentkezéshez' : 'Vissza a főoldalra')}
                       </button>
                   </div>
               </div>
@@ -1971,8 +1988,28 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               </div>
           )}
 
-          <button onClick={onExit} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02]">
-              {isPreviewMode ? 'Vissza a könyvtárba' : 'Vissza a főoldalra'}
+          <button 
+              onClick={() => {
+                  // For students, go back to login instead of main menu
+                  if (isStudentMode && !isPreviewMode) {
+                      setStep('LOGIN');
+                      setStudent(null);
+                      setCurrentSessionCode(null);
+                      setPlaylist([]);
+                      setCurrentIndex(0);
+                      setCompletedCount(0);
+                      setCompletedExercises(new Set());
+                      setShowPercentage(false);
+                      setFinalPercentage(null);
+                      setShowLeaderboard(false);
+                      setCalculatingPercentage(false);
+                  } else {
+                      onExit();
+                  }
+              }}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02]"
+          >
+              {isPreviewMode ? 'Vissza a könyvtárba' : (isStudentMode ? 'Vissza a bejelentkezéshez' : 'Vissza a főoldalra')}
           </button>
           </>
           )}
