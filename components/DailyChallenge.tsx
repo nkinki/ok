@@ -1634,11 +1634,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
   // --- RENDER: RESULT ---
   return (
-      <div className="max-w-lg mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border border-slate-200 text-center relative">
+      <div className="max-w-lg mx-auto mt-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-200 text-center relative">
           {/* Show percentage for 10 seconds */}
           {showPercentage && finalPercentage !== null && (
               <div className="absolute inset-0 bg-white rounded-2xl flex flex-col items-center justify-center z-10">
-                  <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 text-6xl font-bold ${
+                  <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl font-bold ${
                       finalPercentage >= 80 
                           ? 'bg-green-100 text-green-600' 
                           : 'bg-red-100 text-red-600'
@@ -1646,7 +1646,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       {finalPercentage}%
                   </div>
                   
-                  <h2 className={`text-3xl font-bold mb-4 ${
+                  <h2 className={`text-2xl font-bold mb-3 ${
                       finalPercentage >= 80 
                           ? 'text-green-600' 
                           : 'text-red-600'
@@ -1654,52 +1654,52 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       {finalPercentage >= 80 ? '🎉 Megfelelt!' : '📚 Próbáld újra!'}
                   </h2>
                   
-                  <p className="text-slate-600 text-lg">
+                  <p className="text-slate-600">
                       {finalPercentage >= 80 
                           ? 'Szuper teljesítmény! Gratulálunk!' 
                           : 'Ne add fel! Gyakorolj még egy kicsit!'}
                   </p>
                   
-                  <div className="mt-4 text-sm text-slate-500">
+                  <div className="mt-3 text-xs text-slate-500">
                       Ez az üzenet 10 másodperc múlva eltűnik...
                   </div>
               </div>
           )}
           
-          <div className="w-24 h-24 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 text-5xl animate-bounce">
+          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl animate-bounce">
               {isPreviewMode ? '👁️' : '🏆'}
           </div>
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">
               {isPreviewMode ? 'Előnézet befejezve!' : `Szép munka, ${student?.name}!`}
           </h2>
-          <p className="text-slate-500 mb-8">
+          <p className="text-slate-500 mb-6 text-sm">
               {isPreviewMode 
                   ? 'A feladat előnézete véget ért. Szerkesztheted a feladatot a könyvtárban.' 
                   : 'A mai gyakorlás véget ért. Az eredmények automatikusan mentve lettek.'
               }
           </p>
 
-          <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
-              <div className="text-sm text-slate-500 uppercase font-bold tracking-wider mb-1">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4">
+              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">
                   {isPreviewMode ? 'Megtekintve' : 'Teljesítve'}
               </div>
-              <div className="text-5xl font-black text-purple-600">{completedCount} <span className="text-2xl text-slate-400 font-medium">/ {playlist.length}</span></div>
-              <div className="text-sm font-medium text-slate-600 mt-2">
+              <div className="text-3xl font-black text-purple-600">{completedCount} <span className="text-lg text-slate-400 font-medium">/ {playlist.length}</span></div>
+              <div className="text-xs font-medium text-slate-600 mt-1">
                   {isPreviewMode ? 'feladat megtekintve' : 'feladat sikeresen megoldva'}
               </div>
               
               {/* Show final percentage if available and not in preview mode */}
               {!isPreviewMode && finalPercentage !== null && !showPercentage && (
-                  <div className="mt-4 pt-4 border-t border-slate-200">
-                      <div className="text-sm text-slate-500 uppercase font-bold tracking-wider mb-1">
+                  <div className="mt-3 pt-3 border-t border-slate-200">
+                      <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">
                           Végeredmény
                       </div>
-                      <div className={`text-3xl font-bold ${
+                      <div className={`text-2xl font-bold ${
                           finalPercentage >= 80 ? 'text-green-600' : 'text-red-600'
                       }`}>
                           {finalPercentage}%
                       </div>
-                      <div className={`text-sm font-medium mt-1 ${
+                      <div className={`text-xs font-medium mt-1 ${
                           finalPercentage >= 80 ? 'text-green-600' : 'text-red-600'
                       }`}>
                           {finalPercentage >= 80 ? 'Megfelelt' : 'Próbáld újra'}
@@ -1709,19 +1709,19 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           </div>
 
           {!isPreviewMode && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                   <div className="flex items-center justify-center gap-2 text-green-700">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
                       </svg>
-                      <span className="font-medium">Eredmények automatikusan mentve</span>
+                      <span className="font-medium text-sm">Eredmények automatikusan mentve</span>
                   </div>
               </div>
           )}
 
           {/* Leaderboard Section */}
           {!isPreviewMode && (
-              <div className="mb-6">
+              <div className="mb-4">
                   <button 
                       onClick={() => {
                           if (!showLeaderboard) {
@@ -1729,39 +1729,39 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                           }
                           setShowLeaderboard(!showLeaderboard);
                       }}
-                      className="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-3 px-4 rounded-xl font-bold border border-yellow-300 transition-colors flex items-center justify-center gap-2"
+                      className="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-2 px-3 rounded-xl font-bold border border-yellow-300 transition-colors flex items-center justify-center gap-2 text-sm"
                   >
-                      <span className="text-xl">🏆</span>
+                      <span className="text-lg">🏆</span>
                       {showLeaderboard ? 'Ranglista elrejtése' : 'Ranglista megtekintése'}
-                      {loadingLeaderboard && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>}
+                      {loadingLeaderboard && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>}
                   </button>
 
                   {showLeaderboard && (
-                      <div className="mt-4 bg-white border border-slate-200 rounded-xl p-4 max-h-80 overflow-y-auto">
-                          <h3 className="text-lg font-bold text-slate-800 mb-4 text-center flex items-center justify-center gap-2">
-                              <span className="text-xl">🏆</span>
+                      <div className="mt-3 bg-white border border-slate-200 rounded-xl p-3 max-h-48 overflow-y-auto">
+                          <h3 className="text-sm font-bold text-slate-800 mb-3 text-center flex items-center justify-center gap-2">
+                              <span className="text-base">🏆</span>
                               Ranglista
                           </h3>
                           
                           {leaderboard.length === 0 ? (
-                              <p className="text-slate-500 text-center py-4">
+                              <p className="text-slate-500 text-center py-3 text-sm">
                                   {loadingLeaderboard ? 'Ranglista betöltése...' : 'Még nincsenek eredmények.'}
                               </p>
                           ) : (
-                              <div className="space-y-2">
-                                  {leaderboard.map((participant, index) => {
+                              <div className="space-y-1">
+                                  {leaderboard.slice(0, 10).map((participant, index) => {
                                       const isCurrentStudent = participant.name === student?.name;
                                       return (
                                           <div 
                                               key={index}
-                                              className={`flex items-center justify-between p-3 rounded-lg border ${
+                                              className={`flex items-center justify-between p-2 rounded-lg border text-xs ${
                                                   isCurrentStudent 
-                                                      ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300' 
+                                                      ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-300' 
                                                       : 'bg-slate-50 border-slate-200'
                                               }`}
                                           >
-                                              <div className="flex items-center gap-3">
-                                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                              <div className="flex items-center gap-2">
+                                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
                                                       participant.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
                                                       participant.rank === 2 ? 'bg-gray-100 text-gray-800' :
                                                       participant.rank === 3 ? 'bg-orange-100 text-orange-800' :
@@ -1775,7 +1775,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                                   <div>
                                                       <div className={`font-medium ${isCurrentStudent ? 'text-blue-800' : 'text-slate-800'}`}>
                                                           {participant.name}
-                                                          {isCurrentStudent && <span className="ml-2 text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">Te</span>}
+                                                          {isCurrentStudent && <span className="ml-1 text-xs bg-blue-200 text-blue-800 px-1 py-0.5 rounded-full">Te</span>}
                                                       </div>
                                                       <div className="text-xs text-slate-500">
                                                           {participant.class}
@@ -1783,7 +1783,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                                   </div>
                                               </div>
                                               <div className="text-right">
-                                                  <div className={`font-bold ${
+                                                  <div className={`font-bold text-sm ${
                                                       participant.percentage >= 80 ? 'text-green-600' : 'text-red-600'
                                                   }`}>
                                                       {participant.percentage}%
@@ -1799,12 +1799,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                           )}
                           
                           {leaderboard.length > 0 && (
-                              <div className="mt-4 pt-3 border-t border-slate-200 text-center">
+                              <div className="mt-3 pt-2 border-t border-slate-200 text-center">
                                   <p className="text-xs text-slate-500">
-                                      {leaderboard.length} résztvevő • Frissítve: {new Date().toLocaleTimeString()}
+                                      {leaderboard.length} résztvevő • {new Date().toLocaleTimeString()}
                                   </p>
                                   {finalPercentage !== null && finalPercentage < 80 && (
-                                      <p className="text-sm text-orange-600 mt-2 font-medium">
+                                      <p className="text-xs text-orange-600 mt-1 font-medium">
                                           💪 Próbáld újra és kerülj feljebb a ranglistán!
                                       </p>
                                   )}
@@ -1815,7 +1815,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               </div>
           )}
 
-          <button onClick={onExit} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02]">
+          <button onClick={onExit} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02]">
               {isPreviewMode ? 'Vissza a könyvtárba' : 'Vissza a főoldalra'}
           </button>
 
