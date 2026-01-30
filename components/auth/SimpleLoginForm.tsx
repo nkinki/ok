@@ -46,7 +46,7 @@ export default function SimpleLoginForm() {
             id="loginCode"
             value={loginCode}
             onChange={(e) => setLoginCode(e.target.value)}
-            placeholder="Pl: infoxxx, matekxxx, torixxx..."
+            placeholder="Adja meg a tantárgyi kódot"
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-center font-mono text-lg"
             disabled={loading}
           />
@@ -75,12 +75,12 @@ export default function SimpleLoginForm() {
       )}
 
       <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Elérhető tantárgyi kódok:</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Elérhető tantárgyak:</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           {predefinedCodes.map((item) => (
             <div key={item.code} className="flex justify-between items-center p-2 bg-white rounded border">
-              <span className="font-mono font-bold text-brand-600">{item.code}</span>
               <span className="text-gray-600">{item.subject}</span>
+              <span className="text-gray-500">{item.teacher}</span>
             </div>
           ))}
         </div>

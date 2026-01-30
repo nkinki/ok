@@ -352,25 +352,25 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
 
   return (
     <div className="relative w-full h-full bg-slate-900">
-      {/* Zoom Controls - Horizontal at bottom center */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-2 bg-black/70 rounded-lg p-2">
+      {/* Zoom Controls - Fixed to image container bottom, always visible */}
+      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-2 bg-black/80 rounded-lg p-2 shadow-lg backdrop-blur-sm border border-white/10">
         <button
           onClick={handleZoomOut}
           disabled={zoom <= zoomLevels[0]}
-          className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center text-lg font-bold"
+          className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center text-lg font-bold transition-all hover:scale-110"
           title="Kicsinyítés"
         >
           −
         </button>
         
-        <div className="text-white text-xs text-center font-mono bg-black/50 px-3 py-1 rounded min-w-[50px]">
+        <div className="text-white text-xs text-center font-mono bg-black/50 px-3 py-1 rounded min-w-[50px] border border-white/10">
           {Math.round(zoom * 100)}%
         </div>
         
         <button
           onClick={handleZoomIn}
           disabled={zoom >= zoomLevels[zoomLevels.length - 1]}
-          className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center text-lg font-bold"
+          className="w-8 h-8 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center text-lg font-bold transition-all hover:scale-110"
           title="Nagyítás"
         >
           +
@@ -380,7 +380,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
         
         <button
           onClick={handleZoomReset}
-          className="w-8 h-8 bg-white/20 hover:bg-white/30 text-white rounded flex items-center justify-center text-xs font-bold"
+          className="w-8 h-8 bg-white/20 hover:bg-white/30 text-white rounded flex items-center justify-center text-xs font-bold transition-all hover:scale-110"
           title="Eredeti méret"
         >
           1:1

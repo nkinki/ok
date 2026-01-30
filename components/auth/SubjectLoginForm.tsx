@@ -11,7 +11,6 @@ const SubjectLoginForm: React.FC<SubjectLoginFormProps> = ({ onSuccess, onCancel
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showHint, setShowHint] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +30,6 @@ const SubjectLoginForm: React.FC<SubjectLoginFormProps> = ({ onSuccess, onCancel
         onSuccess();
       } else {
         setError('Hibás jelszó! Ellenőrizd a tantárgyi jelszót.');
-        setShowHint(true);
       }
     } catch (err) {
       setError('Hálózati hiba történt. Próbáld újra!');
@@ -85,7 +83,7 @@ const SubjectLoginForm: React.FC<SubjectLoginFormProps> = ({ onSuccess, onCancel
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Pl: infoxxx, matekxxx..."
+                placeholder="Adja meg a tantárgyi jelszót"
                 disabled={loading}
               />
             </div>
@@ -126,31 +124,9 @@ const SubjectLoginForm: React.FC<SubjectLoginFormProps> = ({ onSuccess, onCancel
 
           {/* Quick Login Buttons */}
           <div className="mt-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4">
               <span className="text-sm text-slate-500">Gyors bejelentkezés:</span>
-              <button
-                onClick={() => setShowHint(!showHint)}
-                className="text-sm text-purple-600 hover:text-purple-700"
-              >
-                {showHint ? 'Elrejtés' : 'Segítség'}
-              </button>
             </div>
-
-            {showHint && (
-              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800 mb-2">
-                  <strong>Tantárgyi jelszavak:</strong>
-                </p>
-                <div className="text-xs text-blue-700 space-y-1">
-                  {availableSubjects.map((subject) => (
-                    <div key={subject.subject} className="flex justify-between">
-                      <span>{subject.displayName}:</span>
-                      <code className="bg-blue-100 px-1 rounded">{subject.password}</code>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div className="grid grid-cols-2 gap-2">
               {availableSubjects.map((subject) => (
