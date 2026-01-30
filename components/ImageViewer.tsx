@@ -491,10 +491,11 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
         <img 
           src={src} 
           alt={alt} 
-          className="w-full h-full object-contain transition-transform duration-200 select-none"
+          className="w-full h-full object-contain select-none"
           style={{
             transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)${studentMode ? '' : ` rotate(${rotation}deg)`}`,
-            transformOrigin: 'center center'
+            transformOrigin: 'center center',
+            transition: isDragging || isProcessing ? 'none' : (zoom === 1 && position.x === 0 && position.y === 0 && rotation === 0 ? 'none' : 'transform 0.2s ease-out')
           }}
           draggable={false}
           onLoad={() => {

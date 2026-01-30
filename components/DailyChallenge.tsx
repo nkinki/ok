@@ -143,6 +143,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set()); // Track completed exercises
   const [finalPercentage, setFinalPercentage] = useState<number | null>(null);
   const [showPercentage, setShowPercentage] = useState(false);
+  const [calculatingPercentage, setCalculatingPercentage] = useState(false);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
@@ -162,6 +163,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   useEffect(() => {
     if (step === 'RESULT' && !isPreviewMode && playlist.length > 0 && !finalPercentage) {
       console.log('📊 Calculating final percentage for results...');
+      setCalculatingPercentage(true); // Set calculating state to hide temporary screen
       
       let totalQuestions = 0;
       let totalScore = 0;
@@ -199,10 +201,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 
                 // Use the API calculated percentage for consistency
                 const percentage = currentStudent.percentage || 0;
-                setFinalPercentage(percentage);
-                setShowPercentage(true);
                 
                 console.log('🎯 Final percentage from API:', percentage + '%');
+                
+                // Set both states simultaneously to prevent flashing
+                setFinalPercentage(percentage);
+                setShowPercentage(true);
+                setCalculatingPercentage(false);
                 
                 // Show percentage overlay immediately (no auto-hide)
                 // User can interact with leaderboard and retry options
@@ -244,10 +249,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           
           // Calculate percentage
           const percentage = totalQuestions > 0 ? Math.round((totalScore / (totalQuestions * 10)) * 100) : 0;
-          setFinalPercentage(percentage);
-          setShowPercentage(true);
           
           console.log('🎯 Final percentage calculated (localStorage):', percentage + '%');
+          
+          // Set both states simultaneously to prevent flashing
+          setFinalPercentage(percentage);
+          setShowPercentage(true);
+          setCalculatingPercentage(false);
           
           // Show percentage overlay immediately (no auto-hide)
           // User can interact with leaderboard and retry options
@@ -1761,8 +1769,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       </div>
                   </div>
 
-                  {/* Action buttons - closer to leaderboard */}
-                  <div className="p-3 pt-2 space-y-2">
+                  {/* Action buttons - moved closer with uniform spacing */}
+                  <div className="px-3 pb-3 pt-1 space-y-2">
                       {finalPercentage < 80 && (
                           <button 
                               onClick={() => {
@@ -1793,78 +1801,90 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               </div>
           )}
           
-          <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl animate-bounce">
-              {isPreviewMode ? '👁️' : '🏆'}
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">
-              {isPreviewMode ? 'Előnézet befejezve!' : `Szép munka, ${student?.name}!`}
-          </h2>
-          <p className="text-slate-500 mb-6 text-sm">
-              {isPreviewMode 
-                  ? 'A feladat előnézete véget ért. Szerkesztheted a feladatot a könyvtárban.' 
-                  : 'A mai gyakorlás véget ért. Az eredmények automatikusan mentve lettek.'
-              }
-          </p>
-
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4">
-              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">
-                  {isPreviewMode ? 'Megtekintve' : 'Teljesítve'}
-              </div>
-              <div className="text-3xl font-black text-purple-600">{completedCount} <span className="text-lg text-slate-400 font-medium">/ {playlist.length}</span></div>
-              <div className="text-xs font-medium text-slate-600 mt-1">
-                  {isPreviewMode ? 'feladat megtekintve' : 'feladat sikeresen megoldva'}
-              </div>
-              
-              {/* Show final percentage if available and not in preview mode */}
-              {!isPreviewMode && finalPercentage !== null && !showPercentage && (
-                  <div className="mt-3 pt-3 border-t border-slate-200">
-                      <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">
-                          Végeredmény
-                      </div>
-                      <div className={`text-2xl font-bold ${
-                          finalPercentage >= 80 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                          {finalPercentage}%
-                      </div>
-                      <div className={`text-xs font-medium mt-1 ${
-                          finalPercentage >= 80 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                          {finalPercentage >= 80 ? 'Megfelelt' : 'Próbáld újra'}
-                      </div>
-                  </div>
-              )}
-          </div>
-
-          {!isPreviewMode && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                  <div className="flex items-center justify-center gap-2 text-green-700">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
-                      </svg>
-                      <span className="font-medium text-sm">Eredmények automatikusan mentve</span>
-                  </div>
+          {/* Loading screen during percentage calculation */}
+          {calculatingPercentage && (
+              <div className="flex flex-col items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+                  <h3 className="text-lg font-bold text-slate-800 mb-2">Eredmények feldolgozása...</h3>
+                  <p className="text-slate-500 text-sm">Kérlek várj, amíg kiszámoljuk a végeredményt.</p>
               </div>
           )}
+          
+          {/* Temporary result screen - only show when not calculating and no percentage overlay */}
+          {!showPercentage && finalPercentage === null && !calculatingPercentage && (
+              <>
+                  <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl animate-bounce">
+                      {isPreviewMode ? '👁️' : '🏆'}
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-800 mb-2">
+                      {isPreviewMode ? 'Előnézet befejezve!' : `Szép munka, ${student?.name}!`}
+                  </h2>
+                  <p className="text-slate-500 mb-6 text-sm">
+                      {isPreviewMode 
+                          ? 'A feladat előnézete véget ért. Szerkesztheted a feladatot a könyvtárban.' 
+                          : 'A mai gyakorlás véget ért. Az eredmények automatikusan mentve lettek.'
+                      }
+                  </p>
 
-          {/* Leaderboard Section */}
-          {!isPreviewMode && (
-              <div className="mb-4">
-                  <button 
-                      onClick={() => {
-                          if (!showLeaderboard) {
-                              fetchLeaderboard();
-                          }
-                          setShowLeaderboard(!showLeaderboard);
-                      }}
-                      className="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-2 px-3 rounded-xl font-bold border border-yellow-300 transition-colors flex items-center justify-center gap-2 text-sm"
-                  >
-                      <span className="text-lg">🏆</span>
-                      {showLeaderboard ? 'Ranglista elrejtése' : 'Ranglista megtekintése'}
-                      {loadingLeaderboard && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>}
-                  </button>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4">
+                      <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">
+                          {isPreviewMode ? 'Megtekintve' : 'Teljesítve'}
+                      </div>
+                      <div className="text-3xl font-black text-purple-600">{completedCount} <span className="text-lg text-slate-400 font-medium">/ {playlist.length}</span></div>
+                      <div className="text-xs font-medium text-slate-600 mt-1">
+                          {isPreviewMode ? 'feladat megtekintve' : 'feladat sikeresen megoldva'}
+                      </div>
+                      
+                      {/* Show final percentage if available and not in preview mode */}
+                      {!isPreviewMode && finalPercentage !== null && !showPercentage && (
+                          <div className="mt-3 pt-3 border-t border-slate-200">
+                              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">
+                                  Végeredmény
+                              </div>
+                              <div className={`text-2xl font-bold ${
+                                  finalPercentage >= 80 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                  {finalPercentage}%
+                              </div>
+                              <div className={`text-xs font-medium mt-1 ${
+                                  finalPercentage >= 80 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                  {finalPercentage >= 80 ? 'Megfelelt' : 'Próbáld újra'}
+                              </div>
+                          </div>
+                      )}
+                  </div>
 
-                  {showLeaderboard && (
-                      <div className="mt-3 bg-white border border-slate-200 rounded-xl p-3 max-h-48 overflow-y-auto">
+                  {!isPreviewMode && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                          <div className="flex items-center justify-center gap-2 text-green-700">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                              </svg>
+                              <span className="font-medium text-sm">Eredmények automatikusan mentve</span>
+                          </div>
+                      </div>
+                  )}
+
+                  {/* Leaderboard Section */}
+                  {!isPreviewMode && (
+                      <div className="mb-4">
+                          <button 
+                              onClick={() => {
+                                  if (!showLeaderboard) {
+                                      fetchLeaderboard();
+                                  }
+                                  setShowLeaderboard(!showLeaderboard);
+                              }}
+                              className="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-2 px-3 rounded-xl font-bold border border-yellow-300 transition-colors flex items-center justify-center gap-2 text-sm"
+                          >
+                              <span className="text-lg">🏆</span>
+                              {showLeaderboard ? 'Ranglista elrejtése' : 'Ranglista megtekintése'}
+                              {loadingLeaderboard && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>}
+                          </button>
+
+                          {showLeaderboard && (
+                              <div className="mt-3 bg-white border border-slate-200 rounded-xl p-3 max-h-48 overflow-y-auto">
                           <h3 className="text-sm font-bold text-slate-800 mb-3 text-center flex items-center justify-center gap-2">
                               <span className="text-base">🏆</span>
                               Ranglista
@@ -1945,6 +1965,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           <button onClick={onExit} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02]">
               {isPreviewMode ? 'Vissza a könyvtárba' : 'Vissza a főoldalra'}
           </button>
+          </>
+          )}
 
       </div>
   );
