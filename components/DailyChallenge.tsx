@@ -204,11 +204,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 
                 console.log('🎯 Final percentage from API:', percentage + '%');
                 
-                // Hide percentage after 10 seconds
-                setTimeout(() => {
-                  console.log('⏰ Hiding percentage display after 10 seconds');
-                  setShowPercentage(false);
-                }, 10000);
+                // Show percentage overlay immediately (no auto-hide)
+                // User can interact with leaderboard and retry options
               } else {
                 console.warn('⚠️ Student not found in API participants');
                 // Fallback to localStorage calculation
@@ -252,11 +249,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           
           console.log('🎯 Final percentage calculated (localStorage):', percentage + '%');
           
-          // Hide percentage after 10 seconds
-          setTimeout(() => {
-            console.log('⏰ Hiding percentage display after 10 seconds');
-            setShowPercentage(false);
-          }, 10000);
+          // Show percentage overlay immediately (no auto-hide)
+          // User can interact with leaderboard and retry options
           
         } catch (error) {
           console.error('Error calculating final percentage:', error);
@@ -453,51 +447,100 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     try {
       let sessionFound = false;
 
-      // NEW APPROACH: Try database JSON first (with images)
-      console.log('☁️ Checking database for session JSON with images...');
-      console.log('🎯 CRITICAL DEBUG - Session code for API call:', code.toUpperCase());
+      // FIRST: Try Google Drive (with images)
+      console.log('🌐 Trying to load session from Google Drive first...');
       try {
-        const cloudResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/download-json`);
-        console.log('🎯 CRITICAL DEBUG - API response status:', cloudResponse.status);
-        console.log('🎯 CRITICAL DEBUG - API response URL:', cloudResponse.url);
+        const driveResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/download-drive`);
+        console.log('📡 Google Drive response status:', driveResponse.status);
         
-        if (cloudResponse.ok) {
-          const sessionData = await cloudResponse.json();
-          console.log('✅ Session data downloaded from database JSON');
-          console.log('🎯 CRITICAL DEBUG - Session data structure:', {
-            hasExercises: !!sessionData.exercises,
-            exerciseCount: sessionData.exercises?.length || 0,
-            sessionCode: sessionData.sessionCode || 'not set',
-            firstExerciseId: sessionData.exercises?.[0]?.id || 'none'
-          });
-          console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
+        if (driveResponse.ok) {
+          const sessionData = await driveResponse.json();
+          console.log('📡 Google Drive session data loaded');
           
-          // Convert database JSON to playlist format - USE NEW FORMAT [DEBUG v3.0]
-          console.log('🔍 CONVERSION STARTING - Raw sessionData.exercises:', sessionData.exercises?.length || 0);
-          
-          const playlist = sessionData.exercises.map((exercise: any, index: number) => {
-            // DEBUG: Log the raw exercise data to see what we're working with
-            console.log(`🔍 Raw exercise ${index} data [v3.0]:`, {
-              id: exercise.id,
-              hasImageUrl: exercise.hasOwnProperty('imageUrl'),
-              imageUrlType: typeof exercise.imageUrl,
-              imageUrlLength: exercise.imageUrl?.length || 0,
-              imageUrlTruthy: !!exercise.imageUrl,
-              imageUrlPreview: exercise.imageUrl ? exercise.imageUrl.substring(0, 50) + '...' : 'NONE',
-              allKeys: Object.keys(exercise)
-            });
+          if (sessionData.exercises && sessionData.exercises.length > 0) {
+            console.log('✅ Session JSON loaded from Google Drive with images');
+            console.log('📊 Exercise count:', sessionData.exercises.length);
             
-            const mappedExercise = {
+            // Convert to playlist format
+            const playlist = sessionData.exercises.map((exercise: any) => ({
               id: exercise.id,
               fileName: exercise.fileName || exercise.title,
-              imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
-              // NEW FORMAT: properties directly on the object
+              imageUrl: exercise.imageUrl || '', // Google Drive has full images
               type: exercise.type,
               title: exercise.title,
               instruction: exercise.instruction,
               content: exercise.content,
-              // OLD FORMAT: keep for compatibility
               data: {
+                type: exercise.type,
+                title: exercise.title,
+                instruction: exercise.instruction,
+                content: exercise.content
+              }
+            }));
+
+            console.log('🖼️ Image check - First exercise imageUrl length:', playlist[0]?.imageUrl?.length || 0);
+            console.log('🖼️ Image check - Has images:', playlist.filter(ex => ex.imageUrl).length, 'out of', playlist.length);
+            
+            setPlaylist(playlist);
+            setCurrentIndex(0);
+            setCompletedCount(0);
+            setCompletedExercises(new Set());
+            setStep('PLAYING');
+            sessionFound = true;
+          }
+        } else {
+          console.log('❌ Session not found on Google Drive, trying database JSON fallback...');
+        }
+      } catch (driveError) {
+        console.warn('⚠️ Google Drive load failed, trying database JSON fallback:', driveError);
+      }
+
+      // FALLBACK: Try database JSON (without images) only if Google Drive failed
+      if (!sessionFound) {
+        console.log('☁️ Checking database for session JSON (fallback without images)...');
+        console.log('🎯 CRITICAL DEBUG - Session code for API call:', code.toUpperCase());
+        try {
+          const cloudResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/download-json`);
+          console.log('🎯 CRITICAL DEBUG - API response status:', cloudResponse.status);
+          console.log('🎯 CRITICAL DEBUG - API response URL:', cloudResponse.url);
+          
+          if (cloudResponse.ok) {
+            const sessionData = await cloudResponse.json();
+            console.log('✅ Session data downloaded from database JSON (fallback)');
+            console.log('🎯 CRITICAL DEBUG - Session data structure:', {
+              hasExercises: !!sessionData.exercises,
+              exerciseCount: sessionData.exercises?.length || 0,
+              sessionCode: sessionData.sessionCode || 'not set',
+              firstExerciseId: sessionData.exercises?.[0]?.id || 'none'
+            });
+            console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
+            
+            // Convert database JSON to playlist format - USE NEW FORMAT [DEBUG v3.0]
+            console.log('🔍 CONVERSION STARTING - Raw sessionData.exercises:', sessionData.exercises?.length || 0);
+            
+            const playlist = sessionData.exercises.map((exercise: any, index: number) => {
+              // DEBUG: Log the raw exercise data to see what we're working with
+              console.log(`🔍 Raw exercise ${index} data [v3.0]:`, {
+                id: exercise.id,
+                hasImageUrl: exercise.hasOwnProperty('imageUrl'),
+                imageUrlType: typeof exercise.imageUrl,
+                imageUrlLength: exercise.imageUrl?.length || 0,
+                imageUrlTruthy: !!exercise.imageUrl,
+                imageUrlPreview: exercise.imageUrl ? exercise.imageUrl.substring(0, 50) + '...' : 'NONE',
+                allKeys: Object.keys(exercise)
+              });
+              
+              const mappedExercise = {
+                id: exercise.id,
+                fileName: exercise.fileName || exercise.title,
+                imageUrl: exercise.imageUrl || '', // This should contain the base64 image data
+                // NEW FORMAT: properties directly on the object
+                type: exercise.type,
+                title: exercise.title,
+                instruction: exercise.instruction,
+                content: exercise.content,
+                // OLD FORMAT: keep for compatibility
+                data: {
                 type: exercise.type,
                 title: exercise.title,
                 instruction: exercise.instruction,
@@ -1635,33 +1678,158 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   // --- RENDER: RESULT ---
   return (
       <div className="max-w-lg mx-auto mt-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-200 text-center relative">
-          {/* Show percentage for 10 seconds */}
+          {/* Complete results overlay with percentage, leaderboard and retry */}
           {showPercentage && finalPercentage !== null && (
-              <div className="absolute inset-0 bg-white rounded-2xl flex flex-col items-center justify-center z-10">
-                  <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl font-bold ${
-                      finalPercentage >= 80 
-                          ? 'bg-green-100 text-green-600' 
-                          : 'bg-red-100 text-red-600'
-                  }`}>
-                      {finalPercentage}%
+              <div className="absolute inset-0 bg-white rounded-2xl flex flex-col z-10 overflow-y-auto">
+                  {/* Header with percentage */}
+                  <div className="text-center py-4 border-b border-slate-200">
+                      <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl font-bold ${
+                          finalPercentage >= 80 
+                              ? 'bg-green-100 text-green-600' 
+                              : 'bg-red-100 text-red-600'
+                      }`}>
+                          {finalPercentage}%
+                      </div>
+                      
+                      <h2 className={`text-xl font-bold mb-2 ${
+                          finalPercentage >= 80 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
+                      }`}>
+                          {finalPercentage >= 80 ? '🎉 Megfelelt!' : '📚 Próbáld újra!'}
+                      </h2>
+                      
+                      <p className="text-slate-600 text-sm">
+                          {finalPercentage >= 80 
+                              ? 'Szuper teljesítmény! Gratulálunk!' 
+                              : 'Ne add fel! Gyakorolj még egy kicsit!'}
+                      </p>
                   </div>
-                  
-                  <h2 className={`text-2xl font-bold mb-3 ${
-                      finalPercentage >= 80 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                  }`}>
-                      {finalPercentage >= 80 ? '🎉 Megfelelt!' : '📚 Próbáld újra!'}
-                  </h2>
-                  
-                  <p className="text-slate-600">
-                      {finalPercentage >= 80 
-                          ? 'Szuper teljesítmény! Gratulálunk!' 
-                          : 'Ne add fel! Gyakorolj még egy kicsit!'}
-                  </p>
-                  
-                  <div className="mt-3 text-xs text-slate-500">
-                      Ez az üzenet 10 másodperc múlva eltűnik...
+
+                  {/* Leaderboard Section */}
+                  <div className="flex-1 p-4">
+                      <div className="mb-4">
+                          <button 
+                              onClick={() => {
+                                  if (!showLeaderboard) {
+                                      fetchLeaderboard();
+                                  }
+                                  setShowLeaderboard(!showLeaderboard);
+                              }}
+                              className="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-2 px-3 rounded-lg font-bold border border-yellow-300 transition-colors flex items-center justify-center gap-2 text-sm"
+                          >
+                              <span className="text-lg">🏆</span>
+                              {showLeaderboard ? 'Ranglista elrejtése' : 'Ranglista megtekintése'}
+                              {loadingLeaderboard && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>}
+                          </button>
+
+                          {showLeaderboard && (
+                              <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto">
+                                  <h3 className="text-sm font-bold text-slate-800 mb-3 text-center flex items-center justify-center gap-2">
+                                      <span className="text-base">🏆</span>
+                                      Ranglista
+                                  </h3>
+                                  
+                                  {leaderboard.length === 0 ? (
+                                      <p className="text-slate-500 text-center py-3 text-sm">
+                                          {loadingLeaderboard ? 'Ranglista betöltése...' : 'Még nincsenek eredmények.'}
+                                      </p>
+                                  ) : (
+                                      <div className="space-y-1">
+                                          {leaderboard.slice(0, 10).map((participant, index) => {
+                                              const isCurrentStudent = participant.name === student?.name;
+                                              return (
+                                                  <div 
+                                                      key={index}
+                                                      className={`flex items-center justify-between p-2 rounded-lg border text-xs ${
+                                                          isCurrentStudent 
+                                                              ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-300' 
+                                                              : 'bg-white border-slate-200'
+                                                      }`}
+                                                  >
+                                                      <div className="flex items-center gap-2">
+                                                          <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
+                                                              participant.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
+                                                              participant.rank === 2 ? 'bg-gray-100 text-gray-800' :
+                                                              participant.rank === 3 ? 'bg-orange-100 text-orange-800' :
+                                                              'bg-slate-100 text-slate-600'
+                                                          }`}>
+                                                              {participant.rank === 1 ? '🥇' :
+                                                               participant.rank === 2 ? '🥈' :
+                                                               participant.rank === 3 ? '🥉' :
+                                                               participant.rank}
+                                                          </div>
+                                                          <div>
+                                                              <div className={`font-medium ${isCurrentStudent ? 'text-blue-800' : 'text-slate-800'}`}>
+                                                                  {participant.name}
+                                                                  {isCurrentStudent && <span className="ml-1 text-xs bg-blue-200 text-blue-800 px-1 py-0.5 rounded-full">Te</span>}
+                                                              </div>
+                                                              <div className="text-xs text-slate-500">
+                                                                  {participant.class}
+                                                              </div>
+                                                          </div>
+                                                      </div>
+                                                      <div className="text-right">
+                                                          <div className={`font-bold text-sm ${
+                                                              participant.percentage >= 80 ? 'text-green-600' : 'text-red-600'
+                                                          }`}>
+                                                              {participant.percentage}%
+                                                          </div>
+                                                          <div className="text-xs text-slate-500">
+                                                              {participant.score} pont
+                                                          </div>
+                                                      </div>
+                                                  </div>
+                                              );
+                                          })}
+                                      </div>
+                                  )}
+                                  
+                                  {leaderboard.length > 0 && (
+                                      <div className="mt-3 pt-2 border-t border-slate-200 text-center">
+                                          <p className="text-xs text-slate-500">
+                                              {leaderboard.length} résztvevő • {new Date().toLocaleTimeString()}
+                                          </p>
+                                          {finalPercentage !== null && finalPercentage < 80 && (
+                                              <p className="text-xs text-orange-600 mt-1 font-medium">
+                                                  💪 Próbáld újra és kerülj feljebb a ranglistán!
+                                              </p>
+                                          )}
+                                      </div>
+                                  )}
+                              </div>
+                          )}
+                      </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="p-4 border-t border-slate-200 space-y-3">
+                      {finalPercentage < 80 && (
+                          <button 
+                              onClick={() => {
+                                  // Reset and restart the session
+                                  setCurrentIndex(0);
+                                  setCompletedCount(0);
+                                  setCompletedExercises(new Set());
+                                  setShowPercentage(false);
+                                  setFinalPercentage(null);
+                                  setShowLeaderboard(false);
+                                  setStep('PLAYING');
+                              }}
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                          >
+                              <span className="text-lg">🔄</span>
+                              Újrapróbálkozás
+                          </button>
+                      )}
+                      
+                      <button 
+                          onClick={onExit} 
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                      >
+                          <span className="text-lg">🏠</span>
+                          {isPreviewMode ? 'Vissza a könyvtárba' : 'Vissza a főoldalra'}
+                      </button>
                   </div>
               </div>
           )}

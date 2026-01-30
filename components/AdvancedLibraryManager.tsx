@@ -27,6 +27,7 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
   const [collections, setCollections] = useState<ExerciseCollection[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'MATCHING' | 'CATEGORIZATION' | 'QUIZ'>('all')
+  const [completionFilter, setCompletionFilter] = useState<'all' | 'completed' | 'incomplete'>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
   // Load collections from localStorage on mount
@@ -320,7 +321,11 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
       
       const matchesType = filterType === 'all' || item.data.type === filterType
       
-      return matchesSearch && matchesType
+      const matchesCompletion = completionFilter === 'all' || 
+        (completionFilter === 'completed' && item.isCompleted) ||
+        (completionFilter === 'incomplete' && !item.isCompleted)
+      
+      return matchesSearch && matchesType && matchesCompletion
     })
   }
 
@@ -374,6 +379,20 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
             </select>
           </div>
 
+          {/* Filter by completion */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Állapot szűrő</label>
+            <select
+              value={completionFilter}
+              onChange={(e) => setCompletionFilter(e.target.value as any)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="all">Minden állapot</option>
+              <option value="completed">✓ Kész feladatok</option>
+              <option value="incomplete">⏳ Folyamatban</option>
+            </select>
+          </div>
+
           {/* View mode */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Nézet</label>
@@ -402,6 +421,21 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
             <label className="block text-sm font-medium text-slate-700 mb-2">Kiválasztva</label>
             <div className="text-lg font-bold text-purple-800">
               {selectedExercises.length} / {filteredExercises.length}
+            </div>
+          </div>
+
+          {/* Completion stats */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Állapot</label>
+            <div className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-green-600">✓ Kész:</span>
+                <span className="font-medium">{filteredExercises.filter(item => item.isCompleted).length}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-orange-600">⏳ Folyamatban:</span>
+                <span className="font-medium">{filteredExercises.filter(item => !item.isCompleted).length}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -587,6 +621,38 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
                         {item.data.type === 'MATCHING' ? 'Párosítás' :
                          item.data.type === 'CATEGORIZATION' ? 'Kategorizálás' : 'Kvíz'}
                       </span>
+                      {/* Completion Status */}
+                      <label 
+                        className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-2 py-1 rounded"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.isCompleted || false}
+                          onChange={(e) => {
+                            e.stopPropagation()
+                            const updatedLibrary = library.map(libItem => 
+                              libItem.id === item.id 
+                                ? { ...libItem, isCompleted: e.target.checked }
+                                : libItem
+                            )
+                            setLibrary(updatedLibrary)
+                            
+                            // Update localStorage
+                            try {
+                              localStorage.setItem('okosgyakorlo_library', JSON.stringify(updatedLibrary))
+                            } catch (error) {
+                              console.warn('Could not save to localStorage:', error)
+                            }
+                          }}
+                          className="w-3 h-3 text-green-600 rounded"
+                        />
+                        <span className={`text-xs font-medium ${
+                          item.isCompleted ? 'text-green-600' : 'text-slate-500'
+                        }`}>
+                          {item.isCompleted ? '✓ Kész' : 'Kész'}
+                        </span>
+                      </label>
                     </div>
                     <div className="flex gap-2">
                       <button

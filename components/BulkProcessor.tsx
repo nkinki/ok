@@ -10,6 +10,7 @@ export interface BulkResultItem {
   fileName: string;
   data: ExerciseData;
   imageUrl: string; 
+  isCompleted?: boolean; // New field for completion status
 }
 
 interface ProcessedItem {
