@@ -326,16 +326,18 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             console.log('✅ Silent automatic reconnection successful! New ID:', rejoinData.student.id);
             
             // Update student with new ID SILENTLY
-            setStudent(prev => prev ? {
-              ...prev,
+            const updatedStudent = {
+              ...student,
               id: rejoinData.student.id,
               sessionId: rejoinData.student.sessionId
-            } : null);
+            };
             
-            // Continue with result submission using new ID
-            console.log('🔄 Retrying result submission with new ID...');
-            // Recursively call this function with updated student
-            setTimeout(() => submitExerciseResult(exerciseIndex, isCorrect, score, timeSpent, answer), 100);
+            setStudent(updatedStudent);
+            
+            // Continue with result submission using new ID directly
+            console.log('🔄 Continuing with result submission using new ID...');
+            // Use the updated student object directly instead of relying on state
+            await submitResultWithStudent(exerciseIndex, isCorrect, score, timeSpent, answer, updatedStudent);
             return;
           }
         }
@@ -348,11 +350,17 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       // Don't return here - let the exercise continue even if offline
     }
 
+    // Submit with current student
+    await submitResultWithStudent(exerciseIndex, isCorrect, score, timeSpent, answer, student);
+  };
+
+  // Helper function to submit results with a specific student object
+  const submitResultWithStudent = async (exerciseIndex: number, isCorrect: boolean, score: number, timeSpent: number, answer: any, studentObj: any) => {
     try {
-      console.log('📊 Submitting result to API:', { studentId: student.id, exerciseIndex, isCorrect, score, timeSpent });
+      console.log('📊 Submitting result to API:', { studentId: studentObj.id, exerciseIndex, isCorrect, score, timeSpent });
       
       const payload = {
-        studentId: student.id,
+        studentId: studentObj.id,
         results: [{
           exerciseIndex,
           isCorrect,
@@ -362,8 +370,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           completedAt: new Date().toISOString()
         }],
         summary: {
-          studentName: student.name,
-          studentClass: student.className,
+          studentName: studentObj.name,
+          studentClass: studentObj.className,
           sessionCode: currentSessionCode,
           totalExercises: playlist.length,
           completedExercises: exerciseIndex + 1,
