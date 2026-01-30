@@ -750,6 +750,55 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
       setFormData({ ...formData, content: { ...content, questions: newQs } });
   };
 
+  const addOption = (qIndex: number) => {
+      const content = formData.content as QuizContent;
+      const newQs = [...content.questions];
+      const newOpts = [...newQs[qIndex].options, 'Új válasz'];
+      newQs[qIndex] = { ...newQs[qIndex], options: newOpts };
+      setFormData({ ...formData, content: { ...content, questions: newQs } });
+  };
+
+  const removeOption = (qIndex: number, oIndex: number) => {
+      const content = formData.content as QuizContent;
+      const newQs = [...content.questions];
+      const question = newQs[qIndex];
+      
+      // Don't allow removing if only 2 options left
+      if (question.options.length <= 2) {
+          alert('Legalább 2 válaszlehetőség szükséges!');
+          return;
+      }
+      
+      const newOpts = question.options.filter((_, i) => i !== oIndex);
+      
+      // Update correct indices if needed
+      let newCorrectIndex = question.correctIndex;
+      let newCorrectIndices = question.correctIndices ? [...question.correctIndices] : [];
+      
+      if (question.multiSelect) {
+          // Remove the deleted option index and adjust higher indices
+          newCorrectIndices = newCorrectIndices
+              .filter(idx => idx !== oIndex)
+              .map(idx => idx > oIndex ? idx - 1 : idx);
+      } else {
+          // Adjust single correct index
+          if (newCorrectIndex === oIndex) {
+              newCorrectIndex = 0; // Default to first option
+          } else if (newCorrectIndex > oIndex) {
+              newCorrectIndex = newCorrectIndex - 1;
+          }
+      }
+      
+      newQs[qIndex] = { 
+          ...question, 
+          options: newOpts,
+          correctIndex: newCorrectIndex,
+          correctIndices: newCorrectIndices
+      };
+      
+      setFormData({ ...formData, content: { ...content, questions: newQs } });
+  };
+
   return (
     // UPDATED: Added pt-24 (top padding) and items-start to push it down.
     <div 
@@ -1066,9 +1115,23 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
                                                      value={opt}
                                                      onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
                                                  />
+                                                 <button 
+                                                     onClick={() => removeOption(qIdx, oIdx)}
+                                                     className="text-slate-300 hover:text-red-500 text-xs w-4 h-4 flex items-center justify-center"
+                                                     title="Válasz törlése"
+                                                 >
+                                                     ×
+                                                 </button>
                                              </div>
                                          );
                                      })}
+                                     <button 
+                                         onClick={() => addOption(qIdx)}
+                                         className="text-brand-600 text-xs font-bold hover:underline flex items-center gap-1 mt-1"
+                                         title="Új válasz hozzáadása"
+                                     >
+                                         <span className="text-sm">+</span> Válasz
+                                     </button>
                                  </div>
                              </div>
                          ))}
