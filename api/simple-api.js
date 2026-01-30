@@ -2049,7 +2049,27 @@ export default async function handler(req, res) {
           const results = participant.results || [];
           const totalQuestions = results.length;
           const correctAnswers = results.filter(r => r.isCorrect).length;
-          const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+          
+          // Debug logging for percentage calculation
+          console.log(`🔍 Participant ${participant.student_name}:`, {
+            total_score: participant.total_score,
+            totalQuestions,
+            correctAnswers,
+            results: results.length
+          });
+          
+          // Use total_score for percentage calculation if available, otherwise use results
+          let percentage = 0;
+          if (participant.total_score > 0 && totalQuestions > 0) {
+            // Calculate percentage based on total_score and assuming 10 points per question
+            const maxPossibleScore = totalQuestions * 10;
+            percentage = Math.round((participant.total_score / maxPossibleScore) * 100);
+            console.log(`📊 Using total_score calculation: ${participant.total_score}/${maxPossibleScore} = ${percentage}%`);
+          } else if (totalQuestions > 0) {
+            // Fallback to correct answers calculation
+            percentage = Math.round((correctAnswers / totalQuestions) * 100);
+            console.log(`📊 Using correct answers calculation: ${correctAnswers}/${totalQuestions} = ${percentage}%`);
+          }
 
           return {
             rank: index + 1,
