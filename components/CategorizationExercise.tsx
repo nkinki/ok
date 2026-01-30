@@ -11,6 +11,15 @@ interface Props {
 }
 
 const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, startTime }) => {
+  // Safety checks: Ensure content structure exists
+  if (!content.items || content.items.length === 0) {
+      return <div className="text-center p-8 text-red-500 font-bold">Hiba: Nincsenek elemek ebben a feladatban.</div>;
+  }
+  
+  if (!content.categories || content.categories.length === 0) {
+      return <div className="text-center p-8 text-red-500 font-bold">Hiba: Nincsenek kategóriák ebben a feladatban.</div>;
+  }
+
   const [items, setItems] = useState(() => [...content.items].sort(() => Math.random() - 0.5));
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [assignments, setAssignments] = useState<Record<string, string>>({}); // itemId -> categoryId

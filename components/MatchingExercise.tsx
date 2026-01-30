@@ -15,6 +15,11 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null); // For click-to-place
   const [startTime] = useState<Date>(new Date());
 
+  // Safety check: Ensure pairs exist
+  if (!content.pairs || content.pairs.length === 0) {
+      return <div className="text-center p-8 text-red-500 font-bold">Hiba: Nincsenek párok ebben a feladatban.</div>;
+  }
+
   useEffect(() => {
     setRightItems(content.pairs.map(p => ({ id: p.id, text: p.right })).sort(() => Math.random() - 0.5));
   }, [content]);
