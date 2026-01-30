@@ -1781,6 +1781,15 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                   setShowPercentage(false);
                                   setFinalPercentage(null);
                                   setShowLeaderboard(false);
+                                  setCalculatingPercentage(false);
+                                  
+                                  // CRITICAL: Clear localStorage results to prevent accumulation
+                                  if (currentSessionCode) {
+                                      const sessionKey = `session_${currentSessionCode}_results`;
+                                      localStorage.removeItem(sessionKey);
+                                      console.log('🧹 Cleared localStorage results for retry:', currentSessionCode);
+                                  }
+                                  
                                   setStep('PLAYING');
                               }}
                               className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
