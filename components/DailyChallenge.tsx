@@ -1492,7 +1492,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               <div className="lg:w-3/5 h-[40vh] lg:h-full bg-slate-50 order-2 lg:order-2 relative flex flex-col">
                   <div className="max-w-2xl mx-auto flex-1 flex flex-col">
                       {/* Exercise Header - Always Visible */}
-                      <div className="flex-shrink-0 bg-white p-2 pb-1 border-b border-slate-200 mb-2 shadow-lg z-20" style={{ position: 'sticky', top: '0px' }}>
+                      <div className="flex-shrink-0 bg-white p-2 pb-1 border-b border-slate-200 mb-2 shadow-lg z-20" style={{ position: 'fixed', top: '0px', left: '0px', right: '0px' }}>
                           <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-2">
                                   <span className="font-bold text-purple-900 text-sm">
@@ -1561,7 +1561,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       </div>
 
                       {/* Scrollable Content Container */}
-                      <div className="flex-1 overflow-y-auto">
+                      <div className="flex-1 overflow-y-auto pt-32">
                           {/* Task Description Block - Separate with Different Background */}
                           <div className="mx-2 mb-3">
                               {/* Offline Mode Warning removed - automatic reconnection now works silently */}
