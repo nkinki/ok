@@ -1761,8 +1761,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       </div>
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="p-4 border-t border-slate-200 space-y-3">
+                  {/* Action buttons - closer to leaderboard */}
+                  <div className="p-3 pt-2 space-y-2">
                       {finalPercentage < 80 && (
                           <button 
                               onClick={() => {
@@ -1775,7 +1775,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                   setShowLeaderboard(false);
                                   setStep('PLAYING');
                               }}
-                              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
                           >
                               <span className="text-lg">🔄</span>
                               Újrapróbálkozás
@@ -1784,7 +1784,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       
                       <button 
                           onClick={onExit} 
-                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
                       >
                           <span className="text-lg">🏠</span>
                           {isPreviewMode ? 'Vissza a könyvtárba' : 'Vissza a főoldalra'}

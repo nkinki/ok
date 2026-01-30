@@ -2060,11 +2060,13 @@ export default async function handler(req, res) {
           
           // Use total_score for percentage calculation if available, otherwise use results
           let percentage = 0;
-          if (participant.total_score > 0 && totalQuestions > 0) {
-            // Calculate percentage based on total_score and assuming 10 points per question
-            const maxPossibleScore = totalQuestions * 10;
+          if (participant.total_score > 0) {
+            // Calculate percentage based on total_score and completed exercises
+            // Assume each exercise has multiple questions, use completed_exercises * 10 as max score per exercise
+            const completedExercises = participant.completed_exercises || 1;
+            const maxPossibleScore = completedExercises * 30; // Assume 3 questions per exercise, 10 points each
             percentage = Math.round((participant.total_score / maxPossibleScore) * 100);
-            console.log(`📊 Using total_score calculation: ${participant.total_score}/${maxPossibleScore} = ${percentage}%`);
+            console.log(`📊 Using total_score calculation: ${participant.total_score}/${maxPossibleScore} = ${percentage}% (${completedExercises} exercises)`);
           } else if (totalQuestions > 0) {
             // Fallback to correct answers calculation
             percentage = Math.round((correctAnswers / totalQuestions) * 100);
