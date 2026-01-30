@@ -1644,7 +1644,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       {/* Scrollable Content Container */}
                       <div className="flex-1 overflow-y-auto pt-32">
                           {/* Task Description Block - Separate with Different Background */}
-                          <div className="mx-2 mb-3 mt-3">
+                          <div className="mx-2 mb-3 mt-6">
                               {/* Offline Mode Warning removed - automatic reconnection now works silently */}
                               
                               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm">
