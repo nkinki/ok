@@ -16,15 +16,6 @@ export default function SimpleLoginForm() {
     }
   }
 
-  const predefinedCodes = [
-    { code: 'infoxxx', subject: 'Informatika', teacher: 'Informatika Tanár' },
-    { code: 'torixxx', subject: 'Történelem', teacher: 'Történelem Tanár' },
-    { code: 'matekxxx', subject: 'Matematika', teacher: 'Matematika Tanár' },
-    { code: 'magyxxx', subject: 'Magyar nyelv', teacher: 'Magyar Tanár' },
-    { code: 'angolxxx', subject: 'Angol nyelv', teacher: 'Angol Tanár' },
-    { code: 'termxxx', subject: 'Természettudomány', teacher: 'Természettudomány Tanár' }
-  ]
-
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -73,18 +64,6 @@ export default function SimpleLoginForm() {
           {error}
         </div>
       )}
-
-      <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Elérhető tantárgyak:</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-          {predefinedCodes.map((item) => (
-            <div key={item.code} className="flex justify-between items-center p-2 bg-white rounded border">
-              <span className="text-gray-600">{item.subject}</span>
-              <span className="text-gray-500">{item.teacher}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
