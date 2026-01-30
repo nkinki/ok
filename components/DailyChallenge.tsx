@@ -143,6 +143,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set()); // Track completed exercises
   const [finalPercentage, setFinalPercentage] = useState<number | null>(null);
   const [showPercentage, setShowPercentage] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
 
   // Initialize playlist in preview mode
   useEffect(() => {
@@ -397,6 +400,28 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       }
     } catch (error) {
       console.warn('❌ Failed to submit result to API:', error);
+    }
+  };
+
+  // Fetch leaderboard data
+  const fetchLeaderboard = async () => {
+    if (!currentSessionCode || isPreviewMode) return;
+    
+    setLoadingLeaderboard(true);
+    try {
+      const response = await fetch(`/api/simple-api/sessions/${currentSessionCode}/leaderboard`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setLeaderboard(data.leaderboard);
+        console.log('🏆 Leaderboard loaded:', data.leaderboard);
+      } else {
+        console.error('Failed to load leaderboard:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    } finally {
+      setLoadingLeaderboard(false);
     }
   };
 
@@ -1691,6 +1716,102 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       </svg>
                       <span className="font-medium">Eredmények automatikusan mentve</span>
                   </div>
+              </div>
+          )}
+
+          {/* Leaderboard Section */}
+          {!isPreviewMode && (
+              <div className="mb-6">
+                  <button 
+                      onClick={() => {
+                          if (!showLeaderboard) {
+                              fetchLeaderboard();
+                          }
+                          setShowLeaderboard(!showLeaderboard);
+                      }}
+                      className="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-3 px-4 rounded-xl font-bold border border-yellow-300 transition-colors flex items-center justify-center gap-2"
+                  >
+                      <span className="text-xl">🏆</span>
+                      {showLeaderboard ? 'Ranglista elrejtése' : 'Ranglista megtekintése'}
+                      {loadingLeaderboard && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>}
+                  </button>
+
+                  {showLeaderboard && (
+                      <div className="mt-4 bg-white border border-slate-200 rounded-xl p-4 max-h-80 overflow-y-auto">
+                          <h3 className="text-lg font-bold text-slate-800 mb-4 text-center flex items-center justify-center gap-2">
+                              <span className="text-xl">🏆</span>
+                              Ranglista
+                          </h3>
+                          
+                          {leaderboard.length === 0 ? (
+                              <p className="text-slate-500 text-center py-4">
+                                  {loadingLeaderboard ? 'Ranglista betöltése...' : 'Még nincsenek eredmények.'}
+                              </p>
+                          ) : (
+                              <div className="space-y-2">
+                                  {leaderboard.map((participant, index) => {
+                                      const isCurrentStudent = participant.name === student?.name;
+                                      return (
+                                          <div 
+                                              key={index}
+                                              className={`flex items-center justify-between p-3 rounded-lg border ${
+                                                  isCurrentStudent 
+                                                      ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300' 
+                                                      : 'bg-slate-50 border-slate-200'
+                                              }`}
+                                          >
+                                              <div className="flex items-center gap-3">
+                                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                                      participant.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
+                                                      participant.rank === 2 ? 'bg-gray-100 text-gray-800' :
+                                                      participant.rank === 3 ? 'bg-orange-100 text-orange-800' :
+                                                      'bg-slate-100 text-slate-600'
+                                                  }`}>
+                                                      {participant.rank === 1 ? '🥇' :
+                                                       participant.rank === 2 ? '🥈' :
+                                                       participant.rank === 3 ? '🥉' :
+                                                       participant.rank}
+                                                  </div>
+                                                  <div>
+                                                      <div className={`font-medium ${isCurrentStudent ? 'text-blue-800' : 'text-slate-800'}`}>
+                                                          {participant.name}
+                                                          {isCurrentStudent && <span className="ml-2 text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">Te</span>}
+                                                      </div>
+                                                      <div className="text-xs text-slate-500">
+                                                          {participant.class}
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                              <div className="text-right">
+                                                  <div className={`font-bold ${
+                                                      participant.percentage >= 80 ? 'text-green-600' : 'text-red-600'
+                                                  }`}>
+                                                      {participant.percentage}%
+                                                  </div>
+                                                  <div className="text-xs text-slate-500">
+                                                      {participant.score} pont
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          )}
+                          
+                          {leaderboard.length > 0 && (
+                              <div className="mt-4 pt-3 border-t border-slate-200 text-center">
+                                  <p className="text-xs text-slate-500">
+                                      {leaderboard.length} résztvevő • Frissítve: {new Date().toLocaleTimeString()}
+                                  </p>
+                                  {finalPercentage !== null && finalPercentage < 80 && (
+                                      <p className="text-sm text-orange-600 mt-2 font-medium">
+                                          💪 Próbáld újra és kerülj feljebb a ranglistán!
+                                      </p>
+                                  )}
+                              </div>
+                          )}
+                      </div>
+                  )}
               </div>
           )}
 

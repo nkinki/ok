@@ -1995,6 +1995,87 @@ export default async function handler(req, res) {
       }
     }
 
+    // Get session leaderboard (student)
+    if (method === 'GET' && path.includes('/sessions/') && path.includes('/leaderboard')) {
+      const codeMatch = path.match(/\/sessions\/([^\/]+)\/leaderboard/);
+      if (!codeMatch) {
+        return res.status(400).json({ error: 'Kód megadása kötelező' });
+      }
+
+      const sessionCode = codeMatch[1].toUpperCase();
+      
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.SUPABASE_URL,
+          process.env.SUPABASE_ANON_KEY
+        );
+
+        // First get the session ID
+        const { data: session, error: sessionError } = await supabase
+          .from('teacher_sessions')
+          .select('id')
+          .eq('session_code', sessionCode)
+          .single();
+
+        if (sessionError || !session) {
+          return res.status(404).json({ error: 'Session nem található' });
+        }
+
+        // Get session participants with their scores, ordered by total_score DESC
+        const { data: participants, error } = await supabase
+          .from('session_participants')
+          .select(`
+            student_name,
+            student_class,
+            total_score,
+            completed_exercises,
+            results
+          `)
+          .eq('session_id', session.id)
+          .order('total_score', { ascending: false })
+          .limit(20); // Top 20 students
+
+        if (error) {
+          console.error('Supabase error:', error);
+          return res.status(500).json({ error: 'Adatbázis hiba' });
+        }
+
+        // Calculate percentages and rankings
+        const leaderboard = participants.map((participant, index) => {
+          const results = participant.results || [];
+          const totalQuestions = results.length;
+          const correctAnswers = results.filter(r => r.isCorrect).length;
+          const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+
+          return {
+            rank: index + 1,
+            name: participant.student_name,
+            class: participant.student_class,
+            score: participant.total_score,
+            percentage: percentage,
+            completedExercises: participant.completed_exercises,
+            totalQuestions: totalQuestions,
+            correctAnswers: correctAnswers
+          };
+        });
+
+        return res.status(200).json({
+          success: true,
+          leaderboard: leaderboard,
+          totalParticipants: participants.length,
+          sessionCode: sessionCode
+        });
+
+      } catch (err) {
+        console.error('Leaderboard error:', err);
+        return res.status(500).json({ 
+          error: 'Server error',
+          details: err.message
+        });
+      }
+    }
+
     // Default response
     return res.status(404).json({ 
       error: 'Endpoint not found',
