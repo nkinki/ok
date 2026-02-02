@@ -71,7 +71,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     return item.data || {};
   };
 
-  // Helper function to get image URL (with lazy loading support)
+  // Helper function to get image URL (with enhanced debugging and fallbacks)
   const getImageUrl = (item) => {
     console.log('🖼️ getImageUrl called for item:', {
       id: item?.id,
@@ -81,7 +81,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     });
     
     // If imageUrl is directly available, use it
-    if (item.imageUrl) {
+    if (item.imageUrl && item.imageUrl.length > 100) { // Minimum length check
       console.log('✅ Direct imageUrl found for item:', item.id);
       console.log('🎯 RETURNING IMAGE URL:', {
         length: item.imageUrl.length,
@@ -91,7 +91,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       return item.imageUrl;
     }
     
-    console.log('⚠️ No direct imageUrl for item:', item.id, '- trying localStorage fallback...');
+    // Check if imageUrl exists but is too short (corrupted)
+    if (item.imageUrl && item.imageUrl.length <= 100) {
+      console.warn('⚠️ ImageUrl exists but is too short (corrupted?):', item.imageUrl.length, 'chars');
+    }
+    
+    console.log('⚠️ No valid direct imageUrl for item:', item.id, '- trying localStorage fallback...');
     
     // For optimized format without imageUrl, try to construct from localStorage
     // This is a fallback for exercises that were created before the optimization
@@ -101,11 +106,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       if (savedLibrary) {
         const library = JSON.parse(savedLibrary);
         const foundItem = library.find((libItem) => libItem.id === item.id);
-        if (foundItem && foundItem.imageUrl) {
-          console.log('✅ Found imageUrl in localStorage for item:', item.id);
+        if (foundItem && foundItem.imageUrl && foundItem.imageUrl.length > 100) {
+          console.log('✅ Found valid imageUrl in localStorage for item:', item.id);
           return foundItem.imageUrl;
         } else {
-          console.log('❌ Item not found in localStorage or no imageUrl:', item.id);
+          console.log('❌ Item not found in localStorage or imageUrl invalid:', item.id);
         }
       } else {
         console.log('❌ No exerciseLibrary in localStorage');
@@ -114,7 +119,33 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       console.warn('❌ localStorage fallback error for item:', item.id, error);
     }
     
-    console.log('❌ No image found for item:', item.id, '- returning empty string');
+    // Try to get from current session data as last resort
+    try {
+      const sessionKeys = Object.keys(localStorage).filter(key => key.startsWith('session_') && !key.includes('_results'));
+      for (const sessionKey of sessionKeys) {
+        const sessionDataStr = localStorage.getItem(sessionKey);
+        if (sessionDataStr) {
+          const sessionData = JSON.parse(sessionDataStr);
+          if (sessionData && sessionData.exercises) {
+            const foundExercise = sessionData.exercises.find(ex => ex.id === item.id);
+            if (foundExercise && foundExercise.imageUrl && foundExercise.imageUrl.length > 100) {
+              console.log('✅ Found imageUrl in session data for item:', item.id);
+              return foundExercise.imageUrl;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('❌ Session data fallback error:', error);
+    }
+    
+    console.error('❌ NO VALID IMAGE FOUND for item:', item.id, '- this will cause "blind" exercise!');
+    console.error('🔍 Debug info:', {
+      itemKeys: Object.keys(item || {}),
+      itemImageUrl: item?.imageUrl ? `${item.imageUrl.length} chars` : 'missing',
+      localStorageKeys: Object.keys(localStorage).filter(k => k.includes('session') || k.includes('exercise'))
+    });
+    
     // Return empty string if no image found
     return '';
   };
@@ -1543,21 +1574,36 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                          <div className="w-full h-full flex items-center justify-center text-slate-500">
                            <div className="text-center">
                              <div className="text-4xl mb-2">📷</div>
-                             <div className="text-sm font-medium mb-2">Kép nem található</div>
+                             <div className="text-sm font-medium mb-2 text-red-600">⚠️ Kép nem található</div>
                              <div className="text-xs mb-4">
-                               A feladat képe nem töltődött be. Ez nem akadályozza a feladat megoldását.
+                               A feladat képe nem töltődött be. Próbáld meg újratölteni az oldalt, vagy értesítsd a tanárt.
                              </div>
-                             <button
-                               onClick={() => window.location.reload()}
-                               className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-                             >
-                               🔄 Oldal újratöltése
-                             </button>
-                             <div className="text-xs mt-2 text-slate-400">
-                               Feladat ID: {currentItem?.id || 'Ismeretlen'}
+                             <div className="flex gap-2 justify-center mb-4">
+                               <button
+                                 onClick={() => window.location.reload()}
+                                 className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                               >
+                                 🔄 Oldal újratöltése
+                               </button>
+                               <button
+                                 onClick={() => {
+                                   // Try to debug and fix the image
+                                   console.log('🔍 Manual image debug for:', currentItem?.id);
+                                   const debugUrl = getImageUrl(currentItem);
+                                   console.log('🎯 Debug result:', debugUrl ? `${debugUrl.length} chars` : 'still empty');
+                                   if (debugUrl) {
+                                     window.location.reload();
+                                   }
+                                 }}
+                                 className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                               >
+                                 🔍 Kép keresése
+                               </button>
                              </div>
-                             <div className="text-xs mt-1 text-slate-400">
-                               Debug: imageUrl = {String(imageUrl)}
+                             <div className="text-xs mt-2 text-slate-400 bg-slate-100 p-2 rounded">
+                               <div>Feladat ID: {currentItem?.id || 'Ismeretlen'}</div>
+                               <div>Kép állapot: {imageUrl ? `${imageUrl.length} karakter` : 'Hiányzik'}</div>
+                               <div>Fájlnév: {currentItem?.fileName || 'Nincs'}</div>
                              </div>
                            </div>
                          </div>
