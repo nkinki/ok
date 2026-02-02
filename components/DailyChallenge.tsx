@@ -381,6 +381,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageRefreshKey, setImageRefreshKey] = useState(0); // Force image refresh
 
   // Heartbeat to keep connection alive
   const startHeartbeat = (sessionCode: string, studentId: string) => {
@@ -1562,6 +1563,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                        console.log('🎯 RENDERING ImageViewer with src length:', imageUrl.length);
                        return (
                          <ImageViewer 
+                           key={`${currentItem.id}-${imageRefreshKey}`} // Force re-render on refresh
                            src={imageUrl} 
                            alt="Feladat forrása"
                            studentMode={true}
@@ -1580,10 +1582,22 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                              </div>
                              <div className="flex gap-2 justify-center mb-4">
                                <button
-                                 onClick={() => window.location.reload()}
+                                 onClick={() => {
+                                   // Force re-render by updating refresh key
+                                   console.log('🔄 Attempting image reload without page refresh...');
+                                   setImageRefreshKey(prev => prev + 1);
+                                   
+                                   // Try to get image again after a short delay
+                                   setTimeout(() => {
+                                     const newImageUrl = getImageUrl(currentItem);
+                                     if (!newImageUrl) {
+                                       alert('⚠️ A kép még mindig nem található. Próbáld meg a "Kép keresése" gombot, vagy értesítsd a tanárt!');
+                                     }
+                                   }, 100);
+                                 }}
                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
                                >
-                                 🔄 Oldal újratöltése
+                                 🔄 Kép újratöltése
                                </button>
                                <button
                                  onClick={() => {
@@ -1591,8 +1605,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                    console.log('🔍 Manual image debug for:', currentItem?.id);
                                    const debugUrl = getImageUrl(currentItem);
                                    console.log('🎯 Debug result:', debugUrl ? `${debugUrl.length} chars` : 'still empty');
+                                   
                                    if (debugUrl) {
-                                     window.location.reload();
+                                     // Force re-render with new image
+                                     setImageRefreshKey(prev => prev + 1);
+                                     alert('✅ Kép megtalálva! Újratöltés...');
+                                   } else {
+                                     alert('🔍 Kép keresés eredménye: Nem található érvényes kép.\n\nLehetséges okok:\n• A kép nem lett feltöltve\n• Hálózati probléma\n• Munkamenet lejárt\n\nKérlek értesítsd a tanárt!');
                                    }
                                  }}
                                  className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
