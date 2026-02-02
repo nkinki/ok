@@ -106,17 +106,28 @@ const BulkProcessor: React.FC<Props> = ({ onAnalysisComplete, existingLibrary = 
               
               // Check for processed exercises (should have exercise data)
               const unprocessedItems = items.filter(item => 
-                  !item.data.type || !item.data.title || !item.data.instruction
+                  !item.data || !item.data.type || !item.data.content
               );
               
               if (unprocessedItems.length > 0) {
-                  alert(`⚠️ Feldolgozatlan feladatok!\n\n${unprocessedItems.length} elem még nincs feldolgozva (hiányzik a type, title vagy instruction).\n\nCsak feldolgozott feladatokat lehet importálni.`);
-                  return;
+                  console.warn(`⚠️ ${unprocessedItems.length} elem hiányos adatokkal, de megpróbáljuk importálni...`);
+                  // Don't block import, just warn
               }
               
+              // Fix missing fields with defaults
+              const fixedItems = items.map(item => ({
+                  ...item,
+                  data: {
+                      ...item.data,
+                      title: item.data.title || item.fileName || 'Feladat',
+                      instruction: item.data.instruction || 'Oldd meg a feladatot a kép alapján.',
+                      type: item.data.type || 'QUIZ'
+                  }
+              }));
+              
               // Success - import items
-              onLibraryImport(items);
-              alert(`✅ Sikeres import!\n\n${items.length} feldolgozott feladat importálva a könyvtárba.`);
+              onLibraryImport(fixedItems);
+              alert(`✅ Sikeres import!\n\n${fixedItems.length} feladat importálva a könyvtárba.${unprocessedItems.length > 0 ? `\n\n⚠️ ${unprocessedItems.length} elem hiányos adatokkal lett javítva.` : ''}`);
               
           } catch (err) {
               console.error("JSON import error:", err);
