@@ -352,8 +352,8 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
 
   return (
     <div className="relative w-full h-full bg-slate-900">
-      {/* Zoom Controls - Fixed to image container, positioned higher for student visibility */}
-      <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-2 bg-black/80 rounded-lg p-2 shadow-lg backdrop-blur-sm border border-white/10">
+      {/* Zoom Controls - Fixed to bottom of image container */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-2 bg-black/80 rounded-lg p-2 shadow-lg backdrop-blur-sm border border-white/10">
         <button
           onClick={handleZoomOut}
           disabled={zoom <= zoomLevels[0]}

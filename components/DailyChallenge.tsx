@@ -200,6 +200,17 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       
       // Prevent text selection
       const preventSelection = (e: Event) => {
+        // Allow drag for exercise elements (categorization, matching)
+        const target = e.target as HTMLElement;
+        if (target && (
+          target.closest('[draggable="true"]') || 
+          target.hasAttribute('draggable') ||
+          target.closest('.exercise-drag-item') ||
+          target.closest('.categorization-item') ||
+          target.closest('.matching-item')
+        )) {
+          return; // Allow drag for exercise elements
+        }
         e.preventDefault();
         return false;
       };

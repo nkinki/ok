@@ -161,6 +161,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
                     onDragStart={(e) => handleDragStart(e, item.id)}
                     onClick={(e) => { e.stopPropagation(); handleItemClick(item.id); }}
                     className={`
+                        categorization-item exercise-drag-item
                         px-2 py-1 rounded-lg shadow-sm cursor-grab active:cursor-grabbing select-none border transition-all font-medium text-xs
                         ${selectedItemId === item.id ? 'bg-brand-600 text-white border-brand-600 ring-2 ring-brand-300' : 'bg-white text-brand-900 border-brand-300 hover:bg-brand-50 hover:border-brand-500'}
                     `}
@@ -202,6 +203,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
                             onDragStart={(e) => handleDragStart(e, item.id)}
                             onClick={(e) => { e.stopPropagation(); handleItemClick(item.id); }}
                             className={`
+                                categorization-item exercise-drag-item
                                 p-2 rounded-lg text-xs font-bold shadow-sm flex flex-col bg-white cursor-grab active:cursor-grabbing border
                                 ${selectedItemId === item.id ? 'ring-2 ring-brand-500 border-brand-700' : 'border-transparent'}
                                 ${isSubmitted && isCorrect ? 'border-green-400 bg-green-50 text-green-900' : ''}

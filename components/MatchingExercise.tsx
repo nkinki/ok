@@ -132,6 +132,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
                     onDragStart={(e) => handleDragStart(e, item.id)}
                     onClick={() => handleItemClick(item.id)}
                     className={`
+                        matching-item exercise-drag-item
                         px-2 py-1 rounded text-xs shadow-sm cursor-grab active:cursor-grabbing select-none border transition-all
                         ${selectedId === item.id ? 'bg-brand-600 text-white border-brand-600 ring-1 ring-brand-300' : 'bg-white text-brand-800 border-brand-200 hover:bg-brand-50'}
                     `}
@@ -200,6 +201,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
                                     if(!isSubmitted) handleItemClick(matchedItem.id);
                                 }}
                                 className={`
+                                    matching-item exercise-drag-item
                                     w-full text-center px-2 py-1 rounded-lg bg-white border shadow-sm cursor-grab select-none relative z-10 font-medium text-sm
                                     ${isSubmitted ? (matchedRightId === pair.id ? 'text-green-900 border-green-300 bg-green-50' : 'text-red-900 border-red-300 bg-red-50') : 'border-brand-300 text-brand-900 hover:border-brand-500'}
                                     ${selectedId === matchedItem.id ? 'ring-2 ring-brand-500 border-brand-700' : ''}
