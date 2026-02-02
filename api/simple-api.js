@@ -1377,43 +1377,54 @@ export default async function handler(req, res) {
         }
 
         // Get participant counts and performance stats for each session
-        const sessionsWithStats = await Promise.all(
-          sessions.map(async (session) => {
-            const { data: participants } = await supabase
-              .from('session_participants')
-              .select('id, percentage, performance_category')
-              .eq('session_id', session.id); // Use session_id instead of session_code
+        // OPTIMIZED: Get all participants in one query instead of N queries
+        const sessionIds = sessions.map(s => s.id);
+        const { data: allParticipants } = await supabase
+          .from('session_participants')
+          .select('session_id, id, percentage, performance_category')
+          .in('session_id', sessionIds);
 
-            // Calculate performance statistics
-            const participantCount = participants?.length || 0;
-            const avgPercentage = participantCount > 0 
-              ? Math.round(participants.reduce((sum, p) => sum + (p.percentage || 0), 0) / participantCount)
-              : 0;
-              
-            const categoryCount = {
-              excellent: participants?.filter(p => p.performance_category === 'excellent').length || 0,
-              good: participants?.filter(p => p.performance_category === 'good').length || 0,
-              average: participants?.filter(p => p.performance_category === 'average').length || 0,
-              poor: participants?.filter(p => p.performance_category === 'poor').length || 0
-            };
+        // Group participants by session_id for faster lookup
+        const participantsBySession = {};
+        allParticipants?.forEach(participant => {
+          if (!participantsBySession[participant.session_id]) {
+            participantsBySession[participant.session_id] = [];
+          }
+          participantsBySession[participant.session_id].push(participant);
+        });
 
-            return {
-              id: session.id,
-              code: session.session_code,
-              subject: session.subject || 'general',
-              className: session.class_name || null,
-              exerciseCount: session.exercises.length,
-              maxPossibleScore: session.max_possible_score || 0,
-              participantCount: participantCount,
-              averagePercentage: avgPercentage,
-              performanceDistribution: categoryCount,
-              isActive: session.is_active,
-              createdAt: session.created_at,
-              expiresAt: session.expires_at,
-              updatedAt: session.updated_at
-            };
-          })
-        );
+        const sessionsWithStats = sessions.map((session) => {
+          const participants = participantsBySession[session.id] || [];
+
+          // Calculate performance statistics
+          const participantCount = participants.length;
+          const avgPercentage = participantCount > 0 
+            ? Math.round(participants.reduce((sum, p) => sum + (p.percentage || 0), 0) / participantCount)
+            : 0;
+            
+          const categoryCount = {
+            excellent: participants.filter(p => p.performance_category === 'excellent').length,
+            good: participants.filter(p => p.performance_category === 'good').length,
+            average: participants.filter(p => p.performance_category === 'average').length,
+            poor: participants.filter(p => p.performance_category === 'poor').length
+          };
+
+          return {
+            id: session.id,
+            code: session.session_code,
+            subject: session.subject || 'general',
+            className: session.class_name || null,
+            exerciseCount: session.exercises.length,
+            maxPossibleScore: session.max_possible_score || 0,
+            participantCount: participantCount,
+            averagePercentage: avgPercentage,
+            performanceDistribution: categoryCount,
+            isActive: session.is_active,
+            createdAt: session.created_at,
+            expiresAt: session.expires_at,
+            updatedAt: session.updated_at
+          };
+        });
 
         // Calculate subject-wide statistics
         const subjectStats = {
