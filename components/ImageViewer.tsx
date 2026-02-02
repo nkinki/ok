@@ -161,8 +161,14 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
   const [isProcessing, setIsProcessing] = useState(false);
   const [enhancementResult, setEnhancementResult] = useState<EnhancementResult | null>(null);
   const [showEnhancementOptions, setShowEnhancementOptions] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawingMode, setDrawingMode] = useState(false);
+  const [brushColor, setBrushColor] = useState('#ff0000');
+  const [brushSize, setBrushSize] = useState(3);
+  const [drawingHistory, setDrawingHistory] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const zoomLevels = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
 
@@ -322,14 +328,39 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
   }, [src, rotation, onImageUpdate]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoom > 1) {
+    if (drawingMode && drawingCanvasRef.current) {
+      setIsDrawing(true);
+      const rect = drawingCanvasRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom - position.x / zoom;
+      const y = (e.clientY - rect.top) / zoom - position.y / zoom;
+      
+      const ctx = drawingCanvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.strokeStyle = brushColor;
+        ctx.lineWidth = brushSize / zoom;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+      }
+    } else if (zoom > 1) {
       setIsDragging(true);
       setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging && zoom > 1) {
+    if (isDrawing && drawingCanvasRef.current) {
+      const rect = drawingCanvasRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom - position.x / zoom;
+      const y = (e.clientY - rect.top) / zoom - position.y / zoom;
+      
+      const ctx = drawingCanvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+    } else if (isDragging && zoom > 1) {
       setPosition({
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y
@@ -338,7 +369,83 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
   };
 
   const handleMouseUp = () => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      // Save drawing state for undo functionality
+      if (drawingCanvasRef.current) {
+        const dataUrl = drawingCanvasRef.current.toDataURL();
+        setDrawingHistory(prev => [...prev, dataUrl]);
+      }
+    }
     setIsDragging(false);
+  };
+
+  const clearDrawing = () => {
+    if (drawingCanvasRef.current) {
+      const ctx = drawingCanvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, drawingCanvasRef.current.width, drawingCanvasRef.current.height);
+        setDrawingHistory([]);
+      }
+    }
+  };
+
+  const undoDrawing = () => {
+    if (drawingHistory.length > 0 && drawingCanvasRef.current) {
+      const ctx = drawingCanvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, drawingCanvasRef.current.width, drawingCanvasRef.current.height);
+        const newHistory = [...drawingHistory];
+        newHistory.pop();
+        setDrawingHistory(newHistory);
+        
+        if (newHistory.length > 0) {
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0);
+          };
+          img.src = newHistory[newHistory.length - 1];
+        }
+      }
+    }
+  };
+
+  const saveImageWithDrawing = () => {
+    if (!onImageUpdate || !drawingCanvasRef.current) return;
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      // Draw original image
+      ctx.drawImage(img, 0, 0);
+      
+      // Draw annotations on top
+      if (drawingCanvasRef.current) {
+        ctx.drawImage(drawingCanvasRef.current, 0, 0);
+      }
+      
+      // Convert to base64 and update
+      const combinedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+      onImageUpdate(combinedImageUrl);
+      
+      // Clear drawing after saving
+      clearDrawing();
+    };
+    img.src = src;
+  };
+
+  // Initialize drawing canvas when image loads
+  const initializeDrawingCanvas = (imgElement: HTMLImageElement) => {
+    if (drawingCanvasRef.current) {
+      drawingCanvasRef.current.width = imgElement.naturalWidth;
+      drawingCanvasRef.current.height = imgElement.naturalHeight;
+    }
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -471,6 +578,83 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
               </svg>
               Egyedi
             </button>
+            
+            <div className="w-px h-6 bg-white/30 mx-1"></div>
+            
+            {/* Drawing Tools */}
+            <button
+              onClick={() => setDrawingMode(!drawingMode)}
+              className={`px-3 py-1 rounded text-xs font-medium flex items-center gap-1 transition-all ${
+                drawingMode 
+                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                  : 'bg-white/20 hover:bg-white/30 text-white'
+              }`}
+              title="Rajzolás be/ki"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              {drawingMode ? 'Rajz ki' : 'Rajzolás'}
+            </button>
+            
+            {drawingMode && (
+              <>
+                {/* Color Picker */}
+                <div className="flex items-center gap-1">
+                  <input
+                    type="color"
+                    value={brushColor}
+                    onChange={(e) => setBrushColor(e.target.value)}
+                    className="w-6 h-6 rounded border-none cursor-pointer"
+                    title="Szín választás"
+                  />
+                </div>
+                
+                {/* Brush Size */}
+                <div className="flex items-center gap-1">
+                  <input
+                    type="range"
+                    min="1"
+                    max="20"
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                    className="w-12 h-2"
+                    title="Ecset méret"
+                  />
+                  <span className="text-white text-xs w-4">{brushSize}</span>
+                </div>
+                
+                {/* Drawing Actions */}
+                <button
+                  onClick={undoDrawing}
+                  disabled={drawingHistory.length === 0}
+                  className="w-6 h-6 bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white rounded flex items-center justify-center"
+                  title="Visszavonás"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                  </svg>
+                </button>
+                
+                <button
+                  onClick={clearDrawing}
+                  className="w-6 h-6 bg-white/20 hover:bg-white/30 text-white rounded flex items-center justify-center"
+                  title="Rajz törlése"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+                
+                <button
+                  onClick={saveImageWithDrawing}
+                  className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium"
+                  title="Rajz mentése a képre"
+                >
+                  Mentés
+                </button>
+              </>
+            )}
           </>
         )}
       </div>
@@ -481,44 +665,67 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
       {/* Image Container */}
       <div 
         ref={containerRef}
-        className={`w-full h-full overflow-hidden ${zoom > 1 ? 'cursor-grab' : 'cursor-default'} ${isDragging ? 'cursor-grabbing' : ''}`}
+        className={`w-full h-full overflow-hidden ${zoom > 1 && !drawingMode ? 'cursor-grab' : drawingMode ? 'cursor-crosshair' : 'cursor-default'} ${isDragging ? 'cursor-grabbing' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
       >
-        <img 
-          src={src} 
-          alt={alt} 
-          className="w-full h-full object-contain select-none"
-          style={{
-            transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)${studentMode ? '' : ` rotate(${rotation}deg)`}`,
-            transformOrigin: 'center center',
-            transition: isDragging || isProcessing ? 'none' : (zoom === 1 && position.x === 0 && position.y === 0 && rotation === 0 ? 'none' : 'transform 0.2s ease-out')
-          }}
-          draggable={false}
-          onLoad={() => {
-            console.log('🎯 ImageViewer - Image loaded successfully:', {
-              src: src.substring(0, 50) + '...',
-              naturalWidth: (document.querySelector('img') as HTMLImageElement)?.naturalWidth,
-              naturalHeight: (document.querySelector('img') as HTMLImageElement)?.naturalHeight
-            });
-          }}
-          onError={(e) => {
-            console.error('🎯 ImageViewer - Image load error:', {
-              src: src.substring(0, 50) + '...',
-              error: e,
-              srcLength: src.length
-            });
-          }}
-        />
+        <div className="relative w-full h-full">
+          <img 
+            src={src} 
+            alt={alt} 
+            className="w-full h-full object-contain select-none"
+            style={{
+              transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)${studentMode ? '' : ` rotate(${rotation}deg)`}`,
+              transformOrigin: 'center center',
+              transition: isDragging || isProcessing ? 'none' : (zoom === 1 && position.x === 0 && position.y === 0 && rotation === 0 ? 'none' : 'transform 0.2s ease-out')
+            }}
+            draggable={false}
+            onLoad={(e) => {
+              const imgElement = e.target as HTMLImageElement;
+              initializeDrawingCanvas(imgElement);
+              console.log('🎯 ImageViewer - Image loaded successfully:', {
+                src: src.substring(0, 50) + '...',
+                naturalWidth: imgElement.naturalWidth,
+                naturalHeight: imgElement.naturalHeight
+              });
+            }}
+            onError={(e) => {
+              console.error('🎯 ImageViewer - Image load error:', {
+                src: src.substring(0, 50) + '...',
+                error: e,
+                srcLength: src.length
+              });
+            }}
+          />
+          
+          {/* Drawing Canvas Overlay */}
+          {drawingMode && (
+            <canvas
+              ref={drawingCanvasRef}
+              className="absolute top-0 left-0 w-full h-full pointer-events-auto"
+              style={{
+                transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)${studentMode ? '' : ` rotate(${rotation}deg)`}`,
+                transformOrigin: 'center center',
+                transition: isDragging || isProcessing ? 'none' : (zoom === 1 && position.x === 0 && position.y === 0 && rotation === 0 ? 'none' : 'transform 0.2s ease-out')
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {/* Instructions */}
-      {zoom > 1 && (
+      {zoom > 1 && !drawingMode && (
         <div className="absolute top-4 left-4 bg-black/70 text-white text-xs px-3 py-2 rounded-lg">
           🖱️ Húzd a képet • 🖱️ Görgő: zoom
+        </div>
+      )}
+      
+      {drawingMode && (
+        <div className="absolute top-4 left-4 bg-black/70 text-white text-xs px-3 py-2 rounded-lg">
+          🖊️ Rajzolj a képre • Szín: <span className="inline-block w-3 h-3 rounded-full ml-1" style={{backgroundColor: brushColor}}></span> • Méret: {brushSize}px
         </div>
       )}
 
