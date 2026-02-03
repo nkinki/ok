@@ -315,8 +315,9 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
       // Reset transform
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       
-      // Convert to base64 and update
-      const rotatedSrc = canvas.toDataURL('image/jpeg', 0.9);
+      // Convert to base64 with high quality and consistent format
+      const rotatedSrc = canvas.toDataURL('image/png');
+      console.log('🔄 Rotation applied, image size:', rotatedSrc.length, 'characters');
       onImageUpdate(rotatedSrc);
       setRotation(0); // Reset rotation after applying
       
@@ -419,23 +420,33 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
     
     const img = new Image();
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      // Draw original image
-      ctx.drawImage(img, 0, 0);
-      
-      // Draw annotations on top
-      if (drawingCanvasRef.current) {
-        ctx.drawImage(drawingCanvasRef.current, 0, 0);
+      try {
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        
+        // Draw original image
+        ctx.drawImage(img, 0, 0);
+        
+        // Draw annotations on top
+        if (drawingCanvasRef.current) {
+          ctx.drawImage(drawingCanvasRef.current, 0, 0);
+        }
+        
+        // Convert to base64 with high quality and consistent format
+        const combinedImageUrl = canvas.toDataURL('image/png');
+        console.log('🎨 Drawing saved, image size:', combinedImageUrl.length, 'characters');
+        onImageUpdate(combinedImageUrl);
+        
+        // Clear drawing after saving
+        clearDrawing();
+      } catch (error) {
+        console.error('❌ Error saving drawing:', error);
+        alert('Hiba a rajz mentésekor: ' + error.message);
       }
-      
-      // Convert to base64 and update
-      const combinedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
-      onImageUpdate(combinedImageUrl);
-      
-      // Clear drawing after saving
-      clearDrawing();
+    };
+    img.onerror = (error) => {
+      console.error('❌ Error loading image for drawing:', error);
+      alert('Hiba a kép betöltésekor a rajzoláshoz');
     };
     img.src = src;
   };

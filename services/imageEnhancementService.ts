@@ -449,14 +449,10 @@ class ImageEnhancementService {
    */
   private canvasToDataUrl(quality: number): Promise<string> {
     return new Promise((resolve) => {
-      this.canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          resolve(url);
-        } else {
-          resolve(this.canvas.toDataURL('image/jpeg', quality));
-        }
-      }, 'image/jpeg', quality);
+      // Always use base64 data URL for consistent storage
+      const dataUrl = this.canvas.toDataURL('image/png');
+      console.log('🖼️ Enhanced image created, size:', dataUrl.length, 'characters');
+      resolve(dataUrl);
     });
   }
 

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Format Fix Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .console { background: #000; color: #0f0; padding: 20px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Image Format Fix Test</h1>
+    <button onclick="testImageFormats()">Test Image Formats</button>
+    <div id="console" class="console"></div>
+
+    <script>
+        function log(msg) {
+            document.getElementById('console').textContent += msg + '\n';
+        }
+
+        function testImageFormats() {
+            document.getElementById('console').textContent = '';
+            log('🧪 Testing image format consistency...\n');
+
+            // Test canvas.toDataURL formats
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw a simple test image
+            ctx.fillStyle = 'red';
+            ctx.fillRect(0, 0, 50, 50);
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(50, 50, 50, 50);
+
+            // Test different formats
+            const jpegUrl = canvas.toDataURL('image/jpeg', 0.9);
+            const pngUrl = canvas.toDataURL('image/png');
+
+            log('📊 Format comparison:');
+            log(`JPEG (0.9 quality): ${jpegUrl.length} chars`);
+            log(`PNG (lossless): ${pngUrl.length} chars`);
+            log('');
+
+            // Check if they're valid base64
+            log('🔍 Format validation:');
+            log(`JPEG valid base64: ${jpegUrl.startsWith('data:image/jpeg;base64,')}`);
+            log(`PNG valid base64: ${pngUrl.startsWith('data:image/png;base64,')}`);
+            log('');
+
+            log('✅ PNG format is recommended for:');
+            log('- Lossless quality preservation');
+            log('- Consistent format across all operations');
+            log('- Better compatibility with JSON storage');
+            log('- No quality degradation on multiple edits');
+        }
+    </script>
+</body>
+</html>
