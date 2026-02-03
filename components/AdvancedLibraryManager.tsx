@@ -28,7 +28,7 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'MATCHING' | 'CATEGORIZATION' | 'QUIZ'>('all')
   const [completionFilter, setCompletionFilter] = useState<'all' | 'completed' | 'incomplete'>('all')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
 
   // Load collections from localStorage on mount
   React.useEffect(() => {
