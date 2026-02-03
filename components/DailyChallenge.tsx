@@ -1556,7 +1556,24 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       const uniqueKey = `${currentItem.id}-${currentIndex}`; // Force re-render on change
 
       return (
-          <div className={`${isStudentMode && !isPreviewMode ? 'h-screen student-fullscreen' : 'h-[calc(100vh-80px)]'} flex flex-col lg:flex-row overflow-hidden`}>
+          <div className={`${isStudentMode && !isPreviewMode ? 'h-screen student-fullscreen' : 'h-[calc(100vh-80px)]'} flex flex-col lg:flex-row overflow-hidden relative`}>
+              
+              {/* Extra Close Button - Always Visible in Top Right Corner */}
+              <button
+                  onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onExit();
+                  }}
+                  className="fixed top-4 right-4 z-[100] p-3 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-all hover:scale-110"
+                  title="Bezárás (ESC)"
+                  style={{ minWidth: '48px', minHeight: '48px' }}
+              >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+              </button>
+
               {/* Left Side: Original Image - Optimized for all screen sizes */}
               <div className="lg:w-2/5 h-[60vh] lg:h-full bg-slate-900 relative border-b lg:border-b-0 lg:border-r border-slate-700 order-1 lg:order-1">
                    {(() => {
@@ -1649,7 +1666,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               <div className="lg:w-3/5 h-[40vh] lg:h-full bg-slate-50 order-2 lg:order-2 relative flex flex-col">
                   <div className="max-w-2xl mx-auto flex-1 flex flex-col">
                       {/* Exercise Header - Always Visible */}
-                      <div className="flex-shrink-0 bg-white p-2 pb-1 border-b border-slate-200 mb-2 shadow-lg z-20" style={{ position: 'fixed', top: '0px', left: '0px', right: '0px' }}>
+                      <div className="flex-shrink-0 bg-white p-2 pb-1 border-b border-slate-200 mb-2 shadow-lg z-50" style={{ position: 'fixed', top: '10px', left: '10px', right: '10px' }}>
                           <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-2">
                                   <span className="font-bold text-purple-900 text-sm">
@@ -1681,8 +1698,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                           e.stopPropagation();
                                           onExit();
                                       }}
-                                      className="p-2 hover:bg-red-100 hover:text-red-600 rounded-full transition-colors bg-white shadow-sm border border-gray-200"
+                                      className="p-2 hover:bg-red-100 hover:text-red-600 rounded-full transition-colors bg-white shadow-lg border border-gray-200 relative z-50"
                                       title="Bezárás (ESC)"
+                                      style={{ minWidth: '40px', minHeight: '40px' }}
                                   >
                                       <svg className="w-5 h-5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1718,7 +1736,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       </div>
 
                       {/* Scrollable Content Container */}
-                      <div className="flex-1 overflow-y-auto pt-32">
+                      <div className="flex-1 overflow-y-auto pt-28">
                           {/* Task Description Block - Separate with Different Background */}
                           <div className="mx-2 mb-3 mt-6">
                               {/* Offline Mode Warning removed - automatic reconnection now works silently */}
