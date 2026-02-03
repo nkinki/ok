@@ -441,7 +441,7 @@ const ImageViewer: React.FC<Props> = ({ src, alt, onImageUpdate, studentMode = f
         clearDrawing();
       } catch (error) {
         console.error('❌ Error saving drawing:', error);
-        alert('Hiba a rajz mentésekor: ' + error.message);
+        alert('Hiba a rajz mentésekor: ' + (error instanceof Error ? error.message : String(error)));
       }
     };
     img.onerror = (error) => {

@@ -321,7 +321,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div 
-              onClick={onBackToRoleSelect}
+              onClick={() => setViewMode('BULK')}
               className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200 cursor-pointer hover:bg-purple-200 transition-colors"
               title="Vissza a főoldalra"
             >
