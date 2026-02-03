@@ -1681,11 +1681,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                           e.stopPropagation();
                                           onExit();
                                       }}
-                                      className="p-1 hover:bg-slate-200 rounded-full transition-colors"
-                                      title="Bezárás"
+                                      className="p-2 hover:bg-red-100 hover:text-red-600 rounded-full transition-colors bg-white shadow-sm border border-gray-200"
+                                      title="Bezárás (ESC)"
                                   >
-                                      <svg className="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                      <svg className="w-5 h-5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                       </svg>
                                   </button>
                               </div>
