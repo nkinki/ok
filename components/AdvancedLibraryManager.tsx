@@ -582,23 +582,30 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
           </div>
         ) : (
           <div className="p-6">
-            <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
-              {filteredExercises.map((item) => (
+            <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-2'}>
+              {filteredExercises.map((item, index) => (
                 <div
                   key={item.id}
                   className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                     selectedExercises.includes(item.id)
                       ? 'border-purple-300 bg-purple-50'
                       : 'border-slate-200 hover:border-slate-300 bg-white'
-                  }`}
+                  } ${viewMode === 'list' ? 'flex items-center gap-4' : ''}`}
                   onClick={() => toggleExerciseSelection(item.id)}
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  {/* Sorszám csak list nézetben */}
+                  {viewMode === 'list' && (
+                    <div className="flex-shrink-0 w-12 h-12 bg-purple-100 text-purple-800 rounded-full flex items-center justify-center font-bold text-lg border-2 border-purple-200">
+                      {index + 1}
+                    </div>
+                  )}
+                  
+                  <div className={`flex items-start justify-between ${viewMode === 'list' ? 'flex-1' : 'mb-3'}`}>
                     <div className="flex-1">
                       <h4 className="font-bold text-slate-800 mb-1">{item.data.title}</h4>
                       <p className="text-sm text-slate-600 mb-2 line-clamp-2">{item.data.instruction}</p>
                     </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ml-3 ${
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${viewMode === 'list' ? 'ml-3' : 'ml-3'} ${
                       selectedExercises.includes(item.id)
                         ? 'border-purple-500 bg-purple-500'
                         : 'border-slate-300'
@@ -611,7 +618,7 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between text-xs text-slate-500">
+                  <div className={`flex items-center justify-between text-xs text-slate-500 ${viewMode === 'list' ? 'flex-shrink-0 ml-4' : ''}`}>
                     <div className="flex items-center gap-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         item.data.type === 'MATCHING' ? 'bg-blue-100 text-blue-800' :
