@@ -824,17 +824,22 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         ) : (
           <div className="p-6">
             <div className="grid gap-4">
-              {library.map((item) => (
+              {library.map((item, index) => (
                 <div
                   key={item.id}
-                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                  className={`border-2 rounded-lg p-4 cursor-pointer transition-all flex items-center gap-4 ${
                     selectedExercises.includes(item.id)
                       ? 'border-purple-300 bg-purple-50'
                       : 'border-slate-200 hover:border-slate-300 bg-white'
                   }`}
                   onClick={() => toggleExerciseSelection(item.id)}
                 >
-                  <div className="flex items-center justify-between">
+                  {/* Sorszám */}
+                  <div className="flex-shrink-0 w-12 h-12 bg-purple-100 text-purple-800 rounded-full flex items-center justify-center font-bold text-lg border-2 border-purple-200">
+                    {index + 1}
+                  </div>
+                  
+                  <div className="flex items-center justify-between flex-1">
                     <div className="flex-1">
                       <h4 className="font-bold text-slate-800 mb-1">{item.data.title}</h4>
                       <p className="text-sm text-slate-600 mb-2">{item.data.instruction}</p>
