@@ -559,6 +559,51 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     }
   };
 
+  // Download leaderboard in different formats
+  const downloadLeaderboard = (format: 'txt' | 'csv') => {
+    if (leaderboard.length === 0) {
+      alert('Nincs adat a letöltéshez!');
+      return;
+    }
+
+    const sessionInfo = `Munkamenet: ${currentSessionCode}\nDátum: ${new Date().toLocaleString('hu-HU')}\nRésztvevők száma: ${leaderboard.length}\n\n`;
+    
+    let content = '';
+    let filename = '';
+    let mimeType = '';
+
+    if (format === 'txt') {
+      content = sessionInfo + 'RANGLISTA\n' + '='.repeat(50) + '\n\n';
+      leaderboard.forEach((participant, index) => {
+        const rank = index + 1;
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+        content += `${medal} ${participant.name} - ${participant.percentage}%\n`;
+      });
+      filename = `ranglista_${currentSessionCode}_${new Date().toISOString().slice(0,10)}.txt`;
+      mimeType = 'text/plain;charset=utf-8';
+    } else if (format === 'csv') {
+      content = sessionInfo.replace(/\n/g, '\r\n');
+      content += 'Helyezés,Név,Százalék,Osztály\r\n';
+      leaderboard.forEach((participant, index) => {
+        const rank = index + 1;
+        content += `${rank},"${participant.name}",${participant.percentage}%,"${participant.className || 'N/A'}"\r\n`;
+      });
+      filename = `ranglista_${currentSessionCode}_${new Date().toISOString().slice(0,10)}.csv`;
+      mimeType = 'text/csv;charset=utf-8';
+    }
+
+    // Create and download file
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleStudentLogin = async (studentData: Student, code: string) => {
     setStudent(studentData);
     setCurrentSessionCode(code);
@@ -1940,6 +1985,24 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                                   💪 Próbáld újra és kerülj feljebb a ranglistán!
                                               </p>
                                           )}
+                                          
+                                          {/* Download buttons */}
+                                          <div className="mt-3 flex gap-2 justify-center">
+                                              <button
+                                                  onClick={() => downloadLeaderboard('txt')}
+                                                  className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded text-xs font-medium border border-blue-300 transition-colors flex items-center gap-1"
+                                                  title="Ranglista letöltése TXT formátumban"
+                                              >
+                                                  📄 TXT
+                                              </button>
+                                              <button
+                                                  onClick={() => downloadLeaderboard('csv')}
+                                                  className="bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1 rounded text-xs font-medium border border-green-300 transition-colors flex items-center gap-1"
+                                                  title="Ranglista letöltése CSV formátumban (Excel)"
+                                              >
+                                                  📊 CSV
+                                              </button>
+                                          </div>
                                       </div>
                                   )}
                               </div>
@@ -2159,6 +2222,24 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                           💪 Próbáld újra és kerülj feljebb a ranglistán!
                                       </p>
                                   )}
+                                  
+                                  {/* Download buttons */}
+                                  <div className="mt-3 flex gap-2 justify-center">
+                                      <button
+                                          onClick={() => downloadLeaderboard('txt')}
+                                          className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded text-xs font-medium border border-blue-300 transition-colors flex items-center gap-1"
+                                          title="Ranglista letöltése TXT formátumban"
+                                      >
+                                          📄 TXT
+                                      </button>
+                                      <button
+                                          onClick={() => downloadLeaderboard('csv')}
+                                          className="bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1 rounded text-xs font-medium border border-green-300 transition-colors flex items-center gap-1"
+                                          title="Ranglista letöltése CSV formátumban (Excel)"
+                                      >
+                                          📊 CSV
+                                      </button>
+                                  </div>
                               </div>
                           )}
                       </div>

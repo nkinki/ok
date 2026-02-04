@@ -847,6 +847,43 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                         <span>Típus: {item.data.type}</span>
                         <span>Fájl: {item.fileName}</span>
                         <span>ID: {item.id.substring(0, 8)}...</span>
+                        {/* Completion Status */}
+                        <label 
+                          className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-2 py-1 rounded"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={item.isCompleted || false}
+                            onChange={(e) => {
+                              e.stopPropagation()
+                              // Update the library through the parent component
+                              if (onLibraryUpdate) {
+                                // We need to trigger a library update in the parent
+                                // This is a bit hacky but works with the current architecture
+                                const updatedLibrary = library.map(libItem => 
+                                  libItem.id === item.id 
+                                    ? { ...libItem, isCompleted: e.target.checked }
+                                    : libItem
+                                )
+                                
+                                // Update localStorage directly since we don't have setLibrary here
+                                try {
+                                  localStorage.setItem('okosgyakorlo_library', JSON.stringify(updatedLibrary))
+                                  onLibraryUpdate() // Trigger parent to reload from localStorage
+                                } catch (error) {
+                                  console.warn('Could not save to localStorage:', error)
+                                }
+                              }
+                            }}
+                            className="w-3 h-3 text-green-600 rounded"
+                          />
+                          <span className={`text-xs font-medium ${
+                            item.isCompleted ? 'text-green-600' : 'text-slate-500'
+                          }`}>
+                            {item.isCompleted ? '✓ Kész' : 'Kész'}
+                          </span>
+                        </label>
                       </div>
                     </div>
                     <div className="ml-4">
