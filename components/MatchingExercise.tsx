@@ -108,7 +108,7 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
   const bankItems = rightItems.filter(i => !placedRightIds.includes(i.id));
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 relative">
+    <div className="max-w-4xl mx-auto space-y-4 relative pb-24">{/* Added pb-24 to ensure buttons are always visible */}
       
       {/* Word Bank (Ultra Compact Sticky) */}
       <div className={`
@@ -237,38 +237,42 @@ const MatchingExercise: React.FC<Props> = ({ content, onComplete, onNext }) => {
 
       {/* Solution Key */}
       {isSubmitted && (
-        <div className="bg-slate-900 text-white p-6 rounded-xl shadow-xl border border-slate-700 mt-4 mb-20">
-            <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div className="bg-slate-900 text-white p-4 rounded-xl shadow-xl border border-slate-700 mt-4 mb-4">
+            <h4 className="font-bold text-base mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Helyes megoldás
             </h4>
-             <div className="grid gap-3 text-sm">
+             <div className="grid gap-2 text-sm max-h-40 overflow-y-auto">
                 {content.pairs.map((pair, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center bg-slate-800 p-3 rounded-lg border border-slate-600">
-                        <span className="font-bold text-slate-100 flex-1">{pair.left}</span>
+                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center bg-slate-800 p-2 rounded-lg border border-slate-600">
+                        <span className="font-bold text-slate-100 flex-1 text-sm">{pair.left}</span>
                         <span className="hidden sm:block text-slate-400 mx-2">→</span>
-                        <span className="font-bold text-green-400 flex-1">{pair.right}</span>
+                        <span className="font-bold text-green-400 flex-1 text-sm">{pair.right}</span>
                     </div>
                 ))}
             </div>
-            <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
-                <button 
-                    onClick={reset}
-                    className="bg-white text-slate-900 px-6 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors border-2 border-transparent"
-                >
-                    Újrakezdés
-                </button>
-                {onNext && (
-                    <button 
-                        onClick={handleNext}
-                        className="bg-brand-600 text-white px-8 py-3 rounded-full font-bold hover:bg-brand-700 transition-colors shadow-lg flex items-center justify-center gap-2"
-                    >
-                        Következő feladat
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                    </button>
-                )}
-            </div>
         </div>
+      )}
+
+      {/* Next / Restart Buttons (After Submit) - Fixed Position */}
+      {isSubmitted && (
+         <div className="fixed bottom-6 left-0 w-full flex justify-center pointer-events-none z-30 gap-4">
+             <button 
+                onClick={reset}
+                className="pointer-events-auto bg-white text-slate-900 border-2 border-slate-200 px-4 py-2 rounded-lg font-bold shadow hover:bg-gray-50 transition-colors text-sm"
+             >
+                Újra
+             </button>
+             {onNext && (
+                <button 
+                    onClick={handleNext}
+                    className="pointer-events-auto bg-brand-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-brand-700 transition-colors flex items-center gap-2 text-sm"
+                >
+                    Következő
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </button>
+             )}
+         </div>
       )}
 
       {/* Check Button */}

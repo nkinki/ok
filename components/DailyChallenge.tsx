@@ -1798,8 +1798,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                               </div>
                           </div>
 
-                          {/* Scrollable Content - More Compact */}
-                          <div className="p-4 pt-0">
+                          {/* Scrollable Content - More Compact with Bottom Padding for Fixed Buttons */}
+                          <div className="p-4 pt-0 pb-24">{/* Added pb-24 (96px) to ensure content is always visible above fixed buttons */}
                           {/* Show "Next Exercise" button if current exercise is completed */}
                           {completedExercises.has(currentIndex) ? (
                               <div className="text-center py-8">

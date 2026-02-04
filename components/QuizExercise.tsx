@@ -168,7 +168,7 @@ const QuizExercise: React.FC<Props> = ({ content, onComplete, onNext, onAnswer, 
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-2">
+    <div className="max-w-2xl mx-auto space-y-2 pb-24">{/* Added pb-24 to ensure buttons are always visible */}
       {/* Progress Bar - Ultra Compact */}
       <div className="bg-white rounded-lg p-2 shadow-sm border border-gray-100">
         <div className="flex justify-between text-xs font-semibold text-gray-500 mb-1">

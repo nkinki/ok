@@ -132,7 +132,7 @@ const CategorizationExercise: React.FC<Props> = ({ content, onComplete, onNext, 
   const unassignedItems = items.filter(i => !assignments[i.id]);
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative pb-24">{/* Added pb-24 to ensure buttons are always visible */}
       
       {/* Unassigned Items (Word Bank) - Ultra Compact */}
       <div 

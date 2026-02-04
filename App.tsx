@@ -233,6 +233,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
   const [selectedExercise, setSelectedExercise] = useState<BulkResultItem | null>(null);
   const [isMemoryMode, setIsMemoryMode] = useState(false)
   const [showPreview, setShowPreview] = useState(false);
+  const [savedScrollPosition, setSavedScrollPosition] = useState(0);
   
   // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -313,6 +314,25 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
       return [...prev, ...uniqueImported];
     });
     alert(`${importedData.length} meglévő elem betöltve!`);
+  };
+
+  // Handle opening preview with scroll position preservation
+  const handleOpenPreview = (item: BulkResultItem) => {
+    // Save current scroll position
+    setSavedScrollPosition(window.scrollY);
+    setSelectedExercise(item);
+    setShowPreview(true);
+  };
+
+  // Handle closing preview with scroll position restoration
+  const handleClosePreview = () => {
+    setShowPreview(false);
+    setSelectedExercise(null);
+    
+    // Restore scroll position after a brief delay to ensure DOM is updated
+    setTimeout(() => {
+      window.scrollTo(0, savedScrollPosition);
+    }, 50);
   };
 
   return (
@@ -400,10 +420,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
         {showPreview && selectedExercise && (
           <DailyChallenge 
             library={[selectedExercise]}
-            onExit={() => {
-              setShowPreview(false);
-              setSelectedExercise(null);
-            }}
+            onExit={handleClosePreview}
             isStudentMode={false}
             isPreviewMode={true}
           />
@@ -428,10 +445,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             library={library}
             setLibrary={setLibrary}
             onExit={() => setViewMode('BULK')}
-            onOpenSingle={(item) => {
-              setSelectedExercise(item);
-              setShowPreview(true);
-            }}
+            onOpenSingle={handleOpenPreview}
             isMemoryMode={isMemoryMode}
           />
         )}
