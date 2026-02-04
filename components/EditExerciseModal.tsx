@@ -427,84 +427,27 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
 
   const handleSave = () => {
     if (formData) {
-        if (showCropMode && originalImage) {
-            // Apply crop and save
-             const canvas = document.createElement('canvas');
-             const ctx = canvas.getContext('2d');
-             if (ctx) {
-                 // Convert percentages to actual pixel coordinates
-                 const corners = {
-                   topLeft: { 
-                     x: (crop.topLeft.x / 100) * originalImage.width, 
-                     y: (crop.topLeft.y / 100) * originalImage.height 
-                   },
-                   topRight: { 
-                     x: (crop.topRight.x / 100) * originalImage.width, 
-                     y: (crop.topRight.y / 100) * originalImage.height 
-                   },
-                   bottomLeft: { 
-                     x: (crop.bottomLeft.x / 100) * originalImage.width, 
-                     y: (crop.bottomLeft.y / 100) * originalImage.height 
-                   },
-                   bottomRight: { 
-                     x: (crop.bottomRight.x / 100) * originalImage.width, 
-                     y: (crop.bottomRight.y / 100) * originalImage.height 
-                   }
-                 };
-
-                 // Calculate bounding box
-                 const minX = Math.min(corners.topLeft.x, corners.topRight.x, corners.bottomLeft.x, corners.bottomRight.x);
-                 const maxX = Math.max(corners.topLeft.x, corners.topRight.x, corners.bottomLeft.x, corners.bottomRight.x);
-                 const minY = Math.min(corners.topLeft.y, corners.topRight.y, corners.bottomLeft.y, corners.bottomRight.y);
-                 const maxY = Math.max(corners.topLeft.y, corners.topRight.y, corners.bottomLeft.y, corners.bottomRight.y);
-
-                 canvas.width = maxX - minX;
-                 canvas.height = maxY - minY;
-                 
-                 // Adjust coordinates and create clipping path
-                 const adjustedCorners = {
-                   topLeft: { x: corners.topLeft.x - minX, y: corners.topLeft.y - minY },
-                   topRight: { x: corners.topRight.x - minX, y: corners.topRight.y - minY },
-                   bottomLeft: { x: corners.bottomLeft.x - minX, y: corners.bottomLeft.y - minY },
-                   bottomRight: { x: corners.bottomRight.x - minX, y: corners.bottomRight.y - minY }
-                 };
-
-                 ctx.beginPath();
-                 ctx.moveTo(adjustedCorners.topLeft.x, adjustedCorners.topLeft.y);
-                 ctx.lineTo(adjustedCorners.topRight.x, adjustedCorners.topRight.y);
-                 ctx.lineTo(adjustedCorners.bottomRight.x, adjustedCorners.bottomRight.y);
-                 ctx.lineTo(adjustedCorners.bottomLeft.x, adjustedCorners.bottomLeft.y);
-                 ctx.closePath();
-                 ctx.clip();
-
-                 ctx.drawImage(originalImage, -minX, -minY);
-                 const newImageUrl = canvas.toDataURL('image/jpeg', 0.9);
-                 
-                 // Create updated item with new image
-                 const updatedItem: BulkResultItem = {
-                   ...item,
-                   data: formData,
-                   imageUrl: newImageUrl
-                 };
-                 onSave(updatedItem);
-             } else {
-                 // Create updated item without image change
-                 const updatedItem: BulkResultItem = {
-                   ...item,
-                   data: formData,
-                   imageUrl: currentImageUrl
-                 };
-                 onSave(updatedItem);
-             }
-        } else {
-            // Create updated item with current image (may have been enhanced)
-            const updatedItem: BulkResultItem = {
-              ...item,
-              data: formData,
-              imageUrl: currentImageUrl
-            };
-            onSave(updatedItem);
+        // Validate image URL format for student compatibility
+        if (currentImageUrl && !currentImageUrl.startsWith('data:')) {
+          console.warn('⚠️ Image URL is not base64 data URL:', currentImageUrl.substring(0, 100));
+          alert('Figyelem: A kép formátuma nem megfelelő. Kérlek alkalmazd újra a szerkesztéseket.');
+          return;
         }
+
+        console.log('💾 Saving exercise with image:', {
+          hasImage: !!currentImageUrl,
+          imageFormat: currentImageUrl ? (currentImageUrl.startsWith('data:image/png') ? 'PNG' : 
+                                        currentImageUrl.startsWith('data:image/jpeg') ? 'JPEG' : 'Unknown') : 'None',
+          imageSize: currentImageUrl ? `${Math.round(currentImageUrl.length / 1024)}KB` : '0KB'
+        });
+
+        // Always use currentImageUrl which contains any applied crops or enhancements
+        const updatedItem: BulkResultItem = {
+          ...item,
+          data: formData,
+          imageUrl: currentImageUrl
+        };
+        onSave(updatedItem);
         onClose();
     }
   };
@@ -567,7 +510,15 @@ const EditExerciseModal: React.FC<Props> = ({ item, onSave, onClose }) => {
         // Draw the original image, offset by the bounding box
         ctx.drawImage(originalImage, -minX, -minY);
         
-        const newImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const newImageUrl = canvas.toDataURL('image/png');
+        
+        console.log('✂️ Crop applied:', {
+          originalSize: `${originalImage.width}x${originalImage.height}`,
+          croppedSize: `${canvas.width}x${canvas.height}`,
+          imageFormat: 'PNG',
+          imageSize: `${Math.round(newImageUrl.length / 1024)}KB`,
+          isBase64: newImageUrl.startsWith('data:')
+        });
         
         setCurrentImageUrl(newImageUrl);
         setShowCropMode(false);
