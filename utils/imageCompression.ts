@@ -116,26 +116,26 @@ export class ImageCompressor {
    */
   static getRecommendedSettings(sizeMB: number, hasText: boolean = true): { quality: number, maxWidth: number, description: string } {
     if (hasText) {
-      // More aggressive settings for text-heavy images to reduce Supabase egress
+      // High quality settings for text-heavy images when using Google Drive
       if (sizeMB > 10) {
-        return { quality: 0.6, maxWidth: 800, description: 'Erős tömörítés (nagy munkamenet, Egress optimalizálás)' };
+        return { quality: 0.85, maxWidth: 1200, description: 'Jó minőség (nagy munkamenet, Google Drive)' };
       } else if (sizeMB > 8) {
-        return { quality: 0.65, maxWidth: 900, description: 'Közepes-erős tömörítés (Egress optimalizálás)' };
+        return { quality: 0.9, maxWidth: 1400, description: 'Kiváló minőség (Google Drive)' };
       } else if (sizeMB > 6) {
-        return { quality: 0.7, maxWidth: 1000, description: 'Közepes tömörítés (Egress optimalizálás)' };
+        return { quality: 0.92, maxWidth: 1500, description: 'Kiváló minőség (szöveg tiszta)' };
       } else if (sizeMB > 4) {
-        return { quality: 0.75, maxWidth: 1100, description: 'Enyhe-közepes tömörítés' };
+        return { quality: 0.95, maxWidth: 1600, description: 'Szinte eredeti minőség' };
       } else {
-        return { quality: 0.8, maxWidth: 1200, description: 'Enyhe tömörítés (jó minőség)' };
+        return { quality: 0.98, maxWidth: 1800, description: 'Eredeti minőség (minimális tömörítés)' };
       }
     } else {
-      // More aggressive settings for photo-only content
+      // High quality settings for photo-only content with Google Drive
       if (sizeMB > 8) {
-        return { quality: 0.5, maxWidth: 700, description: 'Nagyon erős tömörítés (fotókhoz, Egress optimalizálás)' };
+        return { quality: 0.8, maxWidth: 1000, description: 'Jó minőség (fotókhoz, Google Drive)' };
       } else if (sizeMB > 6) {
-        return { quality: 0.6, maxWidth: 800, description: 'Erős tömörítés (fotókhoz, Egress optimalizálás)' };
+        return { quality: 0.85, maxWidth: 1200, description: 'Kiváló minőség (fotókhoz)' };
       } else {
-        return { quality: 0.7, maxWidth: 900, description: 'Közepes tömörítés (fotókhoz)' };
+        return { quality: 0.9, maxWidth: 1400, description: 'Szinte eredeti minőség (fotókhoz)' };
       }
     }
   }

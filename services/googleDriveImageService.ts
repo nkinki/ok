@@ -1,18 +1,23 @@
-// Google Drive Image Service - Supabase egress csökkentéshez
+// Google Drive Image Service - Supabase egress csökkentéshez (magas minőség)
+import { GoogleDriveImageOptimizer } from '../utils/googleDriveImageOptimizer';
+
 export class GoogleDriveImageService {
   
   /**
-   * Upload image to Google Drive and return public URL
+   * Upload image to Google Drive and return public URL (with high quality optimization)
    */
   static async uploadImage(imageBase64: string, exerciseId: string, fileName: string): Promise<string | null> {
     try {
-      console.log('📤 Uploading image to Google Drive:', exerciseId, fileName);
+      console.log('📤 Uploading image to Google Drive (high quality):', exerciseId, fileName);
+      
+      // Optimize for Google Drive (high quality, text-friendly)
+      const optimizedImage = await GoogleDriveImageOptimizer.optimizeForGoogleDrive(imageBase64, true);
       
       const response = await fetch('/api/simple-api/images/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageData: imageBase64,
+          imageData: optimizedImage, // Use optimized version
           exerciseId: exerciseId,
           fileName: fileName || `exercise_${exerciseId}.png`
         })
@@ -25,7 +30,7 @@ export class GoogleDriveImageService {
       const result = await response.json();
       
       if (result.success && result.driveUrl) {
-        console.log('✅ Image uploaded to Google Drive:', result.driveUrl);
+        console.log('✅ High quality image uploaded to Google Drive:', result.driveUrl);
         return result.driveUrl;
       } else {
         throw new Error(result.error || 'Upload failed');
@@ -112,16 +117,18 @@ export class GoogleDriveImageService {
   }
   
   /**
-   * Batch migrate multiple images
+   * Batch migrate multiple images (with high quality optimization)
    */
   static async batchMigrateImages(exercises: Array<{id: string, imageUrl: string, fileName?: string}>): Promise<void> {
-    console.log('🔄 Starting batch migration of', exercises.length, 'images');
+    console.log('🔄 Starting high quality batch migration of', exercises.length, 'images');
     
     let successCount = 0;
     let failCount = 0;
     
     for (const exercise of exercises) {
       if (exercise.imageUrl && exercise.imageUrl.startsWith('data:')) {
+        console.log(`📸 Processing ${exercise.id} with high quality optimization...`);
+        
         const driveUrl = await this.migrateImageToDrive(
           exercise.id, 
           exercise.imageUrl, 
@@ -132,16 +139,19 @@ export class GoogleDriveImageService {
           // Update the exercise object
           exercise.imageUrl = driveUrl;
           successCount++;
+          console.log(`✅ High quality migration successful: ${exercise.id}`);
         } else {
           failCount++;
+          console.error(`❌ Migration failed: ${exercise.id}`);
         }
         
         // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
     
-    console.log(`✅ Batch migration complete: ${successCount} success, ${failCount} failed`);
+    console.log(`✅ High quality batch migration complete: ${successCount} success, ${failCount} failed`);
+    console.log(`🎨 All images optimized with high quality settings for Google Drive`);
   }
   
   /**

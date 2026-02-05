@@ -173,13 +173,13 @@ const migrateExerciseImages = async () => {
 
 ### 4. **Azonnali intézkedések**
 
-#### A. Képtömörítés fokozása (már implementált)
+#### A. Képtömörítés fokozása (Google Drive optimalizált)
 ```javascript
-// Még agresszívebb tömörítés
+// Magas minőségű tömörítés Google Drive-hoz
 const settings = {
-  quality: 0.5,  // 50% minőség
-  maxWidth: 600, // Kisebb méret
-  format: 'jpeg' // JPEG PNG helyett
+  quality: 0.9,   // 90% minőség (kiváló szövegolvashatóság)
+  maxWidth: 1400, // Nagy felbontás
+  format: 'png'   // PNG a szövegekhez (élesebb)
 };
 ```
 
