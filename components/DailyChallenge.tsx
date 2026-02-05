@@ -565,25 +565,27 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         // DRIVE-ONLY MODE: Submit results to Drive-Only service
         console.log('🚀 Drive-Only eredmény küldés');
         
-        try {
-          const driveOnlyResult = await driveOnlyService.submitResults(
-            student.id,
-            [exerciseResult],
-            {
-              totalScore: exerciseResult.score,
-              completedExercises: 1,
-              studentName: student.name,
-              studentClass: student.className
-            }
-          );
+        if (student) {
+          try {
+            const driveOnlyResult = await driveOnlyService.submitResults(
+              student.id,
+              [{ exerciseIndex: currentIndex, score: 10, maxScore: 10 }],
+              {
+                totalScore: 10,
+                completedExercises: 1,
+                studentName: student.name,
+                studentClass: student.className
+              }
+            );
 
-          if (driveOnlyResult.success) {
-            console.log('✅ Drive-Only eredmény mentve');
-          } else {
-            console.warn('⚠️ Drive-Only eredmény mentési hiba:', driveOnlyResult.error);
+            if (driveOnlyResult.success) {
+              console.log('✅ Drive-Only eredmény mentve');
+            } else {
+              console.warn('⚠️ Drive-Only eredmény mentési hiba:', driveOnlyResult.error);
+            }
+          } catch (error) {
+            console.error('❌ Drive-Only eredmény hiba:', error);
           }
-        } catch (error) {
-          console.error('❌ Drive-Only eredmény hiba:', error);
         }
       } else {
         // ORIGINAL SUPABASE MODE
@@ -752,8 +754,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               }));
 
               setPlaylist(exerciseItems);
-              setCurrentExerciseIndex(0);
-              setIsInSession(true);
+              setCurrentIndex(0);
               setLoading(false);
               
               console.log('🎯 Drive-Only session ready!');

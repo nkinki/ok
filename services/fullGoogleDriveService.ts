@@ -230,7 +230,7 @@ class FullGoogleDriveService {
   async batchUploadImages(images: Array<{id: string, base64: string, fileName?: string}>): Promise<Array<{id: string, success: boolean, url?: string, error?: string}>> {
     console.log(`🔄 Starting batch upload of ${images.length} images to Google Drive`);
     
-    const results = [];
+    const results: Array<{id: string, success: boolean, url?: string, error?: string}> = [];
     
     for (const image of images) {
       try {
