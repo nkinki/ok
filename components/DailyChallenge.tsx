@@ -8,6 +8,7 @@ import CategorizationExercise from './CategorizationExercise';
 import QuizExercise from './QuizExercise';
 import StudentLoginForm from './auth/StudentLoginForm';
 import { ImageCache } from '../utils/imageCache';
+import { fullGoogleDriveService } from '../services/fullGoogleDriveService';
 
 interface Props {
   library: BulkResultItem[];
@@ -81,7 +82,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       imageUrlPreview: item?.imageUrl?.substring(0, 50) || 'none'
     });
     
-    // First, try to get from cache to reduce Supabase egress
+    // First, try to get from cache to reduce API calls
     const cachedImage = ImageCache.getCachedImage(item?.id);
     if (cachedImage) {
       console.log('📦 Using cached image for item:', item.id);
@@ -94,6 +95,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       console.log('🎯 RETURNING IMAGE URL:', {
         length: item.imageUrl.length,
         isBase64: item.imageUrl.startsWith('data:'),
+        isDriveUrl: item.imageUrl.includes('drive.google.com'),
         preview: item.imageUrl.substring(0, 100) + '...'
       });
       
@@ -102,6 +104,19 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       
       return item.imageUrl;
     }
+    
+    // Try Google Drive service for missing images
+    console.log('🔍 Trying Google Drive service for item:', item.id);
+    fullGoogleDriveService.getImageUrl(item.id).then(driveUrl => {
+      if (driveUrl) {
+        console.log('✅ Found image in Google Drive:', item.id);
+        ImageCache.setCachedImage(item.id, driveUrl);
+        // Force re-render by updating refresh key
+        setImageRefreshKey(prev => prev + 1);
+      }
+    }).catch(error => {
+      console.warn('⚠️ Google Drive lookup failed:', error);
+    });
     
     // Check if imageUrl exists but is too short (corrupted)
     if (item.imageUrl && item.imageUrl.length <= 100) {

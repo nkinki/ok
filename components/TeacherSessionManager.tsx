@@ -7,6 +7,7 @@ import { useSubject } from '../contexts/SubjectContext'
 import { SessionTransferService } from '../services/sessionTransferService'
 import StorageManager from '../utils/storageUtils'
 import SafeStorage from '../utils/safeStorage'
+import { fullGoogleDriveService } from '../services/fullGoogleDriveService'
 
 interface Props {
   library: BulkResultItem[]
@@ -443,17 +444,47 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             // Continue with upload but show warning
           }
         }
-        
-        const uploadResponse = await fetch('/api/simple-api/sessions/upload-drive', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            code: sessionCode,
-            sessionJson: uploadData
-          })
-        });
+        // Try to upload to Google Drive using the full service
+        try {
+          console.log('📤 Uploading session to Google Drive using full service...');
+          
+          const driveResult = await fullGoogleDriveService.uploadSessionJSON(sessionCode, uploadData);
+          
+          if (driveResult.success) {
+            console.log('✅ Session uploaded to Google Drive:', driveResult.downloadUrl);
+            
+            // Store download info for later use
+            localStorage.setItem(`session_${sessionCode}_drive`, JSON.stringify({
+              fileId: driveResult.fileId,
+              downloadUrl: driveResult.downloadUrl,
+              uploadedAt: new Date().toISOString(),
+              hasImages: true,
+              compressed: uploadData !== fullSessionData
+            }));
+            
+            // Clear any previous error if upload succeeded
+            if (error && error.includes('Képek feltöltése sikertelen')) {
+              setError(null);
+            }
+          } else {
+            console.warn('⚠️ Full Google Drive service failed, trying API fallback...');
+            throw new Error(driveResult.error || 'Google Drive service failed');
+          }
+        } catch (driveError) {
+          console.warn('⚠️ Full Google Drive service failed, using API fallback:', driveError);
+          
+          // Fallback to API endpoint
+          try {
+            const uploadResponse = await fetch('/api/simple-api/sessions/upload-drive', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                code: sessionCode,
+                sessionJson: uploadData
+              })
+            });
 
         if (uploadResponse.ok) {
           const uploadResult = await uploadResponse.json();

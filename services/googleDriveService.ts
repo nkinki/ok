@@ -1,5 +1,8 @@
 // Google Drive API Service for JSON file sharing
 // Uses teacher-specific Google Drive folders
+// Updated to work with fullGoogleDriveService
+
+import { fullGoogleDriveService } from './fullGoogleDriveService'
 
 interface DriveUploadResult {
   success: boolean;
@@ -17,65 +20,27 @@ interface DriveDownloadResult {
 class GoogleDriveService {
   
   /**
-   * Get teacher's Google Drive folder URL from localStorage
-   */
-  private getTeacherDriveFolder(): string | null {
-    return localStorage.getItem('google_drive_folder');
-  }
-
-  /**
-   * Extract folder ID from Google Drive URL
-   */
-  private extractFolderId(driveUrl: string): string | null {
-    const match = driveUrl.match(/\/folders\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
-  }
-
-  /**
    * Upload session JSON to teacher's Google Drive folder
+   * Now uses the full Google Drive service for better integration
    */
   async uploadSessionJSON(sessionCode: string, sessionData: any): Promise<DriveUploadResult> {
     try {
-      const teacherFolder = this.getTeacherDriveFolder();
+      console.log('📤 Uploading session JSON via full Google Drive service...');
       
-      if (!teacherFolder) {
-        console.warn('⚠️ No Google Drive folder configured for teacher');
+      // Use the full Google Drive service for upload
+      const result = await fullGoogleDriveService.uploadSessionJSON(sessionCode, sessionData);
+      
+      if (result.success) {
+        console.log('✅ Session uploaded via full Google Drive service');
+        return {
+          success: true,
+          fileId: result.fileId,
+          downloadUrl: result.downloadUrl
+        };
+      } else {
+        console.warn('⚠️ Full service failed, using fallback...');
         return this.fallbackToLocalStorage(sessionCode, sessionData);
       }
-
-      const folderId = this.extractFolderId(teacherFolder);
-      if (!folderId) {
-        console.warn('⚠️ Invalid Google Drive folder URL format');
-        return this.fallbackToLocalStorage(sessionCode, sessionData);
-      }
-
-      console.log('📤 Preparing session JSON for teacher\'s Google Drive folder...');
-      console.log('📁 Folder ID:', folderId);
-      
-      const fileName = `session_${sessionCode.toUpperCase()}.json`;
-      const jsonContent = JSON.stringify(sessionData, null, 2);
-      
-      // For now, simulate successful upload and use localStorage fallback
-      // In production, this would use the Google Drive API with the teacher's folder
-      const mockFileId = `${folderId}_${sessionCode}_${Date.now()}`;
-      const mockDownloadUrl = `https://drive.google.com/uc?id=${mockFileId}&export=download`;
-      
-      console.log('✅ Session JSON prepared for teacher\'s Google Drive:', fileName);
-      console.log('📁 Teacher Folder ID:', folderId);
-      console.log('🔗 Mock Download URL:', mockDownloadUrl);
-
-      // Store in localStorage with teacher-specific key
-      const teacherKey = `teacher_drive_session_${sessionCode}`;
-      localStorage.setItem(teacherKey, jsonContent);
-      
-      // Also store the folder info for reference
-      localStorage.setItem(`${teacherKey}_folder`, folderId);
-
-      return {
-        success: true,
-        fileId: mockFileId,
-        downloadUrl: mockDownloadUrl
-      };
 
     } catch (error) {
       console.error('Google Drive upload error:', error);
@@ -85,46 +50,29 @@ class GoogleDriveService {
 
   /**
    * Download session JSON from teacher's Google Drive
+   * Now uses the full Google Drive service for better integration
    */
   async downloadSessionJSON(sessionCode: string): Promise<DriveDownloadResult> {
     try {
-      console.log('📥 Attempting to download session from teacher\'s Google Drive:', sessionCode);
+      console.log('📥 Downloading session via full Google Drive service...');
       
-      // Try teacher-specific localStorage first
-      const teacherKey = `teacher_drive_session_${sessionCode}`;
-      const localData = localStorage.getItem(teacherKey);
+      // Use the full Google Drive service for download
+      const sessionData = await fullGoogleDriveService.downloadSessionJSON(sessionCode);
       
-      if (localData) {
-        const sessionData = JSON.parse(localData);
-        const folderInfo = localStorage.getItem(`${teacherKey}_folder`);
-        
-        console.log('✅ Session JSON loaded from teacher\'s localStorage');
-        console.log('📁 Teacher Folder:', folderInfo || 'unknown');
+      if (sessionData) {
+        console.log('✅ Session downloaded via full Google Drive service');
         console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
 
         return {
           success: true,
           data: sessionData
         };
-      }
-
-      // Fallback to general localStorage
-      const fallbackData = localStorage.getItem(`drive_session_${sessionCode}`);
-      if (fallbackData) {
-        const sessionData = JSON.parse(fallbackData);
-        console.log('✅ Session JSON loaded from fallback localStorage');
-        console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
-
+      } else {
         return {
-          success: true,
-          data: sessionData
+          success: false,
+          error: `Session file not found: session_${sessionCode}.json`
         };
       }
-
-      return {
-        success: false,
-        error: `Session file not found: session_${sessionCode}.json`
-      };
 
     } catch (error) {
       console.error('Google Drive download error:', error);
@@ -162,40 +110,50 @@ class GoogleDriveService {
    * Check if Google Drive is properly configured for the teacher
    */
   isConfigured(): boolean {
-    const folder = this.getTeacherDriveFolder();
-    return !!(folder && this.extractFolderId(folder));
+    return fullGoogleDriveService.isConfigured();
   }
 
   /**
    * Get configuration status for the teacher
    */
   getStatus(): string {
-    const folder = this.getTeacherDriveFolder();
-    
-    if (!folder) {
-      return 'Google Drive mappa nincs beállítva - használja a Beállítások menüt';
-    }
-    
-    const folderId = this.extractFolderId(folder);
-    if (!folderId) {
-      return 'Hibás Google Drive mappa URL formátum';
-    }
-    
-    return `Beállított mappa: ${folderId} (localStorage fallback aktív)`;
+    return fullGoogleDriveService.getStatus();
   }
 
   /**
    * Get teacher's folder info
    */
   getTeacherFolderInfo(): { url: string | null; folderId: string | null; isValid: boolean } {
-    const url = this.getTeacherDriveFolder();
-    const folderId = url ? this.extractFolderId(url) : null;
+    const folder = localStorage.getItem('google_drive_folder');
+    const folderId = folder ? this.extractFolderId(folder) : null;
     
     return {
-      url,
+      url: folder,
       folderId,
-      isValid: !!(url && folderId)
+      isValid: !!(folder && folderId)
     };
+  }
+
+  /**
+   * Extract folder ID from Google Drive URL
+   */
+  private extractFolderId(driveUrl: string): string | null {
+    const match = driveUrl.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Get storage statistics
+   */
+  getStorageStats() {
+    return fullGoogleDriveService.getStorageStats();
+  }
+
+  /**
+   * Migrate existing images to Google Drive
+   */
+  async migrateExistingImages() {
+    return fullGoogleDriveService.migrateExistingImages();
   }
 }
 

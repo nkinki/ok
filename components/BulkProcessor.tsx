@@ -4,6 +4,7 @@ import { analyzeImage } from '../services/geminiService';
 import { ExerciseData } from '../types';
 import { compressImage } from '../utils/imageUtils';
 import { logger } from '../utils/logger';
+import { fullGoogleDriveService } from '../services/fullGoogleDriveService';
 
 export interface BulkResultItem {
   id: string;
@@ -308,12 +309,38 @@ const BulkProcessor: React.FC<Props> = ({ onAnalysisComplete, existingLibrary = 
   const getCompletedItems = (): BulkResultItem[] => {
       return queue
         .filter(q => q.status === 'DONE' && q.data && q.croppedImageUrl)
-        .map((q, i) => ({
-            id: `bulk-${Date.now()}-${i}`,
-            fileName: q.file.name,
-            data: q.data!,
-            imageUrl: q.croppedImageUrl!
-        }));
+        .map((q, i) => {
+            const exerciseId = `bulk-${Date.now()}-${i}`;
+            
+            // Upload image to Google Drive in background
+            if (q.croppedImageUrl && fullGoogleDriveService.isConfigured()) {
+              console.log('📤 Uploading image to Google Drive:', exerciseId);
+              fullGoogleDriveService.uploadImage(q.croppedImageUrl, exerciseId, q.file.name)
+                .then(result => {
+                  if (result.success && result.imageUrl) {
+                    console.log('✅ Image uploaded to Google Drive:', exerciseId);
+                    // Update the imageUrl in localStorage if needed
+                    const libraryKey = 'okosgyakorlo_library';
+                    const library = JSON.parse(localStorage.getItem(libraryKey) || '[]');
+                    const itemIndex = library.findIndex((item: any) => item.id === exerciseId);
+                    if (itemIndex >= 0) {
+                      library[itemIndex].imageUrl = result.imageUrl;
+                      localStorage.setItem(libraryKey, JSON.stringify(library));
+                    }
+                  }
+                })
+                .catch(error => {
+                  console.warn('⚠️ Google Drive upload failed for:', exerciseId, error);
+                });
+            }
+            
+            return {
+                id: exerciseId,
+                fileName: q.file.name,
+                data: q.data!,
+                imageUrl: q.croppedImageUrl! // Will be replaced with Drive URL later
+            };
+        });
   };
 
   const handleSaveToLibrary = () => {
