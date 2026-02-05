@@ -9,6 +9,7 @@ import QuizExercise from './QuizExercise';
 import StudentLoginForm from './auth/StudentLoginForm';
 import { ImageCache } from '../utils/imageCache';
 import { fullGoogleDriveService } from '../services/fullGoogleDriveService';
+import { driveOnlyService } from '../services/driveOnlyService';
 
 interface Props {
   library: BulkResultItem[];
@@ -294,8 +295,19 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [currentSessionCode, setCurrentSessionCode] = useState<string | null>(sessionCode || null);
+  const [driveOnlyMode, setDriveOnlyMode] = useState(false);
   
   const [playlist, setPlaylist] = useState<any[]>([]);
+  
+  // Check Drive-Only mode on component mount
+  useEffect(() => {
+    const isDriveOnly = driveOnlyService.isDriveOnlyMode();
+    setDriveOnlyMode(isDriveOnly);
+    
+    if (isDriveOnly) {
+      console.log('🚀 Drive-Only mód aktív diák oldalon');
+    }
+  }, []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set()); // Track completed exercises
@@ -549,23 +561,50 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       
       console.log('📤 API payload:', JSON.stringify(payload, null, 2));
       
-      const response = await fetch(`/api/simple-api/sessions/${currentSessionCode}/results`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      if (driveOnlyMode) {
+        // DRIVE-ONLY MODE: Submit results to Drive-Only service
+        console.log('🚀 Drive-Only eredmény küldés');
+        
+        try {
+          const driveOnlyResult = await driveOnlyService.submitResults(
+            student.id,
+            [exerciseResult],
+            {
+              totalScore: exerciseResult.score,
+              completedExercises: 1,
+              studentName: student.name,
+              studentClass: student.className
+            }
+          );
 
-      if (response.ok) {
-        console.log('✅ Result submitted to API successfully');
-        const responseData = await response.json();
-        console.log('📊 API response:', responseData);
+          if (driveOnlyResult.success) {
+            console.log('✅ Drive-Only eredmény mentve');
+          } else {
+            console.warn('⚠️ Drive-Only eredmény mentési hiba:', driveOnlyResult.error);
+          }
+        } catch (error) {
+          console.error('❌ Drive-Only eredmény hiba:', error);
+        }
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.warn('⚠️ API result submission failed:', errorData.error || 'Unknown error');
-        console.warn('📊 Response status:', response.status);
-        console.warn('📊 Error details:', errorData);
+        // ORIGINAL SUPABASE MODE
+        const response = await fetch(`/api/simple-api/sessions/${currentSessionCode}/results`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          console.log('✅ Result submitted to API successfully');
+          const responseData = await response.json();
+          console.log('📊 API response:', responseData);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.warn('⚠️ API result submission failed:', errorData.error || 'Unknown error');
+          console.warn('📊 Response status:', response.status);
+          console.warn('📊 Error details:', errorData);
+        }
       }
     } catch (error) {
       console.warn('❌ Failed to submit result to API:', error);
@@ -648,7 +687,96 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     // CRITICAL DEBUG: Log the exact session code being used
     console.log('🎯 STUDENT LOGIN - Session code being used:', code.toUpperCase());
     console.log('🎯 STUDENT LOGIN - Student data:', { name: studentData.name, className: studentData.className });
+    console.log('🚀 Drive-Only mód:', driveOnlyMode);
 
+    if (driveOnlyMode) {
+      // DRIVE-ONLY MODE: Skip Supabase, use Drive-Only service
+      console.log('🚀 Drive-Only mód - Supabase kihagyása');
+      
+      try {
+        // Check if session exists in Drive-Only mode
+        const sessionCheck = await driveOnlyService.checkSession(code);
+        
+        if (!sessionCheck.exists || !sessionCheck.session) {
+          setError(sessionCheck.error || 'Munkamenet nem található Drive-Only módban');
+          setLoading(false);
+          return;
+        }
+
+        console.log('✅ Drive-Only munkamenet megtalálva:', code);
+        
+        // Join session in Drive-Only mode
+        const joinResult = await driveOnlyService.joinSession(
+          code, 
+          studentData.name, 
+          studentData.className
+        );
+
+        if (!joinResult.success || !joinResult.student) {
+          setError(joinResult.error || 'Csatlakozási hiba Drive-Only módban');
+          setLoading(false);
+          return;
+        }
+
+        console.log('✅ Drive-Only csatlakozás sikeres:', joinResult.student.id);
+
+        // Update student info with Drive-Only ID
+        setStudent(prev => prev ? {
+          ...prev,
+          id: joinResult.student!.id,
+          sessionId: code // Use session code as session ID in Drive-Only mode
+        } : null);
+
+        // Try to load session data from Google Drive
+        console.log('📥 Loading session from Google Drive...');
+        
+        try {
+          const driveResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/download-drive`);
+          
+          if (driveResponse.ok) {
+            const sessionData = await driveResponse.json();
+            
+            if (sessionData.exercises && sessionData.exercises.length > 0) {
+              console.log('✅ Drive-Only session loaded with', sessionData.exercises.length, 'exercises');
+              
+              const exerciseItems = sessionData.exercises.map((exercise: any) => ({
+                id: exercise.id,
+                fileName: exercise.fileName || exercise.title,
+                imageUrl: exercise.imageUrl || '',
+                data: {
+                  type: exercise.type,
+                  title: exercise.title,
+                  instruction: exercise.instruction,
+                  content: exercise.content
+                }
+              }));
+
+              setPlaylist(exerciseItems);
+              setCurrentExerciseIndex(0);
+              setIsInSession(true);
+              setLoading(false);
+              
+              console.log('🎯 Drive-Only session ready!');
+              return;
+            }
+          }
+        } catch (driveError) {
+          console.warn('⚠️ Google Drive load failed in Drive-Only mode:', driveError);
+        }
+
+        // If Google Drive fails, show error
+        setError('Google Drive betöltési hiba Drive-Only módban. Ellenőrizd a kapcsolatot!');
+        setLoading(false);
+        return;
+      } catch (error) {
+        console.error('❌ Drive-Only session error:', error);
+        setError(`Drive-Only hiba: ${error instanceof Error ? error.message : 'Ismeretlen hiba'}`);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // ORIGINAL SUPABASE MODE (unchanged)
     // CRITICAL DEBUG: Check what's in localStorage
     console.log('🎯 CRITICAL DEBUG - All localStorage keys:');
     for (let i = 0; i < localStorage.length; i++) {

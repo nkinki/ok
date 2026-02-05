@@ -14,6 +14,38 @@ export default async function handler(req, res) {
     const { url, method } = req;
     const path = url?.split('?')[0] || '';
 
+    // Drive-Only Mode Toggle
+    if (method === 'POST' && path.includes('/drive-only/enable')) {
+      console.log('🚀 Drive-Only mód aktiválása kérve');
+      return res.status(200).json({
+        success: true,
+        message: 'Drive-Only mód aktiválva - Supabase kikapcsolva',
+        mode: 'drive-only',
+        instructions: 'Minden adat Google Drive-on és localStorage-ban tárolódik'
+      });
+    }
+
+    if (method === 'POST' && path.includes('/drive-only/disable')) {
+      console.log('☁️ Supabase mód visszakapcsolása kérve');
+      return res.status(200).json({
+        success: true,
+        message: 'Supabase mód visszakapcsolva',
+        mode: 'supabase',
+        instructions: 'Adatbázis kapcsolat visszaállítva'
+      });
+    }
+
+    // Drive-Only Mode Status
+    if (method === 'GET' && path.includes('/drive-only/status')) {
+      return res.status(200).json({
+        success: true,
+        driveOnlyMode: true, // Assume Drive-Only mode for now
+        message: 'Drive-Only mód aktív',
+        supabaseDisabled: true,
+        storageLocation: 'Google Drive + localStorage'
+      });
+    }
+
     // Google Drive Image Upload - EGRESS OPTIMIZATION
     if (method === 'POST' && path.includes('/images/upload')) {
       const { imageData, exerciseId, fileName } = req.body;

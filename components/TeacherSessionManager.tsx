@@ -8,6 +8,8 @@ import { SessionTransferService } from '../services/sessionTransferService'
 import StorageManager from '../utils/storageUtils'
 import SafeStorage from '../utils/safeStorage'
 import { fullGoogleDriveService } from '../services/fullGoogleDriveService'
+import { driveOnlyService } from '../services/driveOnlyService'
+import DriveOnlyToggle from './DriveOnlyToggle'
 
 interface Props {
   library: BulkResultItem[]
@@ -31,6 +33,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [showResults, setShowResults] = useState(false)
   const [showMonitor, setShowMonitor] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [driveOnlyMode, setDriveOnlyMode] = useState(false)
 
   const [className, setClassName] = useState<string>('')
 
@@ -40,6 +43,18 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     '4.a', '4.b', '5.a', '5.b', '6.a', '6.b',
     '7.a', '7.b', '8.a', '8.b'
   ]
+
+  // Check Drive-Only mode on component mount
+  useEffect(() => {
+    const isDriveOnly = driveOnlyService.isDriveOnlyMode();
+    setDriveOnlyMode(isDriveOnly);
+    
+    if (isDriveOnly) {
+      console.log('🚀 Drive-Only mód aktív - Supabase kikapcsolva');
+    } else {
+      console.log('☁️ Supabase mód aktív');
+    }
+  }, []);
 
   // Debug: Monitor activeSession changes
   useEffect(() => {
@@ -183,14 +198,102 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
 
     try {
-      console.log('🗄️ Creating session in database...');
+      console.log('🗄️ Creating session...');
       console.log('📊 Session data:', { 
         code: sessionCode, 
         exerciseCount: selectedExerciseData.length,
         subject: currentSubject || 'general',
-        className: className
+        className: className,
+        driveOnlyMode: driveOnlyMode
       });
 
+      // DRIVE-ONLY MODE: Skip Supabase completely
+      if (driveOnlyMode) {
+        console.log('🚀 Drive-Only mód - Supabase kihagyása');
+        
+        // Create session data for Google Drive
+        const fullSessionData = {
+          sessionCode: sessionCode,
+          subject: currentSubject || 'general',
+          className: className.trim(),
+          createdAt: new Date().toISOString(),
+          exercises: selectedExerciseData.map(item => ({
+            id: item.id,
+            fileName: item.fileName,
+            imageUrl: item.imageUrl || '',
+            title: item.data.title,
+            instruction: item.data.instruction,
+            type: item.data.type,
+            content: item.data.content
+          })),
+          metadata: {
+            version: '1.0.0',
+            exportedBy: 'Okos Gyakorló Drive-Only',
+            totalExercises: selectedExerciseData.length,
+            estimatedTime: selectedExerciseData.length * 3,
+            driveOnlyMode: true
+          }
+        }
+
+        // Create session in Drive-Only service
+        const driveOnlyResult = await driveOnlyService.createSession({
+          code: sessionCode,
+          exercises: selectedExerciseData,
+          subject: currentSubject || 'general',
+          className: className.trim(),
+          maxScore: selectedExerciseData.length * 10
+        });
+
+        if (!driveOnlyResult.success) {
+          setError(`Drive-Only munkamenet hiba: ${driveOnlyResult.error}`);
+          return;
+        }
+
+        console.log('✅ Drive-Only munkamenet létrehozva:', sessionCode);
+
+        // Upload to Google Drive
+        console.log('📤 Uploading session JSON to Google Drive...');
+        
+        try {
+          const driveResult = await fullGoogleDriveService.uploadSessionJSON(sessionCode, fullSessionData);
+          
+          if (driveResult.success) {
+            console.log('✅ Session uploaded to Google Drive:', driveResult.downloadUrl);
+          } else {
+            console.warn('⚠️ Google Drive upload failed, but Drive-Only session still works');
+          }
+        } catch (driveError) {
+          console.warn('⚠️ Google Drive upload error:', driveError);
+        }
+
+        // Create session object for UI
+        const session: Session = {
+          code: sessionCode,
+          exercises: selectedExerciseData,
+          createdAt: new Date(),
+          isActive: true
+        }
+
+        setActiveSession(session);
+        console.log('🎯 Drive-Only munkamenet aktív:', sessionCode);
+
+        // Auto-download JSON file
+        const dataStr = JSON.stringify(fullSessionData, null, 2)
+        const blob = new Blob([dataStr], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `munkamenet_${sessionCode}_${new Date().toISOString().slice(0,10)}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        
+        console.log('📁 JSON fájl letöltve Drive-Only módban')
+        return;
+      }
+
+      // ORIGINAL SUPABASE MODE (unchanged)
       // NEW APPROACH: Store full session data locally and only send minimal data to API
       const fullSessionData = {
         sessionCode: sessionCode,
@@ -625,6 +728,33 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             Munkamenet előzmények
           </button>
           
+          {/* Drive-Only Mode Toggle */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg">
+            <button
+              onClick={async () => {
+                if (driveOnlyMode) {
+                  driveOnlyService.disableDriveOnlyMode();
+                  setDriveOnlyMode(false);
+                  setError(null);
+                } else {
+                  driveOnlyService.enableDriveOnlyMode();
+                  setDriveOnlyMode(true);
+                  setError(null);
+                }
+              }}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                driveOnlyMode 
+                  ? 'bg-purple-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {driveOnlyMode ? '📁 Drive-Only' : '☁️ Supabase'}
+            </button>
+            <span className="text-sm text-purple-700">
+              {driveOnlyMode ? 'Csak Google Drive' : 'Adatbázis aktív'}
+            </span>
+          </div>
+
           {/* Google Drive Status */}
           <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
             <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -649,6 +779,9 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           </button>
         </div>
       </div>
+
+      {/* Drive-Only Mode Toggle */}
+      <DriveOnlyToggle onModeChange={(isDriveOnly) => setDriveOnlyMode(isDriveOnly)} />
 
       {activeSession && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center mb-8">

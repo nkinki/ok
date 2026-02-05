@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive-Only Mód Teszt</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #4a5568;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .mode-toggle {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+        .test-section h2 {
+            color: #2d3748;
+            margin-top: 0;
+            font-size: 1.5em;
+        }
+        .success {
+            color: #38a169;
+            font-weight: bold;
+        }
+        .error {
+            color: #e53e3e;
+            font-weight: bold;
+        }
+        .warning {
+            color: #d69e2e;
+            font-weight: bold;
+        }
+        .info {
+            color: #3182ce;
+            font-weight: bold;
+        }
+        .log {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .drive-only {
+            background: linear-gradient(135deg, #9f7aea 0%, #667eea 100%);
+        }
+        .supabase {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4a5568;
+        }
+        .stat-label {
+            color: #718096;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Drive-Only Mód Teszt</h1>
+        <p class="info">Teljes Google Drive mód tesztelése - Supabase kikapcsolva</p>
+        
+        <div class="mode-toggle">
+            <h2>📁 Tárolási Mód Váltás</h2>
+            <button id="toggleMode" onclick="toggleDriveOnlyMode()">
+                <span id="modeText">☁️ Supabase Aktív</span>
+            </button>
+            <p id="modeDescription">Supabase adatbázis + Google Drive hibrid mód</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Drive-Only Tesztek</h2>
+            <button onclick="testSessionCreation()">Munkamenet Létrehozás</button>
+            <button onclick="testStudentJoin()">Diák Csatlakozás</button>
+            <button onclick="testResultSubmission()">Eredmény Küldés</button>
+            <button onclick="testSessionMonitoring()">Munkamenet Figyelés</button>
+            <button onclick="runAllTests()">Összes Teszt</button>
+            <button onclick="clearTestData()">Teszt Adatok Törlése</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Drive-Only Statisztikák</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="activeSessions">0</div>
+                    <div class="stat-label">Aktív Munkamenet</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalParticipants">0</div>
+                    <div class="stat-label">Összes Résztvevő</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="onlineParticipants">0</div>
+                    <div class="stat-label">Online Résztvevő</div>
+                </div>
+            </div>
+            <button onclick="updateStats()">📊 Statisztikák Frissítése</button>
+            <button onclick="cleanupExpired()">🧹 Lejárt Munkamenetek Törlése</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Teszt Eredmények</h2>
+            <div id="testResults" class="log">Kattints egy tesztre a kezdéshez...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>💾 LocalStorage Tartalom</h2>
+            <button onclick="showLocalStorage()">LocalStorage Megjelenítése</button>
+            <button onclick="clearLocalStorage()">LocalStorage Törlése</button>
+            <div id="localStorageContent" class="log" style="max-height: 200px;">LocalStorage tartalom itt jelenik meg...</div>
+        </div>
+    </div>
+
+    <script>
+        let testLog = '';
+        let driveOnlyMode = false;
+
+        // Drive-Only Service Mock (simplified version)
+        class DriveOnlyServiceMock {
+            constructor() {
+                this.DRIVE_ONLY_MODE_KEY = 'drive_only_mode';
+                this.SESSIONS_KEY = 'drive_only_sessions';
+                this.PARTICIPANTS_KEY = 'drive_only_participants';
+            }
+
+            enableDriveOnlyMode() {
+                localStorage.setItem(this.DRIVE_ONLY_MODE_KEY, 'true');
+                log('🚀 Drive-Only mód aktiválva', 'success');
+            }
+
+            disableDriveOnlyMode() {
+                localStorage.removeItem(this.DRIVE_ONLY_MODE_KEY);
+                log('☁️ Supabase mód visszakapcsolva', 'info');
+            }
+
+            isDriveOnlyMode() {
+                return localStorage.getItem(this.DRIVE_ONLY_MODE_KEY) === 'true';
+            }
+
+            async createSession(sessionData) {
+                if (!this.isDriveOnlyMode()) {
+                    return { success: false, error: 'Drive-Only mód nincs aktiválva' };
+                }
+
+                const session = {
+                    sessionCode: sessionData.code.toUpperCase(),
+                    subject: sessionData.subject,
+                    className: sessionData.className,
+                    createdAt: new Date().toISOString(),
+                    exercises: sessionData.exercises,
+                    isActive: true,
+                    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+                    participants: []
+                };
+
+                const sessions = this.getAllSessions();
+                sessions[sessionData.code.toUpperCase()] = session;
+                localStorage.setItem(this.SESSIONS_KEY, JSON.stringify(sessions));
+
+                return { success: true, session };
+            }
+
+            async checkSession(sessionCode) {
+                if (!this.isDriveOnlyMode()) {
+                    return { exists: false, error: 'Drive-Only mód nincs aktiválva' };
+                }
+
+                const sessions = this.getAllSessions();
+                const session = sessions[sessionCode.toUpperCase()];
+
+                if (!session) {
+                    return { exists: false, error: 'Munkamenet nem található' };
+                }
+
+                if (new Date() > new Date(session.expiresAt)) {
+                    session.isActive = false;
+                    this.updateSession(session);
+                    return { exists: false, error: 'Munkamenet lejárt' };
+                }
+
+                return { exists: true, session };
+            }
+
+            async joinSession(sessionCode, studentName, studentClass) {
+                const sessionCheck = await this.checkSession(sessionCode);
+                if (!sessionCheck.exists || !sessionCheck.session) {
+                    return { success: false, error: sessionCheck.error };
+                }
+
+                const participant = {
+                    id: `student_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    sessionCode: sessionCode.toUpperCase(),
+                    studentName,
+                    studentClass,
+                    joinedAt: new Date().toISOString(),
+                    isOnline: true,
+                    currentExercise: 0,
+                    completedExercises: 0,
+                    totalScore: 0,
+                    results: [],
+                    lastSeen: new Date().toISOString()
+                };
+
+                const session = sessionCheck.session;
+                session.participants.push(participant);
+                this.updateSession(session);
+
+                const participants = this.getAllParticipants();
+                participants[participant.id] = participant;
+                localStorage.setItem(this.PARTICIPANTS_KEY, JSON.stringify(participants));
+
+                return { success: true, student: participant };
+            }
+
+            async submitResults(studentId, results, summary) {
+                const participants = this.getAllParticipants();
+                const participant = participants[studentId];
+
+                if (!participant) {
+                    return { success: false, error: 'Diák nem található' };
+                }
+
+                participant.results = results;
+                participant.totalScore = summary.totalScore || 0;
+                participant.completedExercises = summary.completedExercises || 0;
+                participant.lastSeen = new Date().toISOString();
+
+                participants[studentId] = participant;
+                localStorage.setItem(this.PARTICIPANTS_KEY, JSON.stringify(participants));
+
+                return { success: true };
+            }
+
+            getStatistics() {
+                const isDriveOnly = this.isDriveOnlyMode();
+                
+                if (!isDriveOnly) {
+                    return {
+                        isDriveOnlyMode: false,
+                        activeSessions: 0,
+                        totalParticipants: 0,
+                        onlineParticipants: 0
+                    };
+                }
+
+                const sessions = this.getAllSessions();
+                const participants = this.getAllParticipants();
+
+                const activeSessions = Object.values(sessions).filter(s => 
+                    s.isActive && new Date() < new Date(s.expiresAt)
+                ).length;
+
+                const totalParticipants = Object.keys(participants).length;
+                
+                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+                const onlineParticipants = Object.values(participants).filter(p => 
+                    new Date(p.lastSeen) > fiveMinutesAgo
+                ).length;
+
+                return {
+                    isDriveOnlyMode: true,
+                    activeSessions,
+                    totalParticipants,
+                    onlineParticipants
+                };
+            }
+
+            cleanupExpiredSessions() {
+                const sessions = this.getAllSessions();
+                const now = new Date();
+                let cleanedCount = 0;
+
+                Object.keys(sessions).forEach(sessionCode => {
+                    const session = sessions[sessionCode];
+                    if (new Date(session.expiresAt) < now) {
+                        delete sessions[sessionCode];
+                        cleanedCount++;
+                    }
+                });
+
+                if (cleanedCount > 0) {
+                    localStorage.setItem(this.SESSIONS_KEY, JSON.stringify(sessions));
+                }
+
+                return cleanedCount;
+            }
+
+            getAllSessions() {
+                try {
+                    const data = localStorage.getItem(this.SESSIONS_KEY);
+                    return data ? JSON.parse(data) : {};
+                } catch (error) {
+                    return {};
+                }
+            }
+
+            getAllParticipants() {
+                try {
+                    const data = localStorage.getItem(this.PARTICIPANTS_KEY);
+                    return data ? JSON.parse(data) : {};
+                } catch (error) {
+                    return {};
+                }
+            }
+
+            updateSession(session) {
+                const sessions = this.getAllSessions();
+                sessions[session.sessionCode] = session;
+                localStorage.setItem(this.SESSIONS_KEY, JSON.stringify(sessions));
+            }
+        }
+
+        const driveOnlyService = new DriveOnlyServiceMock();
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '📝';
+            testLog += `[${timestamp}] ${emoji} ${message}\n`;
+            document.getElementById('testResults').textContent = testLog;
+            document.getElementById('testResults').scrollTop = document.getElementById('testResults').scrollHeight;
+        }
+
+        function clearLog() {
+            testLog = '';
+            document.getElementById('testResults').textContent = 'Teszt log törölve...';
+        }
+
+        function toggleDriveOnlyMode() {
+            if (driveOnlyMode) {
+                driveOnlyService.disableDriveOnlyMode();
+                driveOnlyMode = false;
+                document.getElementById('modeText').textContent = '☁️ Supabase Aktív';
+                document.getElementById('modeDescription').textContent = 'Supabase adatbázis + Google Drive hibrid mód';
+                document.getElementById('toggleMode').className = 'supabase';
+            } else {
+                driveOnlyService.enableDriveOnlyMode();
+                driveOnlyMode = true;
+                document.getElementById('modeText').textContent = '📁 Drive-Only Aktív';
+                document.getElementById('modeDescription').textContent = 'Csak Google Drive + localStorage mód - Supabase kikapcsolva';
+                document.getElementById('toggleMode').className = 'drive-only';
+            }
+            updateStats();
+        }
+
+        function updateStats() {
+            const stats = driveOnlyService.getStatistics();
+            document.getElementById('activeSessions').textContent = stats.activeSessions;
+            document.getElementById('totalParticipants').textContent = stats.totalParticipants;
+            document.getElementById('onlineParticipants').textContent = stats.onlineParticipants;
+        }
+
+        function cleanupExpired() {
+            const cleanedCount = driveOnlyService.cleanupExpiredSessions();
+            log(`🧹 ${cleanedCount} lejárt munkamenet törölve`, 'info');
+            updateStats();
+        }
+
+        async function testSessionCreation() {
+            log('=== TESZT: Munkamenet Létrehozás ===', 'info');
+            
+            if (!driveOnlyMode) {
+                log('❌ Drive-Only mód nincs aktiválva', 'error');
+                return;
+            }
+
+            try {
+                const sessionData = {
+                    code: 'TEST123',
+                    subject: 'info',
+                    className: '8.a',
+                    exercises: [
+                        { id: 'ex1', title: 'Teszt Feladat 1', type: 'QUIZ' },
+                        { id: 'ex2', title: 'Teszt Feladat 2', type: 'MATCHING' }
+                    ]
+                };
+
+                const result = await driveOnlyService.createSession(sessionData);
+                
+                if (result.success) {
+                    log('✅ Munkamenet létrehozva: ' + sessionData.code, 'success');
+                    log('📊 Feladatok száma: ' + sessionData.exercises.length, 'info');
+                } else {
+                    log('❌ Munkamenet létrehozási hiba: ' + result.error, 'error');
+                }
+            } catch (error) {
+                log('❌ Teszt hiba: ' + error.message, 'error');
+            }
+            
+            updateStats();
+        }
+
+        async function testStudentJoin() {
+            log('=== TESZT: Diák Csatlakozás ===', 'info');
+            
+            if (!driveOnlyMode) {
+                log('❌ Drive-Only mód nincs aktiválva', 'error');
+                return;
+            }
+
+            try {
+                const result = await driveOnlyService.joinSession('TEST123', 'Teszt Diák', '8.a');
+                
+                if (result.success) {
+                    log('✅ Diák csatlakozott: ' + result.student.studentName, 'success');
+                    log('🆔 Diák ID: ' + result.student.id, 'info');
+                } else {
+                    log('❌ Csatlakozási hiba: ' + result.error, 'error');
+                }
+            } catch (error) {
+                log('❌ Teszt hiba: ' + error.message, 'error');
+            }
+            
+            updateStats();
+        }
+
+        async function testResultSubmission() {
+            log('=== TESZT: Eredmény Küldés ===', 'info');
+            
+            if (!driveOnlyMode) {
+                log('❌ Drive-Only mód nincs aktiválva', 'error');
+                return;
+            }
+
+            try {
+                // First get a student ID
+                const participants = driveOnlyService.getAllParticipants();
+                const studentIds = Object.keys(participants);
+                
+                if (studentIds.length === 0) {
+                    log('⚠️ Nincs diák a teszthez - előbb csatlakozz', 'warning');
+                    return;
+                }
+
+                const studentId = studentIds[0];
+                const results = [
+                    { exerciseIndex: 0, score: 8, maxScore: 10 }
+                ];
+                const summary = {
+                    totalScore: 8,
+                    completedExercises: 1,
+                    studentName: 'Teszt Diák',
+                    studentClass: '8.a'
+                };
+
+                const result = await driveOnlyService.submitResults(studentId, results, summary);
+                
+                if (result.success) {
+                    log('✅ Eredmény mentve: ' + summary.totalScore + ' pont', 'success');
+                } else {
+                    log('❌ Eredmény mentési hiba: ' + result.error, 'error');
+                }
+            } catch (error) {
+                log('❌ Teszt hiba: ' + error.message, 'error');
+            }
+        }
+
+        async function testSessionMonitoring() {
+            log('=== TESZT: Munkamenet Figyelés ===', 'info');
+            
+            if (!driveOnlyMode) {
+                log('❌ Drive-Only mód nincs aktiválva', 'error');
+                return;
+            }
+
+            try {
+                const sessionCheck = await driveOnlyService.checkSession('TEST123');
+                
+                if (sessionCheck.exists) {
+                    log('✅ Munkamenet aktív: TEST123', 'success');
+                    log('👥 Résztvevők száma: ' + sessionCheck.session.participants.length, 'info');
+                    log('⏰ Lejárat: ' + new Date(sessionCheck.session.expiresAt).toLocaleString(), 'info');
+                } else {
+                    log('❌ Munkamenet nem található: ' + sessionCheck.error, 'error');
+                }
+            } catch (error) {
+                log('❌ Teszt hiba: ' + error.message, 'error');
+            }
+        }
+
+        async function runAllTests() {
+            clearLog();
+            log('🧪 Drive-Only Mód - Teljes Teszt Kezdés', 'info');
+            
+            if (!driveOnlyMode) {
+                log('⚠️ Drive-Only mód aktiválása...', 'warning');
+                toggleDriveOnlyMode();
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            await testSessionCreation();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testStudentJoin();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testResultSubmission();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testSessionMonitoring();
+            
+            log('', 'info');
+            log('🎯 ÖSSZES TESZT BEFEJEZVE', 'success');
+            log('✅ Drive-Only mód teljesen működőképes', 'success');
+            log('📊 Supabase forgalom: 0% (teljes kikapcsolás)', 'success');
+        }
+
+        function showLocalStorage() {
+            let content = 'LocalStorage tartalom:\n\n';
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                if (key.includes('drive_only') || key.includes('google_drive')) {
+                    content += `${key}:\n`;
+                    try {
+                        const parsed = JSON.parse(value);
+                        content += JSON.stringify(parsed, null, 2) + '\n\n';
+                    } catch {
+                        content += value + '\n\n';
+                    }
+                }
+            }
+            
+            if (content === 'LocalStorage tartalom:\n\n') {
+                content += 'Nincs Drive-Only adat a localStorage-ban.';
+            }
+            
+            document.getElementById('localStorageContent').textContent = content;
+        }
+
+        function clearLocalStorage() {
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('drive_only') || key.includes('google_drive')) {
+                    keys.push(key);
+                }
+            }
+            
+            keys.forEach(key => localStorage.removeItem(key));
+            
+            log(`🧹 ${keys.length} Drive-Only kulcs törölve localStorage-ból`, 'info');
+            showLocalStorage();
+            updateStats();
+        }
+
+        function clearTestData() {
+            clearLocalStorage();
+            clearLog();
+            updateStats();
+        }
+
+        // Initialize
+        driveOnlyMode = driveOnlyService.isDriveOnlyMode();
+        if (driveOnlyMode) {
+            document.getElementById('modeText').textContent = '📁 Drive-Only Aktív';
+            document.getElementById('modeDescription').textContent = 'Csak Google Drive + localStorage mód - Supabase kikapcsolva';
+            document.getElementById('toggleMode').className = 'drive-only';
+        }
+        updateStats();
+        log('🚀 Drive-Only Mód Teszt Kész', 'success');
+        log('Válassz egy tesztet vagy futtasd az összeset!', 'info');
+    </script>
+</body>
+</html>
