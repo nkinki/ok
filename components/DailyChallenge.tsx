@@ -7,6 +7,7 @@ import MatchingExercise from './MatchingExercise';
 import CategorizationExercise from './CategorizationExercise';
 import QuizExercise from './QuizExercise';
 import StudentLoginForm from './auth/StudentLoginForm';
+import { ImageCache } from '../utils/imageCache';
 
 interface Props {
   library: BulkResultItem[];
@@ -71,7 +72,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     return item.data || {};
   };
 
-  // Helper function to get image URL (with enhanced debugging and fallbacks)
+  // Helper function to get image URL (with enhanced debugging, fallbacks, and caching)
   const getImageUrl = (item) => {
     console.log('🖼️ getImageUrl called for item:', {
       id: item?.id,
@@ -80,7 +81,14 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       imageUrlPreview: item?.imageUrl?.substring(0, 50) || 'none'
     });
     
-    // If imageUrl is directly available, use it
+    // First, try to get from cache to reduce Supabase egress
+    const cachedImage = ImageCache.getCachedImage(item?.id);
+    if (cachedImage) {
+      console.log('📦 Using cached image for item:', item.id);
+      return cachedImage;
+    }
+    
+    // If imageUrl is directly available, use it and cache it
     if (item.imageUrl && item.imageUrl.length > 100) { // Minimum length check
       console.log('✅ Direct imageUrl found for item:', item.id);
       console.log('🎯 RETURNING IMAGE URL:', {
@@ -88,6 +96,10 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         isBase64: item.imageUrl.startsWith('data:'),
         preview: item.imageUrl.substring(0, 100) + '...'
       });
+      
+      // Cache the image for future use
+      ImageCache.setCachedImage(item.id, item.imageUrl);
+      
       return item.imageUrl;
     }
     
@@ -108,6 +120,10 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         const foundItem = library.find((libItem) => libItem.id === item.id);
         if (foundItem && foundItem.imageUrl && foundItem.imageUrl.length > 100) {
           console.log('✅ Found valid imageUrl in localStorage for item:', item.id);
+          
+          // Cache the found image
+          ImageCache.setCachedImage(item.id, foundItem.imageUrl);
+          
           return foundItem.imageUrl;
         } else {
           console.log('❌ Item not found in localStorage or imageUrl invalid:', item.id);
@@ -130,6 +146,10 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             const foundExercise = sessionData.exercises.find(ex => ex.id === item.id);
             if (foundExercise && foundExercise.imageUrl && foundExercise.imageUrl.length > 100) {
               console.log('✅ Found imageUrl in session data for item:', item.id);
+              
+              // Cache the found image
+              ImageCache.setCachedImage(item.id, foundExercise.imageUrl);
+              
               return foundExercise.imageUrl;
             }
           }

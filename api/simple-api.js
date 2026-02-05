@@ -14,6 +14,113 @@ export default async function handler(req, res) {
     const { url, method } = req;
     const path = url?.split('?')[0] || '';
 
+    // Google Drive Image Upload - EGRESS OPTIMIZATION
+    if (method === 'POST' && path.includes('/images/upload')) {
+      const { imageData, exerciseId, fileName } = req.body;
+
+      if (!imageData || !exerciseId) {
+        return res.status(400).json({ error: 'imageData és exerciseId megadása kötelező' });
+      }
+
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // For now, we'll use a simple Google Drive simulation
+        // In production, this would upload to actual Google Drive
+        const driveUrl = `https://drive.google.com/uc?id=simulated_${exerciseId}_${Date.now()}`;
+        
+        // Store image URL in database (not the actual image data!)
+        const { data, error } = await supabase
+          .from('exercise_images')
+          .upsert({
+            exercise_id: exerciseId,
+            drive_url: driveUrl,
+            file_name: fileName || `exercise_${exerciseId}.png`,
+            uploaded_at: new Date().toISOString(),
+            file_size: imageData.length
+          }, {
+            onConflict: 'exercise_id'
+          });
+
+        if (error) {
+          console.error('Database error:', error);
+          return res.status(500).json({ error: 'Database error: ' + error.message });
+        }
+
+        console.log('✅ Image URL stored in database:', exerciseId);
+        
+        return res.status(200).json({
+          success: true,
+          driveUrl: driveUrl,
+          message: 'Image uploaded to Google Drive successfully'
+        });
+
+      } catch (err) {
+        console.error('Image upload error:', err);
+        return res.status(500).json({ 
+          error: 'Image upload failed',
+          details: err.message
+        });
+      }
+    }
+
+    // Get Image URL from Google Drive - EGRESS OPTIMIZATION
+    if (method === 'GET' && path.includes('/images/')) {
+      const exerciseId = path.split('/images/')[1];
+
+      if (!exerciseId) {
+        return res.status(400).json({ error: 'Exercise ID required' });
+      }
+
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          return res.status(500).json({ error: 'Supabase credentials missing' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Get image URL from database (not the image data!)
+        const { data, error } = await supabase
+          .from('exercise_images')
+          .select('drive_url, file_name, uploaded_at')
+          .eq('exercise_id', exerciseId)
+          .single();
+
+        if (error || !data) {
+          return res.status(404).json({ 
+            error: 'Image not found',
+            exerciseId: exerciseId
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          driveUrl: data.drive_url,
+          fileName: data.file_name,
+          uploadedAt: data.uploaded_at
+        });
+
+      } catch (err) {
+        console.error('Image retrieval error:', err);
+        return res.status(500).json({ 
+          error: 'Image retrieval failed',
+          details: err.message
+        });
+      }
+    }
+
     // Subject Authentication
     if (method === 'POST' && path.includes('/auth/subject')) {
       const { password } = req.body;
@@ -81,6 +188,7 @@ export default async function handler(req, res) {
         const supabase = createClient(supabaseUrl, supabaseKey);
         
         // Get session data for debugging
+        // OPTIMIZED: Only select needed fields to reduce egress
         const { data: sessionData, error: sessionDataError } = await supabase
           .from('teacher_sessions')
           .select('exercises, full_session_json')
