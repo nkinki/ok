@@ -760,13 +760,51 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               console.log('🎯 Drive-Only session ready!');
               return;
             }
+          } else {
+            console.warn('⚠️ Google Drive API returned:', driveResponse.status);
           }
         } catch (driveError) {
           console.warn('⚠️ Google Drive load failed in Drive-Only mode:', driveError);
         }
 
-        // If Google Drive fails, show error
-        setError('Google Drive betöltési hiba Drive-Only módban. Ellenőrizd a kapcsolatot!');
+        // If Google Drive fails, try to load from localStorage (Drive-Only fallback)
+        console.log('💾 Trying localStorage fallback in Drive-Only mode...');
+        
+        try {
+          const localSessionKey = `drive_session_${code.toUpperCase()}`;
+          const localSessionData = localStorage.getItem(localSessionKey);
+          
+          if (localSessionData) {
+            const sessionData = JSON.parse(localSessionData);
+            console.log('✅ Drive-Only session loaded from localStorage fallback');
+            
+            if (sessionData.exercises && sessionData.exercises.length > 0) {
+              const exerciseItems = sessionData.exercises.map((exercise: any) => ({
+                id: exercise.id,
+                fileName: exercise.fileName || exercise.title,
+                imageUrl: exercise.imageUrl || '',
+                data: {
+                  type: exercise.type,
+                  title: exercise.title,
+                  instruction: exercise.instruction,
+                  content: exercise.content
+                }
+              }));
+
+              setPlaylist(exerciseItems);
+              setCurrentIndex(0);
+              setLoading(false);
+              
+              console.log('🎯 Drive-Only session ready from localStorage!');
+              return;
+            }
+          }
+        } catch (localError) {
+          console.warn('⚠️ localStorage fallback failed:', localError);
+        }
+
+        // If everything fails, show error
+        setError('Drive-Only módban nem található munkamenet adat. Ellenőrizd a munkamenet kódot vagy kérj új kódot a tanártól!');
         setLoading(false);
         return;
       } catch (error) {

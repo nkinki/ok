@@ -251,6 +251,11 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
 
         console.log('✅ Drive-Only munkamenet létrehozva:', sessionCode);
 
+        // Store session data in localStorage for Drive-Only fallback
+        const localSessionKey = `drive_session_${sessionCode}`;
+        localStorage.setItem(localSessionKey, JSON.stringify(fullSessionData));
+        console.log('💾 Drive-Only session data stored in localStorage for fallback');
+
         // Upload to Google Drive
         console.log('📤 Uploading session JSON to Google Drive...');
         
