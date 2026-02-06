@@ -298,44 +298,16 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         return;
       }
 
-      // GOOGLE DRIVE MODE - Upload images to Drive, only metadata to Supabase
-      console.log('📤 Google Drive mode - uploading images to Drive');
+      // JSON IMPORT MODE - Store BASE64 images directly in Supabase
+      console.log('📤 JSON Import mode - BASE64 images in Supabase');
       
-      // Step 1: Upload images to Google Drive
-      console.log('📤 Step 1: Uploading images to Google Drive...');
-      const driveImageUrls: string[] = [];
+      // Step 1: SKIP Google Drive upload (use BASE64 directly)
+      console.log('⏭️ Step 1: Skipping Google Drive upload (BASE64 mode)');
       
-      for (let i = 0; i < selectedExerciseData.length; i++) {
-        const exercise = selectedExerciseData[i];
-        const imageUrl = exercise.imageUrl;
-        
-        if (imageUrl && imageUrl.startsWith('data:')) {
-          // Upload base64 image to Google Drive
-          try {
-            const uploadResult = await fullGoogleDriveService.uploadImage(
-              imageUrl,
-              `${sessionCode}_exercise_${i + 1}.jpg`
-            );
-            
-            if (uploadResult.success && uploadResult.imageUrl) {
-              driveImageUrls.push(uploadResult.imageUrl);
-              console.log(`✅ Image ${i + 1} uploaded to Drive`);
-            } else {
-              console.warn(`⚠️ Image ${i + 1} upload failed, using original`);
-              driveImageUrls.push(imageUrl); // Fallback to original
-            }
-          } catch (error) {
-            console.warn(`⚠️ Image ${i + 1} upload error:`, error);
-            driveImageUrls.push(imageUrl); // Fallback to original
-          }
-        } else {
-          driveImageUrls.push(imageUrl || ''); // Keep existing URL or empty
-        }
-      }
-      
-      // Step 2: Create session JSON with Google Drive URLs
-      console.log('📤 Step 2: Creating session JSON with Drive URLs...');
+      // Step 2: Create session JSON with BASE64 images for JSON import!
+      console.log('📤 Step 2: Creating session JSON with BASE64 images...');
       const fullSessionData = {
+        code: sessionCode, // Add code field for JSON import
         sessionCode: sessionCode,
         subject: currentSubject || 'general',
         className: className.trim(),
@@ -343,7 +315,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         exercises: selectedExerciseData.map((item, i) => ({
           id: item.id,
           fileName: item.fileName,
-          imageUrl: driveImageUrls[i], // Google Drive URL!
+          imageUrl: item.imageUrl, // BASE64 IMAGE for JSON import!
           title: item.data.title,
           instruction: item.data.instruction,
           type: item.data.type,
@@ -351,29 +323,21 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         })),
         metadata: {
           version: '1.0.0',
-          exportedBy: 'Okos Gyakorló - Google Drive',
+          exportedBy: 'Okos Gyakorló - JSON Import',
           totalExercises: selectedExerciseData.length,
           estimatedTime: selectedExerciseData.length * 3,
-          driveMode: true
+          jsonImportMode: true // Flag for JSON import
         }
       };
       
-      // Step 3: Upload session JSON to Google Drive
-      console.log('📤 Step 3: Uploading session JSON to Google Drive...');
-      const driveSessionResult = await fullGoogleDriveService.uploadSessionJSON(
-        sessionCode,
-        fullSessionData
-      );
+      console.log('✅ Session JSON created with BASE64 images');
+      console.log('📊 First exercise image size:', selectedExerciseData[0]?.imageUrl?.length || 0, 'chars');
       
-      if (!driveSessionResult.success) {
-        setError('Google Drive feltöltési hiba. Ellenőrizd a Drive beállításokat!');
-        return;
-      }
+      // Step 3: SKIP Google Drive upload (base64 images in JSON)
+      console.log('⏭️ Step 3: Skipping Google Drive upload (base64 in JSON)');
       
-      console.log('✅ Session JSON uploaded to Drive:', driveSessionResult.downloadUrl);
-      
-      // Step 4: Save to Supabase with full_session_json (Drive URLs, NOT base64!)
-      console.log('📤 Step 4: Saving to Supabase with Google Drive URLs...');
+      // Step 4: Save to Supabase with full_session_json (BASE64 images!)
+      console.log('📤 Step 4: Saving to Supabase with BASE64 images...');
       const apiResponse = await fetch('/api/simple-api/sessions/create-minimal', {
         method: 'POST',
         headers: {
@@ -385,8 +349,8 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           className: className.trim(),
           exerciseCount: selectedExerciseData.length,
           maxScore: selectedExerciseData.length * 10,
-          driveSessionUrl: driveSessionResult.downloadUrl,
-          fullSessionData: fullSessionData // Send full JSON with Drive URLs!
+          driveSessionUrl: null, // No Drive URL needed
+          fullSessionData: fullSessionData // Send full JSON with BASE64 images!
         })
       });
 
@@ -398,10 +362,10 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       }
 
       const apiData = await apiResponse.json();
-      console.log('✅ Session saved to Supabase with Google Drive URLs!');
-      console.log('📊 Supabase stores Drive URLs (NOT base64) - minimal egress!');
-      console.log('📊 Images will be loaded from Google Drive by students');
-      console.log('✅ Result: 95%+ Supabase egress reduction!');
+      console.log('✅ Session saved to Supabase with BASE64 images!');
+      console.log('📊 Supabase stores BASE64 images in full_session_json');
+      console.log('📊 Students can download JSON and load offline!');
+      console.log('✅ Result: JSON import ready!');
 
       // SKIP localStorage backup to avoid quota exceeded error
       // Session data is in Supabase full_session_json column
@@ -416,8 +380,9 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       }
 
       setActiveSession(session);
-      console.log('🎯 Google Drive munkamenet aktív:', sessionCode);
-      console.log('✅ Képek Google Drive-on, metadata Supabase-ben');
+      console.log('🎯 JSON import munkamenet aktív:', sessionCode);
+      console.log('✅ Képek BASE64 formátumban, JSON letölthető');
+      console.log('📥 Diákok betölthetik a JSON-t offline is!');
       console.log('✅ 0% Supabase egress a képekre!');
 
     } catch (error) {
