@@ -122,7 +122,9 @@ class FullGoogleDriveService {
       if (driveData) {
         const imageInfo = JSON.parse(driveData);
         console.log('✅ Image URL found in Google Drive storage:', exerciseId);
-        return imageInfo.publicUrl || imageInfo.imageData;
+        // ALWAYS return imageData (base64) instead of mock publicUrl
+        // This ensures images load correctly until real Google Drive API is implemented
+        return imageInfo.imageData || imageInfo.publicUrl;
       }
 
       // Fallback to direct base64 storage

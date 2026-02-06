@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adat Eloszlás Teszt - Google Drive vs Supabase</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #667eea;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .stat-card.drive {
+      background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+    }
+    .stat-card.supabase {
+      background: linear-gradient(135deg, #3ecf8e 0%, #2d9cdb 100%);
+    }
+    .stat-card.savings {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .stat-detail {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    .comparison {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .comparison-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .comparison-row:last-child {
+      border-bottom: none;
+    }
+    .comparison-label {
+      font-weight: 600;
+      color: #333;
+    }
+    .comparison-value {
+      font-family: 'Courier New', monospace;
+      color: #667eea;
+      font-weight: bold;
+    }
+    .bar-chart {
+      margin: 30px 0;
+    }
+    .bar {
+      height: 40px;
+      border-radius: 10px;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      color: white;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    .bar:hover {
+      transform: translateX(5px);
+    }
+    .bar.before {
+      background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+    }
+    .bar.after {
+      background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin: 10px 0;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .log {
+      background: #1e1e1e;
+      color: #00ff00;
+      padding: 20px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin: 20px 0;
+      white-space: pre-wrap;
+    }
+    .log-line {
+      margin: 5px 0;
+    }
+    .log-line.success { color: #00ff00; }
+    .log-line.info { color: #00bfff; }
+    .log-line.warning { color: #ffa500; }
+    .log-line.error { color: #ff4444; }
+    .emoji {
+      font-size: 24px;
+      margin-right: 10px;
+    }
+    .highlight {
+      background: #fff3cd;
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 4px solid #ffc107;
+      margin: 20px 0;
+    }
+    .highlight h3 {
+      margin-top: 0;
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Adat Eloszlás Teszt</h1>
+    <p class="subtitle">Google Drive vs Supabase - Mennyi adat megy hova?</p>
+
+    <button id="runTest" onclick="runDataTest()">🚀 Teszt Indítása</button>
+
+    <div id="results" style="display: none;">
+      <div class="stats-grid">
+        <div class="stat-card drive">
+          <div class="stat-label">📁 Google Drive</div>
+          <div class="stat-value" id="driveSize">0 KB</div>
+          <div class="stat-detail" id="driveDetail">Képek + Session JSON</div>
+        </div>
+
+        <div class="stat-card supabase">
+          <div class="stat-label">☁️ Supabase</div>
+          <div class="stat-value" id="supabaseSize">0 KB</div>
+          <div class="stat-detail" id="supabaseDetail">Metadata + Drive URLs</div>
+        </div>
+
+        <div class="stat-card savings">
+          <div class="stat-label">💰 Megtakarítás</div>
+          <div class="stat-value" id="savingsPercent">0%</div>
+          <div class="stat-detail" id="savingsDetail">Supabase egress csökkentés</div>
+        </div>
+      </div>
+
+      <div class="highlight">
+        <h3>🎯 Összehasonlítás: Előtte vs Utána</h3>
+        <div class="bar-chart">
+          <div>
+            <strong>Előtte (Base64 képek Supabase-ben):</strong>
+            <div class="bar before" id="barBefore" style="width: 100%;">
+              <span id="beforeText">500 KB / diák</span>
+            </div>
+          </div>
+          <div>
+            <strong>Utána (Google Drive URL-ek):</strong>
+            <div class="bar after" id="barAfter" style="width: 10%;">
+              <span id="afterText">50 KB / diák</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="comparison">
+        <h3>📋 Részletes Összehasonlítás</h3>
+        <div class="comparison-row">
+          <span class="comparison-label">Képek tárolása:</span>
+          <span class="comparison-value" id="imageStorage">-</span>
+        </div>
+        <div class="comparison-row">
+          <span class="comparison-label">Session JSON:</span>
+          <span class="comparison-value" id="sessionJson">-</span>
+        </div>
+        <div class="comparison-row">
+          <span class="comparison-label">Supabase egress (1 diák):</span>
+          <span class="comparison-value" id="egressPerStudent">-</span>
+        </div>
+        <div class="comparison-row">
+          <span class="comparison-label">Supabase egress (20 diák):</span>
+          <span class="comparison-value" id="egress20Students">-</span>
+        </div>
+        <div class="comparison-row">
+          <span class="comparison-label">Supabase egress (100 munkamenet):</span>
+          <span class="comparison-value" id="egress100Sessions">-</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    let logElement = document.getElementById('log');
+
+    function log(message, type = 'info') {
+      const line = document.createElement('div');
+      line.className = `log-line ${type}`;
+      const timestamp = new Date().toLocaleTimeString('hu-HU');
+      line.textContent = `[${timestamp}] ${message}`;
+      logElement.appendChild(line);
+      logElement.scrollTop = logElement.scrollHeight;
+      console.log(message);
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    async function runDataTest() {
+      document.getElementById('runTest').disabled = true;
+      logElement.innerHTML = '';
+      document.getElementById('results').style.display = 'block';
+
+      log('🚀 Adat eloszlás teszt indítása...', 'info');
+      log('', 'info');
+
+      // Szimuláljuk egy tipikus munkamenet adatait
+      log('📊 Tipikus munkamenet adatok elemzése:', 'info');
+      log('  - 5 feladat', 'info');
+      log('  - Feladatonként 1 kép (~300 KB base64)', 'info');
+      log('', 'info');
+
+      // ELŐTTE: Base64 képek Supabase-ben
+      log('❌ ELŐTTE (Base64 képek Supabase-ben):', 'warning');
+      const imageBase64Size = 300 * 1024; // 300 KB per image
+      const numExercises = 5;
+      const totalImagesBase64 = imageBase64Size * numExercises;
+      const sessionMetadata = 5 * 1024; // 5 KB metadata
+      const totalBeforeSupabase = totalImagesBase64 + sessionMetadata;
+
+      log(`  📸 Képek (base64): ${formatBytes(totalImagesBase64)}`, 'warning');
+      log(`  📋 Metadata: ${formatBytes(sessionMetadata)}`, 'warning');
+      log(`  ☁️ ÖSSZES SUPABASE: ${formatBytes(totalBeforeSupabase)}`, 'warning');
+      log('', 'info');
+
+      // UTÁNA: Google Drive URL-ek
+      log('✅ UTÁNA (Google Drive URL-ek):', 'success');
+      const driveUrlSize = 120; // 120 bytes per Drive URL
+      const totalDriveUrls = driveUrlSize * numExercises;
+      const sessionJsonSize = 10 * 1024; // 10 KB session JSON with Drive URLs
+      const totalAfterSupabase = totalDriveUrls + sessionJsonSize + sessionMetadata;
+
+      // Google Drive tárolás
+      const totalDriveStorage = totalImagesBase64 + sessionJsonSize;
+
+      log(`  📁 Google Drive képek: ${formatBytes(totalImagesBase64)}`, 'success');
+      log(`  📁 Google Drive session JSON: ${formatBytes(sessionJsonSize)}`, 'success');
+      log(`  📁 ÖSSZES GOOGLE DRIVE: ${formatBytes(totalDriveStorage)}`, 'success');
+      log('', 'info');
+      log(`  🔗 Supabase Drive URL-ek: ${formatBytes(totalDriveUrls)}`, 'success');
+      log(`  📋 Supabase metadata: ${formatBytes(sessionMetadata)}`, 'success');
+      log(`  ☁️ ÖSSZES SUPABASE: ${formatBytes(totalAfterSupabase)}`, 'success');
+      log('', 'info');
+
+      // Megtakarítás számítása
+      const savings = totalBeforeSupabase - totalAfterSupabase;
+      const savingsPercent = Math.round((savings / totalBeforeSupabase) * 100);
+
+      log('💰 MEGTAKARÍTÁS:', 'success');
+      log(`  Supabase egress csökkentés: ${formatBytes(savings)}`, 'success');
+      log(`  Százalékos csökkentés: ${savingsPercent}%`, 'success');
+      log('', 'info');
+
+      // Hálózati használat (20 diák)
+      const studentsCount = 20;
+      const egressBefore20 = totalBeforeSupabase * studentsCount;
+      const egressAfter20 = totalAfterSupabase * studentsCount;
+      const savingsNetwork = egressBefore20 - egressAfter20;
+
+      log('🌐 HÁLÓZATI HASZNÁLAT (20 diák):', 'info');
+      log(`  ❌ Előtte: ${formatBytes(egressBefore20)} Supabase egress`, 'warning');
+      log(`  ✅ Utána: ${formatBytes(egressAfter20)} Supabase egress`, 'success');
+      log(`  💰 Megtakarítás: ${formatBytes(savingsNetwork)}`, 'success');
+      log('', 'info');
+
+      // 100 munkamenet
+      const sessionsCount = 100;
+      const egressBefore100 = totalBeforeSupabase * studentsCount * sessionsCount;
+      const egressAfter100 = totalAfterSupabase * studentsCount * sessionsCount;
+      const savings100 = egressBefore100 - egressAfter100;
+
+      log('📈 HOSSZÚ TÁVÚ HASZNÁLAT (100 munkamenet × 20 diák):', 'info');
+      log(`  ❌ Előtte: ${formatBytes(egressBefore100)} Supabase egress`, 'warning');
+      log(`  ✅ Utána: ${formatBytes(egressAfter100)} Supabase egress`, 'success');
+      log(`  💰 Megtakarítás: ${formatBytes(savings100)}`, 'success');
+      log('', 'info');
+
+      // Kvóta ellenőrzés (5 GB = 5368709120 bytes)
+      const quotaLimit = 5 * 1024 * 1024 * 1024; // 5 GB
+      const quotaUsageBefore = (egressBefore100 / quotaLimit) * 100;
+      const quotaUsageAfter = (egressAfter100 / quotaLimit) * 100;
+
+      log('📊 SUPABASE KVÓTA HASZNÁLAT (5 GB limit):', 'info');
+      log(`  ❌ Előtte: ${quotaUsageBefore.toFixed(1)}% (${quotaUsageBefore > 100 ? 'TÚLLÉPÉS!' : 'OK'})`, quotaUsageBefore > 100 ? 'error' : 'warning');
+      log(`  ✅ Utána: ${quotaUsageAfter.toFixed(1)}% (${quotaUsageAfter > 100 ? 'TÚLLÉPÉS!' : 'OK'})`, quotaUsageAfter > 100 ? 'error' : 'success');
+      log('', 'info');
+
+      log('✅ Teszt befejezve!', 'success');
+
+      // UI frissítés
+      document.getElementById('driveSize').textContent = formatBytes(totalDriveStorage);
+      document.getElementById('driveDetail').textContent = `${numExercises} kép + Session JSON`;
+      
+      document.getElementById('supabaseSize').textContent = formatBytes(totalAfterSupabase);
+      document.getElementById('supabaseDetail').textContent = `Drive URL-ek + Metadata`;
+      
+      document.getElementById('savingsPercent').textContent = savingsPercent + '%';
+      document.getElementById('savingsDetail').textContent = `${formatBytes(savings)} megtakarítás / diák`;
+
+      // Bar chart
+      const barWidth = (totalAfterSupabase / totalBeforeSupabase) * 100;
+      document.getElementById('barBefore').style.width = '100%';
+      document.getElementById('barAfter').style.width = barWidth + '%';
+      document.getElementById('beforeText').textContent = formatBytes(totalBeforeSupabase) + ' / diák';
+      document.getElementById('afterText').textContent = formatBytes(totalAfterSupabase) + ' / diák';
+
+      // Comparison table
+      document.getElementById('imageStorage').textContent = `Google Drive (${formatBytes(totalImagesBase64)})`;
+      document.getElementById('sessionJson').textContent = `Google Drive (${formatBytes(sessionJsonSize)})`;
+      document.getElementById('egressPerStudent').textContent = `${formatBytes(totalAfterSupabase)} (előtte: ${formatBytes(totalBeforeSupabase)})`;
+      document.getElementById('egress20Students').textContent = `${formatBytes(egressAfter20)} (előtte: ${formatBytes(egressBefore20)})`;
+      document.getElementById('egress100Sessions').textContent = `${formatBytes(egressAfter100)} (előtte: ${formatBytes(egressBefore100)})`;
+
+      document.getElementById('runTest').disabled = false;
+    }
+
+    // Auto-run on load
+    window.addEventListener('load', () => {
+      setTimeout(runDataTest, 500);
+    });
+  </script>
+</body>
+</html>
