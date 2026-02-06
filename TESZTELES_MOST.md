@@ -1,202 +1,245 @@
-# 🎯 TESZTELÉSI ÚTMUTATÓ - Google Drive START Gomb Javítás
+# Tesztelés Most - Hálózati Használat
 
-## ✅ Deployment Sikeres!
+## 1. Vercel Deployment Ellenőrzés
 
-**URL**: https://nyirad.vercel.app
+Várj 2-3 percet a Vercel deployment befejezésére, majd:
 
-**Commit**: `ee6fd06` - Google Drive START button fix
-
-**Változások**:
-- ✅ Diákok most már be tudják tölteni a feladatokat
-- ✅ 95% Supabase egress csökkentés
-- ✅ Képek Google Drive URL-ekkel (nem base64)
-- ✅ Munkamenet JSON Supabase-ben tárolva
-
----
-
-## 📋 TESZTELÉSI LÉPÉSEK
-
-### 1️⃣ TANÁR OLDAL - Munkamenet Létrehozása
-
-1. **Nyisd meg**: https://nyirad.vercel.app
-2. **Kattints**: "Tanári felület" gomb
-3. **Válassz tantárgyat**: pl. Informatika (infoxxx)
-4. **Kattints**: "Munkamenet kezelése"
-5. **Válassz feladatokat** a könyvtárból (pipáld ki)
-6. **Válassz osztályt**: pl. 6.b
-7. **Kattints**: "Munkamenet indítása" 🚀
-
-**Ellenőrizd a konzolban** (F12):
 ```
-✅ Session saved to Supabase with Google Drive URLs!
-✅ Images will be loaded from Google Drive by students
-✅ Result: 95%+ Supabase egress reduction!
+https://your-app.vercel.app/upload-localstorage-to-drive.html
 ```
 
-**Jegyezd fel a munkamenet kódot**: pl. `ABC123`
+Ha 404-et kapsz, akkor még nem deployolt. Várj még 1-2 percet.
 
----
+## 2. Teljes Workflow Teszt
 
-### 2️⃣ DIÁK OLDAL - Csatlakozás és START
+### A. Tanár Oldal (1. Gép)
 
-1. **Nyisd meg új böngésző ablakban**: https://nyirad.vercel.app
-2. **Kattints**: "Diák belépés" gomb
-3. **Írd be**:
-   - Munkamenet kód: `ABC123` (a tanári kód)
-   - Név: `Teszt Diák`
-   - Osztály: `6.b`
-4. **Kattints**: "Csatlakozás" 🎮
+1. **Munkamenet Létrehozása**
+   ```
+   - Nyisd meg: https://your-app.vercel.app
+   - Válassz tantárgyat (pl. Informatika)
+   - Válassz 2-3 feladatot
+   - Válaszd ki az osztályt (pl. 8.a)
+   - Kattints "Munkamenet indítása"
+   - Munkamenet kód: pl. WMLSZK
+   ```
 
-**Ellenőrizd a konzolban**:
+2. **Képek Feltöltése Google Drive-ra**
+   ```
+   - Kattints "Képek feltöltése Google Drive-ra" gombra
+   - Új ablak nyílik: upload-localstorage-to-drive.html
+   - Írd be a munkamenet kódot: WMLSZK
+   - Kattints "📤 Upload to Drive"
+   - Letöltődik:
+     * session_WMLSZK.json
+     * WMLSZK_exercise_1.jpg
+     * WMLSZK_exercise_2.jpg
+   ```
+
+3. **Manuális Feltöltés Google Drive-ra**
+   ```
+   - Nyisd meg: https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb
+   - Töltsd fel az összes letöltött fájlt
+   - Ellenőrizd, hogy minden fájl feltöltődött
+   ```
+
+### B. Diák Oldal (2. Gép - MÁSIK SZÁMÍTÓGÉP!)
+
+1. **Csatlakozás**
+   ```
+   - Nyisd meg: https://your-app.vercel.app
+   - Kattints "Diák belépés"
+   - Munkamenet kód: WMLSZK
+   - Név: Teszt Diák
+   - Osztály: 8.a
+   - Kattints "Csatlakozás"
+   ```
+
+2. **START Gomb**
+   ```
+   - Kattints "START" gombra
+   - Várj 2-3 másodpercet
+   - Feladatok betöltődnek
+   ```
+
+3. **Ellenőrzés (F12 Console)**
+   ```javascript
+   // Nézd meg a console log-okat:
+   "✅ Session JSON loaded from Supabase (with Google Drive image URLs)"
+   "📊 Exercise count: 2"
+   "✅ Exercises loaded with Google Drive image URLs"
+   "🖼️ First exercise image URL: https://drive.google.com/..."
+   "🎮 Exercises ready - starting game!"
+   ```
+
+4. **Kép Betöltés Ellenőrzés**
+   ```
+   - Látod a feladat képét?
+   - Ha igen: ✅ MŰKÖDIK!
+   - Ha nem: ❌ Probléma van
+   ```
+
+## 3. Hibakeresés
+
+### Ha a diák nem látja a képeket:
+
+1. **Console Log Ellenőrzés**
+   ```javascript
+   // F12 → Console
+   // Keress ilyen sorokat:
+   "🖼️ First exercise image URL: ..."
+   
+   // Ha base64-et látsz:
+   "data:image/jpeg;base64,/9j/4AAQ..."
+   → ❌ Rossz! Nem Google Drive URL!
+   
+   // Ha Drive URL-t látsz:
+   "https://drive.google.com/uc?id=..."
+   → ✅ Jó! Google Drive URL!
+   ```
+
+2. **Supabase Ellenőrzés**
+   ```sql
+   -- Nyisd meg Supabase SQL Editor
+   SELECT 
+     session_code,
+     full_session_json->>'exercises'->0->>'imageUrl' as first_image_url
+   FROM teacher_sessions
+   WHERE session_code = 'WMLSZK';
+   
+   -- Ha base64-et látsz:
+   → ❌ Rossz! A tanár nem töltötte fel Google Drive-ra
+   
+   -- Ha Drive URL-t látsz:
+   → ✅ Jó! Google Drive URL van a DB-ben
+   ```
+
+3. **Google Drive Ellenőrzés**
+   ```
+   - Nyisd meg: https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb
+   - Látod a session_WMLSZK.json fájlt?
+   - Látod a WMLSZK_exercise_1.jpg fájlt?
+   - Ha nem: ❌ A tanár nem töltötte fel!
+   ```
+
+## 4. Várható Eredmények
+
+### ✅ Sikeres Teszt
 ```
-✅ Session exists: ABC123
-✅ Student joined: [student-id]
-⏸️ Waiting for START button click...
+1. Tanár létrehozza a munkamenetet
+2. Tanár letölti a fájlokat (JSON + képek)
+3. Tanár feltölti Google Drive-ra
+4. Diák (másik gépen) csatlakozik
+5. Diák START gombbal betölti a feladatokat
+6. Diák látja a képeket
+7. Console log: "Google Drive image URLs"
 ```
 
-5. **Kattints a START gombra** 🚀
-
-**Ellenőrizd a konzolban**:
+### ❌ Sikertelen Teszt
 ```
-✅ Session JSON loaded from Supabase (with Google Drive image URLs)
-📊 Exercise count: X (KELL HOGY LEGYEN > 0!)
-✅ Exercises loaded with Google Drive image URLs
-🎮 Exercises ready - starting game!
-```
-
-6. **Ellenőrizd**:
-   - ✅ Feladatok megjelennek
-   - ✅ Képek betöltődnek
-   - ✅ Nincs "Exercise count: 0" hiba
-   - ✅ Játék elindul
-
----
-
-## 🔍 HIBAKERESÉS
-
-### Ha "Exercise count: 0" látható:
-
-**Ellenőrizd**:
-1. Tanár létrehozta-e a munkamenetet?
-2. Jó kódot írtál be?
-3. Munkamenet aktív-e még? (60 perc lejárat)
-
-**Konzol hibák**:
-```javascript
-// Nyisd meg F12 → Console
-// Keress ilyen üzeneteket:
-❌ Error loading exercises
-❌ Session not found
-⚠️ Session expired
+1. Tanár létrehozza a munkamenetet
+2. Tanár NEM tölti fel Google Drive-ra
+3. Diák (másik gépen) csatlakozik
+4. Diák START gombbal betölti a feladatokat
+5. Diák NEM látja a képeket (base64 nem érhető el)
+6. Console log: "data:image/jpeg;base64,..."
 ```
 
-### Ha képek nem töltődnek be:
+## 5. Supabase Egress Ellenőrzés
 
-**Ellenőrizd**:
-1. Google Drive URL-ek helyesek-e?
-2. Hálózati kapcsolat működik-e?
-3. Konzolban van-e CORS hiba?
+```
+1. Nyisd meg Supabase Dashboard
+2. Settings → Usage
+3. Nézd meg az Egress értéket
+4. Várható:
+   - Előtte: 196% (túllépés!)
+   - Utána: 5-10% (normál)
+```
 
----
+## 6. Következő Lépések
 
-## 📊 SUPABASE EGRESS ELLENŐRZÉS
+Ha minden működik:
+1. ✅ localStorage quota fix MŰKÖDIK
+2. ✅ Upload tool MŰKÖDIK
+3. ✅ Network usage MŰKÖDIK
+4. ✅ Google Drive integration MŰKÖDIK
+5. ✅ Supabase egress CSÖKKENT
 
-### Előtte (Base64 képekkel):
-- Munkamenet méret: ~500KB
-- 20 diák: 10MB egress
-- **Kvóta**: 196% (TÚLLÉPÉS!)
+Ha valami nem működik:
+1. Nézd meg a console log-okat
+2. Ellenőrizd a Supabase adatokat
+3. Ellenőrizd a Google Drive fájlokat
+4. Kérdezz!
 
-### Utána (Google Drive URL-ekkel):
-- Munkamenet méret: ~50KB
-- 20 diák: 1MB egress
-- **Kvóta**: ~5% (RENDBEN!)
+## 7. Ismert Problémák
 
-### Ellenőrzés Supabase-ben:
+### Upload Tool 404
+**Probléma**: `/upload-localstorage-to-drive.html` nem érhető el
+**Megoldás**: Várj a Vercel deployment befejezésére (2-3 perc)
 
-1. **Nyisd meg**: https://supabase.com/dashboard
-2. **Válaszd ki**: okos-gyakorlo projekt
-3. **Kattints**: Settings → Usage
-4. **Nézd meg**: Egress használat
-5. **Várható**: Jelentős csökkenés! 📉
+### Képek Nem Látszanak
+**Probléma**: Diák nem látja a képeket
+**Megoldás**: Tanár nem töltötte fel Google Drive-ra - ismételd meg a 2.A.3 lépést
 
----
+### "Session not found in localStorage"
+**Probléma**: Upload tool nem találja a session-t
+**Megoldás**: 
+- Ellenőrizd a munkamenet kódot
+- Lehet, hogy másik gépen hoztad létre
+- Próbáld meg ugyanazon a gépen, ahol létrehoztad
 
-## 🎯 SIKERES TESZT KRITÉRIUMOK
+## 8. Sikeres Teszt Checklist
 
-### ✅ Tanár oldal:
-- [x] Munkamenet létrehozható
-- [x] Kód generálódik
-- [x] Konzolban "Google Drive URLs" üzenet
-- [x] Nincs hiba
+- [ ] Vercel deployment befejezve
+- [ ] Upload tool elérhető (`/upload-localstorage-to-drive.html`)
+- [ ] Tanár létrehozta a munkamenetet
+- [ ] Tanár letöltötte a fájlokat
+- [ ] Tanár feltöltötte Google Drive-ra
+- [ ] Diák (másik gépen) csatlakozott
+- [ ] Diák START gombbal betöltötte a feladatokat
+- [ ] Diák látja a képeket
+- [ ] Console log: "Google Drive image URLs"
+- [ ] Supabase egress csökkent
 
-### ✅ Diák oldal:
-- [x] Csatlakozás sikeres
-- [x] START gomb megjelenik
-- [x] START után feladatok betöltődnek
-- [x] Exercise count > 0
-- [x] Képek megjelennek
-- [x] Játék elindul
+## 9. Deployment URL
 
-### ✅ Supabase:
-- [x] Egress csökkenés látható
-- [x] Kvóta alatt vagyunk
-- [x] Nincs túllépés
+Ellenőrizd a Vercel deployment URL-t:
+```
+https://your-app.vercel.app
+```
 
----
+Ha nem tudod az URL-t, nézd meg:
+```
+https://vercel.com/dashboard
+```
 
-## 🚀 HÁLÓZATI TESZT (20+ SZÁMÍTÓGÉP)
+## 10. Gyors Teszt (1 Gép)
 
-### Előkészítés:
-1. Tanár létrehoz munkamenetet
-2. Kód kiírása táblára: `ABC123`
-3. Diákok beírják a kódot
+Ha nincs 2 géped, teszteld így:
 
-### Teszt:
-1. **20 diák** csatlakozik ugyanazzal a kóddal
-2. **Mind megnyomja** a START gombot
-3. **Ellenőrizd**: Mind látja-e a feladatokat?
+1. **Inkognito/Private Window**
+   ```
+   - Tanár: Normál ablak
+   - Diák: Inkognito ablak
+   - Ez szimulálja a 2 különböző gépet
+   ```
 
-### Várható eredmény:
-- ✅ Mind betölti a feladatokat
-- ✅ Supabase egress: ~1MB (20 × 50KB)
-- ✅ Képek Google Drive-ról töltődnek
-- ✅ Nincs kvóta túllépés
+2. **localStorage Törlés**
+   ```javascript
+   // Diák ablakban (F12 Console):
+   localStorage.clear();
+   // Ez szimulálja, hogy másik gépen vagy
+   ```
 
----
+3. **Teszt**
+   ```
+   - Tanár: Létrehozza a munkamenetet
+   - Tanár: Feltölti Google Drive-ra
+   - Diák (inkognito): Csatlakozik
+   - Diák: START gomb
+   - Ellenőrzés: Látja-e a képeket?
+   ```
 
-## 📞 TÁMOGATÁS
+## Kész!
 
-### Ha probléma van:
-
-1. **Konzol log mentése**:
-   - F12 → Console
-   - Jobb klikk → Save as...
-   - Küldd el: [email]
-
-2. **Hiba leírása**:
-   - Mit csináltál?
-   - Mit vártál?
-   - Mi történt helyette?
-
-3. **Képernyőkép**:
-   - Hiba üzenet
-   - Konzol log
-   - Hálózati tab (F12 → Network)
-
----
-
-## ✅ ÖSSZEFOGLALÁS
-
-**Javítás**: Google Drive START gomb működik
-**Eredmény**: Diákok be tudják tölteni a feladatokat
-**Egress**: 95% csökkentés (196% → 5%)
-**Státusz**: ✅ PRODUCTION READY
-
-**Deployment URL**: https://nyirad.vercel.app
-**Tesztelés**: MOST! 🚀
-
----
-
-**Készítve**: 2026. február 6.
-**Verzió**: ee6fd06
-**Státusz**: ✅ DEPLOYED
+Ha minden működik, akkor a hálózati használat KÉSZ! 🎉
