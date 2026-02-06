@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Upload localStorage Session to Google Drive</title>
+  <title>Munkamenet Letöltése Google Drive Feltöltéshez</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -60,18 +60,24 @@
 </head>
 <body>
   <div class="container">
-    <h1>📤 Upload localStorage Session to Google Drive</h1>
+    <h1>📤 Munkamenet Letöltése Google Drive Feltöltéshez</h1>
     
     <div class="warning">
-      <strong>⚠️ Figyelem:</strong> Ez a tool feltölti a localStorage-ban lévő session adatokat Google Drive-ra.
+      <strong>⚠️ Figyelem:</strong> Ez a tool letölti a session adatokat (Supabase vagy localStorage) és előkészíti Google Drive feltöltésre.
       <br><br>
       <strong>Használat:</strong>
       <ol>
-        <li>Írd be a session kódot (pl. FP46I1)</li>
-        <li>Kattints "Upload to Drive"</li>
-        <li>A session JSON és képek feltöltődnek a Drive mappába</li>
-        <li>Ezután a diákok START gombbal betölthetik</li>
+        <li>Írd be a session kódot (pl. UK1S5P)</li>
+        <li>Kattints "📤 Upload to Drive"</li>
+        <li>Letöltődik a session JSON és képek</li>
+        <li>Töltsd fel őket manuálisan a Google Drive mappába</li>
+        <li>Ezután a diákok START gombbal betölthetik (hálózaton is!)</li>
       </ol>
+      <br>
+      <strong>📁 Google Drive mappa:</strong>
+      <a href="https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb" target="_blank">
+        Megnyitás
+      </a>
     </div>
     
     <div>
@@ -107,26 +113,47 @@
 
       log(`🚀 Starting upload for session: ${sessionCode}`);
       
-      // Step 1: Get session data from localStorage
-      const sessionKey = `session_${sessionCode}`;
-      const sessionDataStr = localStorage.getItem(sessionKey);
+      // Step 1: Try to get session data from Supabase first (NEW!)
+      log(`📥 Fetching session from Supabase...`);
       
-      if (!sessionDataStr) {
-        log(`❌ Session not found in localStorage: ${sessionKey}`, 'error');
-        log(`💡 Available sessions:`, 'warning');
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('session_')) {
-            log(`   - ${key}`, 'info');
-          }
-        }
-        return;
-      }
-
-      log(`✅ Session found in localStorage`);
+      let sessionData = null;
+      let sessionDataStr = null;
       
       try {
-        const sessionData = JSON.parse(sessionDataStr);
+        const response = await fetch(`/api/simple-api/sessions/${sessionCode}/download`);
+        
+        if (response.ok) {
+          sessionData = await response.json();
+          sessionDataStr = JSON.stringify(sessionData, null, 2);
+          log(`✅ Session loaded from Supabase`, 'success');
+        } else {
+          log(`⚠️ Session not found in Supabase, trying localStorage...`, 'warning');
+          
+          // Fallback to localStorage
+          const sessionKey = `session_${sessionCode}`;
+          sessionDataStr = localStorage.getItem(sessionKey);
+          
+          if (!sessionDataStr) {
+            log(`❌ Session not found in localStorage either: ${sessionKey}`, 'error');
+            log(`💡 Available sessions in localStorage:`, 'warning');
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith('session_')) {
+                log(`   - ${key}`, 'info');
+              }
+            }
+            return;
+          }
+          
+          sessionData = JSON.parse(sessionDataStr);
+          log(`✅ Session found in localStorage (fallback)`, 'success');
+        }
+      } catch (error) {
+        log(`❌ Error fetching session: ${error.message}`, 'error');
+        return;
+      }
+      
+      try {
         log(`📊 Exercise count: ${sessionData.exercises?.length || 0}`);
         
         if (!sessionData.exercises || sessionData.exercises.length === 0) {
