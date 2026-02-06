@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Import Teszt</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .upload-area {
+      border: 3px dashed #4CAF50;
+      border-radius: 10px;
+      padding: 40px;
+      text-align: center;
+      background: #f9fff9;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .upload-area:hover {
+      background: #f0fff0;
+      border-color: #45a049;
+    }
+    .upload-area.dragover {
+      background: #e8ffe8;
+      border-color: #2e7d32;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #000;
+      color: #0f0;
+      padding: 20px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 20px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .log-entry {
+      margin: 5px 0;
+    }
+    .log-success { color: #0f0; }
+    .log-error { color: #f00; }
+    .log-warning { color: #ff0; }
+    .log-info { color: #0ff; }
+    .preview {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+    .exercise-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 10px 0;
+    }
+    .exercise-image {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    input[type="file"] {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📁 JSON Import Teszt</h1>
+    <p class="subtitle">Teszteld a JSON fájl betöltést és validációt</p>
+
+    <!-- Upload Area -->
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+      <div style="font-size: 48px; margin-bottom: 10px;">📤</div>
+      <h3>Kattints vagy húzd ide a JSON fájlt</h3>
+      <p style="color: #666; margin-top: 10px;">
+        Támogatott formátum: session_*.json
+      </p>
+    </div>
+    <input type="file" id="fileInput" accept=".json" />
+
+    <!-- Stats -->
+    <div class="stats" id="stats" style="display: none;">
+      <div class="stat-card">
+        <div class="stat-label">Munkamenet Kód</div>
+        <div class="stat-value" id="statCode">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Feladatok Száma</div>
+        <div class="stat-value" id="statExercises">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Teljes Méret</div>
+        <div class="stat-value" id="statSize">0 KB</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Képek Mérete</div>
+        <div class="stat-value" id="statImages">0 KB</div>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview" id="preview" style="display: none;">
+      <h3>📋 Feladatok Előnézete</h3>
+      <div id="exerciseList"></div>
+    </div>
+
+    <!-- Log -->
+    <div class="log" id="log"></div>
+
+    <!-- Actions -->
+    <div style="text-align: center; margin-top: 20px;">
+      <button onclick="clearLog()">🗑️ Log Törlése</button>
+      <button onclick="location.reload()">🔄 Újrakezdés</button>
+    </div>
+  </div>
+
+  <script>
+    let loadedData = null;
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const timestamp = new Date().toLocaleTimeString();
+      const className = `log-${type}`;
+      logDiv.innerHTML += `<div class="log-entry ${className}">[${timestamp}] ${message}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    function processJSON(file) {
+      log(`📁 Fájl kiválasztva: ${file.name} (${formatBytes(file.size)})`, 'info');
+      
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const content = e.target.result;
+          const data = JSON.parse(content);
+          
+          log('✅ JSON sikeresen parse-olva', 'success');
+          
+          // Validate structure
+          if (!data.exercises || !Array.isArray(data.exercises)) {
+            log('❌ Hibás formátum: hiányzik az "exercises" tömb', 'error');
+            return;
+          }
+          
+          log(`📊 Feladatok száma: ${data.exercises.length}`, 'success');
+          
+          // Validate exercises
+          let validCount = 0;
+          let totalImageSize = 0;
+          
+          data.exercises.forEach((ex, index) => {
+            const hasId = !!ex.id;
+            const hasType = !!ex.type;
+            const hasTitle = !!ex.title;
+            const hasContent = !!ex.content;
+            const hasImage = !!ex.imageUrl;
+            
+            if (hasId && hasType && hasTitle && hasContent) {
+              validCount++;
+              log(`✅ Feladat ${index + 1}: ${ex.title} (${ex.type})`, 'success');
+              
+              if (hasImage) {
+                const imageSize = ex.imageUrl.length;
+                totalImageSize += imageSize;
+                log(`   🖼️ Kép: ${formatBytes(imageSize)}`, 'info');
+              } else {
+                log(`   ⚠️ Nincs kép`, 'warning');
+              }
+            } else {
+              log(`❌ Feladat ${index + 1}: Hiányos adatok`, 'error');
+              log(`   - ID: ${hasId ? '✅' : '❌'}`, hasId ? 'success' : 'error');
+              log(`   - Type: ${hasType ? '✅' : '❌'}`, hasType ? 'success' : 'error');
+              log(`   - Title: ${hasTitle ? '✅' : '❌'}`, hasTitle ? 'success' : 'error');
+              log(`   - Content: ${hasContent ? '✅' : '❌'}`, hasContent ? 'success' : 'error');
+            }
+          });
+          
+          log(`📊 Érvényes feladatok: ${validCount} / ${data.exercises.length}`, validCount === data.exercises.length ? 'success' : 'warning');
+          log(`📊 Képek teljes mérete: ${formatBytes(totalImageSize)}`, 'info');
+          log(`📊 JSON teljes mérete: ${formatBytes(file.size)}`, 'info');
+          
+          // Update stats
+          document.getElementById('stats').style.display = 'grid';
+          document.getElementById('statCode').textContent = data.code || 'N/A';
+          document.getElementById('statExercises').textContent = validCount;
+          document.getElementById('statSize').textContent = formatBytes(file.size).split(' ')[0];
+          document.getElementById('statImages').textContent = formatBytes(totalImageSize).split(' ')[0];
+          
+          // Show preview
+          showPreview(data);
+          
+          loadedData = data;
+          log('🎉 JSON betöltés sikeres!', 'success');
+          
+        } catch (error) {
+          log(`❌ JSON parse hiba: ${error.message}`, 'error');
+          console.error(error);
+        }
+      };
+      
+      reader.onerror = () => {
+        log('❌ Fájl olvasási hiba', 'error');
+      };
+      
+      reader.readAsText(file);
+    }
+
+    function showPreview(data) {
+      const previewDiv = document.getElementById('preview');
+      const listDiv = document.getElementById('exerciseList');
+      
+      previewDiv.style.display = 'block';
+      listDiv.innerHTML = '';
+      
+      data.exercises.forEach((ex, index) => {
+        const card = document.createElement('div');
+        card.className = 'exercise-card';
+        
+        let imageHTML = '';
+        if (ex.imageUrl) {
+          imageHTML = `<img src="${ex.imageUrl}" class="exercise-image" alt="Exercise ${index + 1}" />`;
+        }
+        
+        card.innerHTML = `
+          <h4>${index + 1}. ${ex.title}</h4>
+          <p><strong>Típus:</strong> ${ex.type}</p>
+          <p><strong>Utasítás:</strong> ${ex.instruction || 'Nincs'}</p>
+          <p><strong>Kép:</strong> ${ex.imageUrl ? `✅ ${formatBytes(ex.imageUrl.length)}` : '❌ Nincs'}</p>
+          ${imageHTML}
+        `;
+        
+        listDiv.appendChild(card);
+      });
+    }
+
+    // File input handler
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        processJSON(file);
+      }
+    });
+
+    // Drag and drop
+    const uploadArea = document.getElementById('uploadArea');
+    
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.json')) {
+        processJSON(file);
+      } else {
+        log('❌ Csak JSON fájlokat lehet betölteni', 'error');
+      }
+    });
+
+    // Initial log
+    log('🚀 JSON Import Teszt Tool elindítva', 'success');
+    log('📝 Válassz ki egy session_*.json fájlt a teszteléshez', 'info');
+  </script>
+</body>
+</html>

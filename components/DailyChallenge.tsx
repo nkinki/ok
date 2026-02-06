@@ -832,7 +832,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setStep('PLAYING');
   };
 
-  // JSON import for offline sessions
+  // JSON import for offline sessions - ENHANCED for Google Drive workflow
   const handleJsonImport = () => {
     fileInputRef.current?.click();
   };
@@ -841,56 +841,136 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('📁 JSON fájl betöltése:', file.name);
+    setLoading(true);
+    setError(null);
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
         const parsedData = JSON.parse(content);
         
-        let importedExercises: BulkResultItem[] = [];
+        console.log('📊 JSON parsed:', {
+          hasExercises: !!parsedData.exercises,
+          exerciseCount: parsedData.exercises?.length || 0,
+          hasCode: !!parsedData.code,
+          hasCreatedAt: !!parsedData.createdAt
+        });
         
-        // Handle different JSON formats (same as AdvancedLibraryManager)
-        if (Array.isArray(parsedData)) {
-          // Direct array of BulkResultItem
-          if (parsedData.length > 0 && parsedData[0].data) {
-            importedExercises = parsedData as BulkResultItem[];
-          }
-        } else if (parsedData.exercises && Array.isArray(parsedData.exercises)) {
-          // Collection format
-          importedExercises = parsedData.exercises as BulkResultItem[];
-        } else if (parsedData.collection && parsedData.exercises) {
-          // Full collection export format
-          importedExercises = parsedData.exercises as BulkResultItem[];
-        }
-        
-        if (importedExercises.length > 0) {
-          console.log('📁 JSON munkamenet betöltve:', importedExercises.length, 'feladat');
+        // Handle session JSON format (from upload tool)
+        if (parsedData.exercises && Array.isArray(parsedData.exercises)) {
+          const exercises = parsedData.exercises;
           
-          // Set up offline session
-          setPlaylist(importedExercises);
-          setCurrentIndex(0);
-          setCompletedCount(0);
-          setCompletedExercises(new Set()); // Reset completed exercises for imported session;
+          console.log('✅ Session JSON formátum felismerve');
+          console.log('📊 Feladatok száma:', exercises.length);
           
-          // Set student info for offline mode
-          setStudent({
-            id: 'offline-' + Date.now(),
-            name: 'Offline Diák',
-            className: 'JSON Import'
+          // Validate exercises have required data
+          const validExercises = exercises.filter(ex => {
+            const hasRequiredFields = ex.id && ex.type && ex.title && ex.content;
+            if (!hasRequiredFields) {
+              console.warn('⚠️ Érvénytelen feladat:', ex);
+            }
+            return hasRequiredFields;
           });
           
+          if (validExercises.length === 0) {
+            setError("A JSON fájl nem tartalmaz érvényes feladatokat.");
+            setLoading(false);
+            return;
+          }
+          
+          console.log('✅ Érvényes feladatok:', validExercises.length);
+          
+          // Convert to playlist format
+          const exerciseItems = validExercises.map((exercise: any) => ({
+            id: exercise.id,
+            fileName: exercise.fileName || exercise.title,
+            imageUrl: exercise.imageUrl || '', // Base64 image from JSON
+            data: {
+              type: exercise.type,
+              title: exercise.title,
+              instruction: exercise.instruction,
+              content: exercise.content
+            }
+          }));
+          
+          console.log('📁 JSON munkamenet betöltve:', exerciseItems.length, 'feladat');
+          console.log('🖼️ Első feladat kép:', exerciseItems[0]?.imageUrl ? `${exerciseItems[0].imageUrl.length} karakter` : 'Nincs');
+          
+          // Set up offline session with student info from JSON or prompt
+          const sessionCode = parsedData.code || 'JSON-' + Date.now().toString(36).toUpperCase();
+          
+          // Prompt for student name and class if not in preview mode
+          let studentName = 'JSON Diák';
+          let studentClass = 'JSON Import';
+          
+          if (!isPreviewMode) {
+            studentName = prompt('Add meg a neved:') || 'Névtelen Diák';
+            studentClass = prompt('Add meg az osztályodat (pl. 8.a):') || 'Ismeretlen';
+          }
+          
+          setStudent({
+            id: 'json-' + Date.now(),
+            name: studentName,
+            className: studentClass
+          });
+          
+          setCurrentSessionCode(sessionCode);
+          setPlaylist(exerciseItems);
+          setCurrentIndex(0);
+          setCompletedCount(0);
+          setCompletedExercises(new Set());
           setStep('PLAYING');
+          setLoading(false);
+          
+          console.log('🎮 JSON munkamenet elindítva!');
+          console.log('👤 Diák:', studentName, '-', studentClass);
+          console.log('📝 Session kód:', sessionCode);
+          
         } else {
-          setError("Hibás fájlformátum. Csak érvényes feladat JSON fájlokat lehet importálni.");
+          // Try old format (direct array or collection)
+          let importedExercises: BulkResultItem[] = [];
+          
+          if (Array.isArray(parsedData)) {
+            if (parsedData.length > 0 && parsedData[0].data) {
+              importedExercises = parsedData as BulkResultItem[];
+            }
+          } else if (parsedData.collection && parsedData.exercises) {
+            importedExercises = parsedData.exercises as BulkResultItem[];
+          }
+          
+          if (importedExercises.length > 0) {
+            console.log('📁 Régi formátumú JSON betöltve:', importedExercises.length, 'feladat');
+            
+            setPlaylist(importedExercises);
+            setCurrentIndex(0);
+            setCompletedCount(0);
+            setCompletedExercises(new Set());
+            
+            setStudent({
+              id: 'offline-' + Date.now(),
+              name: 'Offline Diák',
+              className: 'JSON Import'
+            });
+            
+            setStep('PLAYING');
+            setLoading(false);
+          } else {
+            setError("Hibás fájlformátum. Csak érvényes munkamenet JSON fájlokat lehet importálni.");
+            setLoading(false);
+          }
         }
       } catch (err) {
         console.error('JSON import error:', err);
         setError("Hiba a fájl beolvasásakor. Ellenőrizd, hogy érvényes JSON fájl-e.");
+        setLoading(false);
       }
     };
     
     reader.onerror = () => {
       setError("Fájl olvasási hiba");
+      setLoading(false);
     };
     
     reader.readAsText(file);
