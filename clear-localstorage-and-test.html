@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalStorage Törlés és Teszt</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 30px;
+    }
+    .button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 10px 5px;
+      transition: transform 0.2s;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+    }
+    .button:active {
+      transform: translateY(0);
+    }
+    .info {
+      background: #f0f0f0;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .warning {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+    .success {
+      background: #d4edda;
+      border: 2px solid #28a745;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+    .step {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 10px 0;
+      border-left: 4px solid #2196f3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 LocalStorage Törlés és Teszt</h1>
+    
+    <div class="warning">
+      <strong>⚠️ Figyelem!</strong><br>
+      A localStorage tele van régi Drive-Only munkamenetekkel, amelyek mock adatokat tartalmaznak.
+      Törölnöd kell ezeket, hogy a Supabase módban létrehozott valódi munkamenetek működjenek.
+    </div>
+
+    <div class="step">
+      <strong>1. Lépés: Ellenőrizd a localStorage tartalmát</strong>
+      <button class="button" onclick="checkLocalStorage()">📊 LocalStorage Ellenőrzés</button>
+    </div>
+
+    <div class="step">
+      <strong>2. Lépés: Töröld a régi munkameneteket</strong>
+      <button class="button" onclick="clearOldSessions()">🗑️ Régi Munkamenetek Törlése</button>
+    </div>
+
+    <div class="step">
+      <strong>3. Lépés: Töröld az ÖSSZES localStorage adatot</strong>
+      <button class="button" onclick="clearAllLocalStorage()">🧹 TELJES Törlés</button>
+    </div>
+
+    <div class="step">
+      <strong>4. Lépés: Kapcsold ki a Drive-Only módot</strong>
+      <button class="button" onclick="disableDriveOnly()">☁️ Drive-Only Kikapcsolás</button>
+    </div>
+
+    <div id="output" class="info"></div>
+
+    <div class="success" style="display: none;" id="successMessage">
+      <strong>✅ Sikeres!</strong><br>
+      Most már létrehozhatsz egy új munkamenetet Supabase módban, és az valódi adatokat fog használni!
+    </div>
+
+    <div class="step">
+      <strong>Következő lépések:</strong>
+      <ol>
+        <li>Frissítsd az oldalt (F5)</li>
+        <li>Nyisd meg a tanári dashboardot</li>
+        <li>Ellenőrizd: "☁️ Supabase Aktív" (NEM "📁 Drive-Only Aktív")</li>
+        <li>Hozz létre egy ÚJ munkamenetet valódi feladatokkal</li>
+        <li>Csatlakozz diákként</li>
+        <li>Most már a valódi feladatok jelennek meg!</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    function log(message) {
+      const output = document.getElementById('output');
+      output.textContent += message + '\n';
+      console.log(message);
+    }
+
+    function checkLocalStorage() {
+      const output = document.getElementById('output');
+      output.textContent = '';
+      
+      log('📊 LocalStorage tartalom ellenőrzése...\n');
+      log('═══════════════════════════════════════\n');
+      
+      let totalSize = 0;
+      let sessionCount = 0;
+      let driveOnlyCount = 0;
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        const size = value ? value.length : 0;
+        totalSize += size;
+        
+        if (key.includes('session_') || key.includes('drive_only')) {
+          sessionCount++;
+          if (key.includes('drive_only') || value.includes('drive_only_ex')) {
+            driveOnlyCount++;
+            log(`❌ ${key}: ${(size / 1024).toFixed(2)} KB (Drive-Only mock data)`);
+          } else {
+            log(`📦 ${key}: ${(size / 1024).toFixed(2)} KB`);
+          }
+        }
+      }
+      
+      log('\n═══════════════════════════════════════');
+      log(`📊 Összesen: ${localStorage.length} kulcs`);
+      log(`📦 Munkamenetek: ${sessionCount}`);
+      log(`❌ Drive-Only mock adatok: ${driveOnlyCount}`);
+      log(`💾 Teljes méret: ${(totalSize / 1024).toFixed(2)} KB`);
+      log(`⚠️ Kvóta: ${totalSize > 5000000 ? 'TÚLLÉPVE!' : 'OK'}`);
+      
+      if (driveOnlyCount > 0) {
+        log('\n⚠️ FIGYELEM: Drive-Only mock adatok találhatók!');
+        log('⚠️ Ezek miatt a valódi Supabase munkamenetek nem működnek!');
+      }
+    }
+
+    function clearOldSessions() {
+      const output = document.getElementById('output');
+      output.textContent = '';
+      
+      log('🗑️ Régi munkamenetek törlése...\n');
+      log('═══════════════════════════════════════\n');
+      
+      let deletedCount = 0;
+      const keysToDelete = [];
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.includes('session_') || key.includes('drive_only')) {
+          keysToDelete.push(key);
+        }
+      }
+      
+      keysToDelete.forEach(key => {
+        localStorage.removeItem(key);
+        deletedCount++;
+        log(`✅ Törölve: ${key}`);
+      });
+      
+      log('\n═══════════════════════════════════════');
+      log(`✅ ${deletedCount} munkamenet törölve!`);
+      
+      document.getElementById('successMessage').style.display = 'block';
+    }
+
+    function clearAllLocalStorage() {
+      if (!confirm('⚠️ FIGYELEM! Ez törli az ÖSSZES localStorage adatot!\n\nBiztosan folytatod?')) {
+        return;
+      }
+      
+      const output = document.getElementById('output');
+      output.textContent = '';
+      
+      log('🧹 TELJES localStorage törlése...\n');
+      log('═══════════════════════════════════════\n');
+      
+      const count = localStorage.length;
+      localStorage.clear();
+      
+      log(`✅ ${count} kulcs törölve!`);
+      log('✅ LocalStorage teljesen üres!');
+      
+      document.getElementById('successMessage').style.display = 'block';
+    }
+
+    function disableDriveOnly() {
+      const output = document.getElementById('output');
+      output.textContent = '';
+      
+      log('☁️ Drive-Only mód kikapcsolása...\n');
+      log('═══════════════════════════════════════\n');
+      
+      localStorage.removeItem('drive_only_mode');
+      
+      log('✅ Drive-Only mód kikapcsolva!');
+      log('✅ Supabase mód aktív!');
+      log('\n💡 Most már létrehozhatsz valódi Supabase munkameneteket!');
+      
+      document.getElementById('successMessage').style.display = 'block';
+    }
+
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      checkLocalStorage();
+    });
+  </script>
+</body>
+</html>

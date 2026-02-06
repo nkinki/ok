@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Verzió Ellenőrzés</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 10px 5px;
+      transition: transform 0.2s;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+    }
+    .button:active {
+      transform: translateY(0);
+    }
+    .status {
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .status.checking {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      color: #856404;
+    }
+    .status.old {
+      background: #f8d7da;
+      border: 2px solid #f44336;
+      color: #721c24;
+    }
+    .status.new {
+      background: #d4edda;
+      border: 2px solid #28a745;
+      color: #155724;
+    }
+    .info {
+      background: #f0f0f0;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+    .step {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 10px 0;
+      border-left: 4px solid #2196f3;
+    }
+    .warning {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 API Verzió Ellenőrzés</h1>
+    <div class="subtitle">Ellenőrizd hogy a Vercel az új API verziót futtatja-e</div>
+    
+    <div class="step">
+      <strong>Teszt munkamenet kód:</strong> <input type="text" id="sessionCode" value="4DKVZY" style="padding: 5px; font-size: 16px; width: 150px;">
+      <button class="button" onclick="checkAPIVersion()">🧪 API Verzió Teszt</button>
+    </div>
+
+    <div id="status" class="status checking" style="display: none;">
+      ⏳ Ellenőrzés folyamatban...
+    </div>
+
+    <div id="output" class="info" style="display: none;"></div>
+
+    <div class="warning">
+      <strong>⚠️ Mit jelent az eredmény?</strong><br><br>
+      <strong>❌ RÉGI VERZIÓ:</strong> Mock adatok (`drive_only_ex1`) - Várj még 2-3 percet<br>
+      <strong>✅ ÚJ VERZIÓ:</strong> Valódi adatok vagy "Session not found" - API frissült!<br>
+      <strong>⚠️ 404 HIBA:</strong> Munkamenet nincs Supabase-ben - Hozz létre újat!
+    </div>
+
+    <div class="step">
+      <strong>Ha RÉGI verzió fut:</strong>
+      <ol>
+        <li>Várj 2-3 percet</li>
+        <li>Kattints újra a "🧪 API Verzió Teszt" gombra</li>
+        <li>Ismételd amíg ÚJ verzió nem jelenik meg</li>
+      </ol>
+    </div>
+
+    <div class="step">
+      <strong>Ha ÚJ verzió fut:</strong>
+      <ol>
+        <li>Frissítsd a böngészőt (Ctrl + Shift + R)</li>
+        <li>Hozz létre egy ÚJ munkamenetet valódi feladatokkal</li>
+        <li>Csatlakozz diákként</li>
+        <li>Most már valódi feladatok jelennek meg! 🎉</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    async function checkAPIVersion() {
+      const sessionCode = document.getElementById('sessionCode').value.toUpperCase();
+      const statusDiv = document.getElementById('status');
+      const outputDiv = document.getElementById('output');
+      
+      statusDiv.style.display = 'block';
+      statusDiv.className = 'status checking';
+      statusDiv.textContent = '⏳ Ellenőrzés folyamatban...';
+      outputDiv.style.display = 'none';
+      outputDiv.textContent = '';
+      
+      try {
+        console.log('🔍 Checking API version for session:', sessionCode);
+        
+        const url = `https://nyirad.vercel.app/api/simple-api/sessions/${sessionCode}/download-drive`;
+        console.log('📡 Fetching:', url);
+        
+        const response = await fetch(url);
+        console.log('📊 Response status:', response.status);
+        
+        if (response.status === 404) {
+          statusDiv.className = 'status new';
+          statusDiv.innerHTML = '✅ ÚJ VERZIÓ FUT!<br><small>(404 = Munkamenet nincs Supabase-ben, de az API frissült!)</small>';
+          
+          outputDiv.style.display = 'block';
+          outputDiv.textContent = `📊 API Válasz:\n\nStatus: 404 Not Found\n\n✅ Ez JÓ jel! Az új API verzió fut!\n\nA 404 azt jelenti hogy a munkamenet "${sessionCode}" nincs a Supabase adatbázisban.\n\nKövetkező lépés:\n1. Hozz létre egy ÚJ munkamenetet valódi feladatokkal\n2. Csatlakozz diákként az új kóddal\n3. Most már valódi feladatok jelennek meg!`;
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('📦 Response data:', data);
+        
+        // Check if it's mock data
+        const isMockData = data.exercises && data.exercises.some(ex => 
+          ex.id === 'drive_only_ex1' || 
+          ex.id === 'drive_only_ex2' ||
+          ex.title?.includes('MOCK DATA')
+        );
+        
+        if (isMockData) {
+          statusDiv.className = 'status old';
+          statusDiv.innerHTML = '❌ RÉGI VERZIÓ FUT!<br><small>(Mock adatok - Várj még 2-3 percet)</small>';
+          
+          outputDiv.style.display = 'block';
+          outputDiv.textContent = `📊 API Válasz:\n\n${JSON.stringify(data, null, 2)}\n\n❌ MOCK ADATOK ÉSZLELVE!\n\nA Vercel még a régi API verziót futtatja.\n\nMit tegyél:\n1. Várj még 2-3 percet\n2. Kattints újra a "🧪 API Verzió Teszt" gombra\n3. Ismételd amíg ÚJ verzió nem jelenik meg`;
+        } else {
+          statusDiv.className = 'status new';
+          statusDiv.innerHTML = '✅ ÚJ VERZIÓ FUT!<br><small>(Valódi adatok vagy Supabase hiba)</small>';
+          
+          outputDiv.style.display = 'block';
+          outputDiv.textContent = `📊 API Válasz:\n\n${JSON.stringify(data, null, 2)}\n\n✅ VALÓDI ADATOK vagy SUPABASE HIBA!\n\nAz új API verzió fut!\n\nKövetkező lépés:\n1. Frissítsd a böngészőt (Ctrl + Shift + R)\n2. Hozz létre egy ÚJ munkamenetet valódi feladatokkal\n3. Csatlakozz diákként\n4. Most már valódi feladatok jelennek meg!`;
+        }
+        
+      } catch (error) {
+        console.error('❌ Error:', error);
+        statusDiv.className = 'status old';
+        statusDiv.innerHTML = '❌ HIBA!<br><small>Nem sikerült elérni az API-t</small>';
+        
+        outputDiv.style.display = 'block';
+        outputDiv.textContent = `❌ Hiba történt:\n\n${error.message}\n\nEllenőrizd:\n1. Van-e internet kapcsolat?\n2. A Vercel projekt fut-e?\n3. Az URL helyes-e?`;
+      }
+    }
+    
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        checkAPIVersion();
+      }, 500);
+    });
+  </script>
+</body>
+</html>
