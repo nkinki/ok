@@ -1384,9 +1384,9 @@ export default async function handler(req, res) {
       }
     }
 
-    // Create minimal session (new approach - localStorage based)
+    // Create minimal session (Google Drive mode - NO images in Supabase!)
     if (method === 'POST' && path.includes('/sessions/create-minimal')) {
-      const { code, subject = 'general', className, exerciseCount, maxScore } = req.body;
+      const { code, subject = 'general', className, exerciseCount, maxScore, driveSessionUrl } = req.body;
 
       if (!code) {
         return res.status(400).json({ error: 'Kód megadása kötelező' });
@@ -1410,25 +1410,27 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        // Create minimal session record for tracking - only use columns that exist
+        // Create minimal session record - ONLY metadata, NO images!
         const sessionData = {
           session_code: code.toUpperCase(),
-          exercises: [], // Empty - data is in localStorage
+          exercises: [], // Empty - images are on Google Drive!
           subject: subject,
           class_name: className.trim(),
           max_possible_score: maxScore || (exerciseCount ? exerciseCount * 10 : 100),
           is_active: true,
-          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 60 minutes
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 60 minutes
+          session_json_url: driveSessionUrl || null // Google Drive URL for session JSON
         };
 
-        console.log('💾 Creating minimal session record:', code.toUpperCase());
-        console.log('📊 Session data to insert:', JSON.stringify(sessionData, null, 2));
+        console.log('💾 Creating minimal session (Google Drive mode):', code.toUpperCase());
+        console.log('📊 Metadata only - NO images in Supabase!');
+        console.log('📊 Data size: ~200 bytes (vs 500KB+ with images)');
         
-        // Create session in database with explicit column selection
+        // Create session in database
         const { data, error } = await supabase
           .from('teacher_sessions')
-          .insert([sessionData]) // Use array format to be explicit
-          .select('id, session_code, subject, class_name, is_active, created_at, expires_at')
+          .insert([sessionData])
+          .select('id, session_code, subject, class_name, is_active, created_at, expires_at, session_json_url')
           .single();
 
         if (error) {
@@ -1440,7 +1442,8 @@ export default async function handler(req, res) {
           });
         }
 
-        console.log('✅ Minimal session created successfully:', data.session_code);
+        console.log('✅ Minimal session created (Google Drive mode):', data.session_code);
+        console.log('✅ 0% Supabase egress for images!');
 
         return res.status(200).json({
           success: true,
@@ -1452,9 +1455,10 @@ export default async function handler(req, res) {
             isActive: data.is_active,
             createdAt: data.created_at,
             expiresAt: data.expires_at,
-            storageType: 'localStorage'
+            driveSessionUrl: data.session_json_url,
+            storageType: 'GoogleDrive'
           },
-          message: 'Minimal session created successfully'
+          message: 'Minimal session created (Google Drive mode)'
         });
 
       } catch (err) {

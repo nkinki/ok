@@ -19,7 +19,7 @@ interface Props {
   isPreviewMode?: boolean;
 }
 
-type DailyStep = 'LOGIN' | 'ASSIGNMENTS' | 'PLAYING' | 'RESULT';
+type DailyStep = 'LOGIN' | 'ASSIGNMENTS' | 'WAITING_FOR_START' | 'PLAYING' | 'RESULT';
 
 interface Student {
   id: string;
@@ -689,65 +689,131 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     // CRITICAL DEBUG: Log the exact session code being used
     console.log('🎯 STUDENT LOGIN - Session code being used:', code.toUpperCase());
     console.log('🎯 STUDENT LOGIN - Student data:', { name: studentData.name, className: studentData.className });
-    console.log('🚀 Drive-Only mód:', driveOnlyMode);
 
-    if (driveOnlyMode) {
-      // DRIVE-ONLY MODE: Skip Supabase, use Drive-Only service
-      console.log('🚀 Drive-Only mód - Supabase kihagyása');
+    try {
+      // Step 1: Check if session exists (Supabase - minimal data only!)
+      console.log('🔍 Checking session existence (metadata only)...');
+      const sessionCheck = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
       
-      try {
-        // Check if session exists in Drive-Only mode
-        const sessionCheck = await driveOnlyService.checkSession(code);
-        
-        if (!sessionCheck.exists || !sessionCheck.session) {
-          setError(sessionCheck.error || 'Munkamenet nem található Drive-Only módban');
-          setLoading(false);
-          return;
+      if (!sessionCheck.ok) {
+        setError('Hibás munkamenet kód vagy a munkamenet nem aktív');
+        setLoading(false);
+        return;
+      }
+
+      const sessionInfo = await sessionCheck.json();
+      
+      if (!sessionInfo.exists) {
+        setError('Munkamenet nem található');
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Session exists:', sessionInfo.session.code);
+      console.log('📊 Exercise count:', sessionInfo.session.exerciseCount);
+
+      // Step 2: Join session (add student to participants)
+      console.log('👨‍🎓 Joining session...');
+      const joinResponse = await fetch(`/api/simple-api/sessions/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionCode: code.toUpperCase(),
+          name: studentData.name,
+          className: studentData.className
+        })
+      });
+
+      if (!joinResponse.ok) {
+        setError('Csatlakozási hiba');
+        setLoading(false);
+        return;
+      }
+
+      const joinData = await joinResponse.json();
+      console.log('✅ Student joined:', joinData.student.id);
+
+      // Update student with server ID
+      setStudent({
+        ...studentData,
+        id: joinData.student.id,
+        sessionId: joinData.student.sessionId
+      });
+
+      // Step 3: Show START button (DON'T load exercises yet!)
+      console.log('⏸️ Waiting for START button click...');
+      setStep('WAITING_FOR_START');
+      setLoading(false);
+
+    } catch (error) {
+      console.error('❌ Student login error:', error);
+      setError('Hálózati hiba történt');
+      setLoading(false);
+    }
+  };
+
+  // NEW: Handle START button click
+  const handleStartExercises = async () => {
+    if (!currentSessionCode) return;
+    
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('🚀 START button clicked - Loading exercises from Google Drive...');
+      
+      // Load session JSON from Google Drive (via API)
+      const driveResponse = await fetch(`/api/simple-api/sessions/${currentSessionCode.toUpperCase()}/download-drive`);
+      
+      if (!driveResponse.ok) {
+        setError('Hiba a feladatok betöltésekor');
+        setLoading(false);
+        return;
+      }
+
+      const sessionData = await driveResponse.json();
+      
+      console.log('✅ Session JSON loaded from Google Drive');
+      console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
+      
+      if (!sessionData.exercises || sessionData.exercises.length === 0) {
+        setError('Nincs feladat a munkamenetben');
+        setLoading(false);
+        return;
+      }
+
+      // Convert exercises to playlist format
+      const exerciseItems = sessionData.exercises.map((exercise: any) => ({
+        id: exercise.id,
+        fileName: exercise.fileName || exercise.title,
+        imageUrl: exercise.imageUrl || '', // Google Drive URL!
+        data: {
+          type: exercise.type,
+          title: exercise.title,
+          instruction: exercise.instruction,
+          content: exercise.content
         }
+      }));
 
-        console.log('✅ Drive-Only munkamenet megtalálva:', code);
-        
-        // Join session in Drive-Only mode
-        const joinResult = await driveOnlyService.joinSession(
-          code, 
-          studentData.name, 
-          studentData.className
-        );
+      console.log('✅ Exercises loaded with Google Drive image URLs');
+      console.log('🖼️ First exercise image URL:', exerciseItems[0]?.imageUrl?.substring(0, 100));
 
-        if (!joinResult.success || !joinResult.student) {
-          setError(joinResult.error || 'Csatlakozási hiba Drive-Only módban');
-          setLoading(false);
-          return;
-        }
+      // Set playlist and start playing
+      setPlaylist(exerciseItems);
+      setCurrentIndex(0);
+      setCompletedCount(0);
+      setCompletedExercises(new Set());
+      setStep('PLAYING');
+      setLoading(false);
 
-        console.log('✅ Drive-Only csatlakozás sikeres:', joinResult.student.id);
+      console.log('🎮 Exercises ready - starting game!');
 
-        // Update student info with Drive-Only ID
-        setStudent(prev => prev ? {
-          ...prev,
-          id: joinResult.student!.id,
-          sessionId: code // Use session code as session ID in Drive-Only mode
-        } : null);
-
-        // Try to load session data from Google Drive
-        console.log('📥 Loading session from Google Drive...');
-        
-        try {
-          const driveResponse = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/download-drive`);
-          
-          if (driveResponse.ok) {
-            const sessionData = await driveResponse.json();
-            
-            if (sessionData.exercises && sessionData.exercises.length > 0) {
-              console.log('✅ Drive-Only session loaded with', sessionData.exercises.length, 'exercises');
-              
-              const exerciseItems = sessionData.exercises.map((exercise: any) => ({
-                id: exercise.id,
-                fileName: exercise.fileName || exercise.title,
-                imageUrl: exercise.imageUrl || '',
-                data: {
-                  type: exercise.type,
-                  title: exercise.title,
+    } catch (error) {
+      console.error('❌ Error loading exercises:', error);
+      setError('Hiba a feladatok betöltésekor');
+      setLoading(false);
+    }
+  };
                   instruction: exercise.instruction,
                   content: exercise.content
                 }
@@ -1622,6 +1688,85 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             </>
           );
       }
+  }
+
+  // --- RENDER: WAITING FOR START ---
+  if (step === 'WAITING_FOR_START') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl p-12 text-center">
+          {/* Student Info */}
+          <div className="mb-8">
+            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-5xl">
+              👋
+            </div>
+            <h2 className="text-3xl font-bold text-slate-800 mb-2">
+              Üdv, {student?.name}!
+            </h2>
+            <p className="text-lg text-slate-600">
+              {student?.className} osztály
+            </p>
+          </div>
+
+          {/* Session Info */}
+          <div className="mb-8 p-6 bg-blue-50 rounded-2xl border-2 border-blue-200">
+            <div className="text-sm text-blue-600 font-medium mb-2">Munkamenet kód</div>
+            <div className="text-3xl font-mono font-bold text-blue-800">
+              {currentSessionCode}
+            </div>
+          </div>
+
+          {/* Ready Message */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold text-slate-800 mb-4">
+              Készen állsz?
+            </h3>
+            <p className="text-lg text-slate-600 mb-2">
+              Kattints a START gombra a feladatok betöltéséhez
+            </p>
+            <p className="text-sm text-slate-500">
+              A képek Google Drive-ról töltődnek be
+            </p>
+          </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl mb-6">
+              <div className="flex items-center gap-3">
+                <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span className="font-medium">{error}</span>
+              </div>
+            </div>
+          )}
+
+          {/* START Button */}
+          <button
+            onClick={handleStartExercises}
+            disabled={loading}
+            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-16 py-6 rounded-2xl text-3xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <div className="flex items-center gap-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                <span>Betöltés...</span>
+              </div>
+            ) : (
+              <>🚀 START</>
+            )}
+          </button>
+
+          {/* Back Button */}
+          <button
+            onClick={onExit}
+            className="mt-6 text-slate-500 hover:text-slate-700 px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            ← Vissza
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // --- RENDER: ASSIGNMENTS ---

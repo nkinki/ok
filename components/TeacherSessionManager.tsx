@@ -298,19 +298,52 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         return;
       }
 
-      // ORIGINAL SUPABASE MODE - Call API to save to database
-      console.log('☁️ Supabase mode - creating session in database');
+      // GOOGLE DRIVE MODE - Upload images to Drive, only metadata to Supabase
+      console.log('📤 Google Drive mode - uploading images to Drive');
       
-      // Prepare full session data for API
+      // Step 1: Upload images to Google Drive
+      console.log('📤 Step 1: Uploading images to Google Drive...');
+      const driveImageUrls: string[] = [];
+      
+      for (let i = 0; i < selectedExerciseData.length; i++) {
+        const exercise = selectedExerciseData[i];
+        const imageUrl = exercise.imageUrl;
+        
+        if (imageUrl && imageUrl.startsWith('data:')) {
+          // Upload base64 image to Google Drive
+          try {
+            const uploadResult = await fullGoogleDriveService.uploadImage(
+              imageUrl,
+              `${sessionCode}_exercise_${i + 1}.jpg`
+            );
+            
+            if (uploadResult.success && uploadResult.driveUrl) {
+              driveImageUrls.push(uploadResult.driveUrl);
+              console.log(`✅ Image ${i + 1} uploaded to Drive`);
+            } else {
+              console.warn(`⚠️ Image ${i + 1} upload failed, using original`);
+              driveImageUrls.push(imageUrl); // Fallback to original
+            }
+          } catch (error) {
+            console.warn(`⚠️ Image ${i + 1} upload error:`, error);
+            driveImageUrls.push(imageUrl); // Fallback to original
+          }
+        } else {
+          driveImageUrls.push(imageUrl || ''); // Keep existing URL or empty
+        }
+      }
+      
+      // Step 2: Create session JSON with Google Drive URLs
+      console.log('📤 Step 2: Creating session JSON with Drive URLs...');
       const fullSessionData = {
         sessionCode: sessionCode,
         subject: currentSubject || 'general',
         className: className.trim(),
         createdAt: new Date().toISOString(),
-        exercises: selectedExerciseData.map(item => ({
+        exercises: selectedExerciseData.map((item, i) => ({
           id: item.id,
           fileName: item.fileName,
-          imageUrl: item.imageUrl || '',
+          imageUrl: driveImageUrls[i], // Google Drive URL!
           title: item.data.title,
           instruction: item.data.instruction,
           type: item.data.type,
@@ -318,30 +351,41 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         })),
         metadata: {
           version: '1.0.0',
-          exportedBy: 'Okos Gyakorló Tanári Felület',
+          exportedBy: 'Okos Gyakorló - Google Drive',
           totalExercises: selectedExerciseData.length,
-          estimatedTime: selectedExerciseData.length * 3
+          estimatedTime: selectedExerciseData.length * 3,
+          driveMode: true
         }
       };
-
-      // Call API to create session in Supabase
-      console.log('📤 Calling API to create session in Supabase...');
-      const apiResponse = await fetch('/api/simple-api/sessions/create', {
+      
+      // Step 3: Upload session JSON to Google Drive
+      console.log('📤 Step 3: Uploading session JSON to Google Drive...');
+      const driveSessionResult = await fullGoogleDriveService.uploadSessionJSON(
+        sessionCode,
+        fullSessionData
+      );
+      
+      if (!driveSessionResult.success) {
+        setError('Google Drive feltöltési hiba. Ellenőrizd a Drive beállításokat!');
+        return;
+      }
+      
+      console.log('✅ Session JSON uploaded to Drive:', driveSessionResult.downloadUrl);
+      
+      // Step 4: Save ONLY metadata to Supabase (NO images!)
+      console.log('📤 Step 4: Saving metadata to Supabase (NO images)...');
+      const apiResponse = await fetch('/api/simple-api/sessions/create-minimal', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           code: sessionCode,
-          exercises: selectedExerciseData.map(item => ({
-            id: item.id,
-            title: item.data.title,
-            type: item.data.type
-          })),
-          fullExercises: fullSessionData.exercises,
           subject: currentSubject || 'general',
           className: className.trim(),
-          maxScore: selectedExerciseData.length * 10
+          exerciseCount: selectedExerciseData.length,
+          maxScore: selectedExerciseData.length * 10,
+          driveSessionUrl: driveSessionResult.downloadUrl
         })
       });
 
@@ -353,24 +397,13 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       }
 
       const apiData = await apiResponse.json();
-      console.log('✅ Session created in Supabase:', apiData);
+      console.log('✅ Metadata saved to Supabase (NO images!)');
+      console.log('📊 Supabase data size: ~200 bytes (vs 500KB+ with images)');
 
-      // Also store in localStorage as backup
+      // Store session data in localStorage as backup
       const localSessionKey = `session_${sessionCode}`;
       localStorage.setItem(localSessionKey, JSON.stringify(fullSessionData));
       console.log('💾 Session data also stored in localStorage as backup');
-
-      // Try to upload to Google Drive if configured (optional)
-      try {
-        const driveResult = await fullGoogleDriveService.uploadSessionJSON(sessionCode, fullSessionData);
-        if (driveResult.success) {
-          console.log('✅ Session also uploaded to Google Drive:', driveResult.downloadUrl);
-        } else {
-          console.log('ℹ️ Google Drive upload skipped (not configured or failed)');
-        }
-      } catch (driveError) {
-        console.log('ℹ️ Google Drive upload skipped:', driveError);
-      }
       
       // Create session object for UI
       const session: Session = {
@@ -381,7 +414,9 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       }
 
       setActiveSession(session);
-      console.log('🎯 Supabase munkamenet aktív:', sessionCode);
+      console.log('🎯 Google Drive munkamenet aktív:', sessionCode);
+      console.log('✅ Képek Google Drive-on, metadata Supabase-ben');
+      console.log('✅ 0% Supabase egress a képekre!');
 
     } catch (error) {
       console.error('❌ Session creation error:', error)
