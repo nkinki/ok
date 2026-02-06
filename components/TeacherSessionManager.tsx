@@ -298,8 +298,79 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         return;
       }
 
-      // ORIGINAL SUPABASE MODE - simplified for now
-      console.log('☁️ Supabase mode - creating session normally');
+      // ORIGINAL SUPABASE MODE - Call API to save to database
+      console.log('☁️ Supabase mode - creating session in database');
+      
+      // Prepare full session data for API
+      const fullSessionData = {
+        sessionCode: sessionCode,
+        subject: currentSubject || 'general',
+        className: className.trim(),
+        createdAt: new Date().toISOString(),
+        exercises: selectedExerciseData.map(item => ({
+          id: item.id,
+          fileName: item.fileName,
+          imageUrl: item.imageUrl || '',
+          title: item.data.title,
+          instruction: item.data.instruction,
+          type: item.data.type,
+          content: item.data.content
+        })),
+        metadata: {
+          version: '1.0.0',
+          exportedBy: 'Okos Gyakorló Tanári Felület',
+          totalExercises: selectedExerciseData.length,
+          estimatedTime: selectedExerciseData.length * 3
+        }
+      };
+
+      // Call API to create session in Supabase
+      console.log('📤 Calling API to create session in Supabase...');
+      const apiResponse = await fetch('/api/simple-api/sessions/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          code: sessionCode,
+          exercises: selectedExerciseData.map(item => ({
+            id: item.id,
+            title: item.data.title,
+            type: item.data.type
+          })),
+          fullExercises: fullSessionData.exercises,
+          subject: currentSubject || 'general',
+          className: className.trim(),
+          maxScore: selectedExerciseData.length * 10
+        })
+      });
+
+      if (!apiResponse.ok) {
+        const errorData = await apiResponse.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('❌ API session creation failed:', errorData);
+        setError(`Munkamenet létrehozási hiba: ${errorData.error || 'Ismeretlen hiba'}`);
+        return;
+      }
+
+      const apiData = await apiResponse.json();
+      console.log('✅ Session created in Supabase:', apiData);
+
+      // Also store in localStorage as backup
+      const localSessionKey = `session_${sessionCode}`;
+      localStorage.setItem(localSessionKey, JSON.stringify(fullSessionData));
+      console.log('💾 Session data also stored in localStorage as backup');
+
+      // Try to upload to Google Drive if configured (optional)
+      try {
+        const driveResult = await fullGoogleDriveService.uploadSessionJSON(sessionCode, fullSessionData);
+        if (driveResult.success) {
+          console.log('✅ Session also uploaded to Google Drive:', driveResult.downloadUrl);
+        } else {
+          console.log('ℹ️ Google Drive upload skipped (not configured or failed)');
+        }
+      } catch (driveError) {
+        console.log('ℹ️ Google Drive upload skipped:', driveError);
+      }
       
       // Create session object for UI
       const session: Session = {
