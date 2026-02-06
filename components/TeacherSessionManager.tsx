@@ -317,8 +317,8 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
               `${sessionCode}_exercise_${i + 1}.jpg`
             );
             
-            if (uploadResult.success && uploadResult.driveUrl) {
-              driveImageUrls.push(uploadResult.driveUrl);
+            if (uploadResult.success && uploadResult.imageUrl) {
+              driveImageUrls.push(uploadResult.imageUrl);
               console.log(`✅ Image ${i + 1} uploaded to Drive`);
             } else {
               console.warn(`⚠️ Image ${i + 1} upload failed, using original`);
