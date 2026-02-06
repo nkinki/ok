@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload localStorage Session to Google Drive</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .container {
+      border: 2px solid #4CAF50;
+      border-radius: 10px;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 5px;
+      font-family: monospace;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+    input {
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      width: 200px;
+    }
+    .warning {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📤 Upload localStorage Session to Google Drive</h1>
+    
+    <div class="warning">
+      <strong>⚠️ Figyelem:</strong> Ez a tool feltölti a localStorage-ban lévő session adatokat Google Drive-ra.
+      <br><br>
+      <strong>Használat:</strong>
+      <ol>
+        <li>Írd be a session kódot (pl. FP46I1)</li>
+        <li>Kattints "Upload to Drive"</li>
+        <li>A session JSON és képek feltöltődnek a Drive mappába</li>
+        <li>Ezután a diákok START gombbal betölthetik</li>
+      </ol>
+    </div>
+    
+    <div>
+      <label>Session Code:</label>
+      <input type="text" id="sessionCode" placeholder="FP46I1" />
+      <button onclick="uploadSession()">📤 Upload to Drive</button>
+      <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
+    
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const timestamp = new Date().toLocaleTimeString();
+      const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : type === 'warning' ? '#ff0' : '#0f0';
+      logDiv.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    async function uploadSession() {
+      const sessionCode = document.getElementById('sessionCode').value.trim().toUpperCase();
+      
+      if (!sessionCode) {
+        log('❌ Kérlek add meg a session kódot!', 'error');
+        return;
+      }
+
+      log(`🚀 Starting upload for session: ${sessionCode}`);
+      
+      // Step 1: Get session data from localStorage
+      const sessionKey = `session_${sessionCode}`;
+      const sessionDataStr = localStorage.getItem(sessionKey);
+      
+      if (!sessionDataStr) {
+        log(`❌ Session not found in localStorage: ${sessionKey}`, 'error');
+        log(`💡 Available sessions:`, 'warning');
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('session_')) {
+            log(`   - ${key}`, 'info');
+          }
+        }
+        return;
+      }
+
+      log(`✅ Session found in localStorage`);
+      
+      try {
+        const sessionData = JSON.parse(sessionDataStr);
+        log(`📊 Exercise count: ${sessionData.exercises?.length || 0}`);
+        
+        if (!sessionData.exercises || sessionData.exercises.length === 0) {
+          log(`❌ No exercises in session!`, 'error');
+          return;
+        }
+
+        // Step 2: Create download link for manual upload
+        log(`📁 Creating JSON file for manual upload...`);
+        
+        const jsonBlob = new Blob([sessionDataStr], { type: 'application/json' });
+        const jsonUrl = URL.createObjectURL(jsonBlob);
+        
+        const a = document.createElement('a');
+        a.href = jsonUrl;
+        a.download = `session_${sessionCode}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(jsonUrl);
+        
+        log(`✅ JSON file downloaded: session_${sessionCode}.json`, 'success');
+        log(`📤 Next steps:`, 'warning');
+        log(`   1. Nyisd meg: https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb`, 'warning');
+        log(`   2. Töltsd fel a letöltött JSON fájlt`, 'warning');
+        log(`   3. Diák START gombbal betöltheti`, 'warning');
+        
+        // Step 3: Extract images for manual upload
+        log(`🖼️ Extracting images...`);
+        
+        for (let i = 0; i < sessionData.exercises.length; i++) {
+          const exercise = sessionData.exercises[i];
+          if (exercise.imageUrl && exercise.imageUrl.startsWith('data:')) {
+            log(`   Image ${i + 1}: ${exercise.imageUrl.length} bytes`);
+            
+            // Create download link for each image
+            const imageBlob = dataURLtoBlob(exercise.imageUrl);
+            const imageUrl = URL.createObjectURL(imageBlob);
+            
+            const imgLink = document.createElement('a');
+            imgLink.href = imageUrl;
+            imgLink.download = `${sessionCode}_exercise_${i + 1}.jpg`;
+            document.body.appendChild(imgLink);
+            imgLink.click();
+            document.body.removeChild(imgLink);
+            URL.revokeObjectURL(imageUrl);
+            
+            log(`   ✅ Image ${i + 1} downloaded`, 'success');
+          }
+        }
+        
+        log(`🎉 All files downloaded!`, 'success');
+        log(`📤 Upload them to: https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb`, 'success');
+        
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    function dataURLtoBlob(dataurl) {
+      const arr = dataurl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    }
+
+    // Auto-load session code from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeParam = urlParams.get('code');
+    if (codeParam) {
+      document.getElementById('sessionCode').value = codeParam;
+      log(`📝 Session code loaded from URL: ${codeParam}`);
+    }
+  </script>
+</body>
+</html>

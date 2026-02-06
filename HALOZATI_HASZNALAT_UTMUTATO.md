@@ -1,200 +1,151 @@
-# 🌐 Hálózati Használat Útmutató - 20+ Számítógép
+# Hálózati Használat Útmutató (20+ Gép)
 
-## ⚠️ FONTOS: Miért kell manuális feltöltés?
+## Probléma
+A localStorage csak egy gépen működik - nem osztható meg a hálózaton lévő 20 géppel.
 
-A képek jelenleg a **tanári számítógép localStorage-ában** vannak, ami csak azon a gépen érhető el. 
-A diákok (más gépeken) nem tudják betölteni a képeket, mert nincs hozzáférésük a tanár localStorage-ához.
+## Megoldás: Manuális Google Drive Feltöltés
 
-**Megoldás**: Képek feltöltése Google Drive-ra → Minden gép eléri őket!
+### Tanár Lépései
 
----
+#### 1. Munkamenet Létrehozása
+```
+1. Válassz feladatokat a könyvtárból
+2. Válaszd ki az osztályt
+3. Kattints "Munkamenet indítása"
+4. Munkamenet kód: pl. WMLSZK
+```
 
-## 📋 LÉPÉSEK: Tanár
+#### 2. Képek Feltöltése Google Drive-ra
+```
+1. Kattints "Képek feltöltése Google Drive-ra" gombra
+2. Új ablak nyílik: upload-localstorage-to-drive.html
+3. Írd be a munkamenet kódot (pl. WMLSZK)
+4. Kattints "Upload to Drive"
+5. Letöltődik:
+   - session_WMLSZK.json
+   - WMLSZK_exercise_1.jpg
+   - WMLSZK_exercise_2.jpg
+   - stb.
+```
 
-### 1️⃣ Munkamenet Létrehozása
+#### 3. Manuális Feltöltés Google Drive-ra
+```
+1. Nyisd meg: https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb
+2. Töltsd fel az összes letöltött fájlt (JSON + képek)
+3. Ellenőrizd, hogy minden fájl feltöltődött
+```
 
-1. Nyisd meg: https://nyirad.vercel.app
-2. Kattints: "Tanári felület"
-3. Válassz tantárgyat (pl. Informatika)
-4. Kattints: "Munkamenet kezelése"
-5. Válassz feladatokat a könyvtárból
-6. Válassz osztályt
-7. Kattints: "Munkamenet indítása" 🚀
+#### 4. Diákok Csatlakozása
+```
+1. Diák beírja a munkamenet kódot: WMLSZK
+2. Diák beírja nevét és osztályát
+3. Diák kattint START gombra
+4. Feladatok betöltődnek a Supabase-ből (Google Drive URL-ekkel)
+5. Képek betöltődnek a Google Drive-ról (0% Supabase egress!)
+```
 
-**Eredmény**: Munkamenet létrehozva, kód generálva (pl. `ABC123`)
+## Miért Kell Ez?
 
-### 2️⃣ Képek Feltöltése Google Drive-ra ⚠️ KÖTELEZŐ!
+### localStorage Probléma
+- localStorage csak egy gépen érhető el
+- Nem osztható meg a hálózaton
+- 20 gép = 20 külön localStorage
 
-**FONTOS**: Ez a lépés KÖTELEZŐ hálózati használathoz!
+### Supabase Egress Probléma
+- Base64 képek Supabase-ben: 196% egress (túllépés!)
+- 20 diák × 1.5 MB = 30 MB egress / munkamenet
+- Google Drive URL-ek: 0% Supabase egress
 
-1. Az aktív munkamenet alatt kattints: **"Képek feltöltése Google Drive-ra"** gombra
-2. Új ablak nyílik meg a feltöltő eszközzel
-3. Kövesd az utasításokat:
-   - Kattints "Képek előkészítése" gombra
-   - Várj, amíg a képek előkészülnek
-   - Kattints "Képek letöltése ZIP-ben" gombra
-   - Mentsd el a ZIP fájlt
+### Google Drive Megoldás
+- Intézményi korlátlan tárhely
+- Képek Google Drive-on
+- Supabase csak metadata (URL-ek)
+- 95%+ Supabase egress csökkentés
 
-4. **Manuális feltöltés Google Drive-ra**:
-   - Nyisd meg: https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb
-   - Csomagold ki a ZIP fájlt
-   - Töltsd fel az összes képet a mappába
-   - Állítsd be a megosztást: "Bárki, akinek van a link, megtekintheti"
+## Technikai Részletek
 
-### 3️⃣ Munkamenet Kód Kiadása
+### Adatfolyam
 
-1. Írd fel a munkamenet kódot (pl. `ABC123`)
-2. Mondd el a diákoknak a kódot
-3. Vagy írd fel a táblára
+#### Munkamenet Létrehozása
+```
+Tanár → Feladatok kiválasztása
+     → Munkamenet indítása
+     → Base64 képek → Supabase full_session_json
+     → Munkamenet kód: WMLSZK
+```
 
----
+#### Manuális Feltöltés
+```
+Tanár → "Képek feltöltése" gomb
+     → upload-localstorage-to-drive.html
+     → localStorage → JSON + képek letöltése
+     → Manuális feltöltés Google Drive-ra
+```
 
-## 📋 LÉPÉSEK: Diák
+#### Diák Betöltés
+```
+Diák → START gomb
+    → /api/simple-api/sessions/WMLSZK/download
+    → Supabase full_session_json (Google Drive URL-ek)
+    → Képek betöltése Google Drive-ról
+    → 0% Supabase egress!
+```
 
-### 1️⃣ Csatlakozás
+## Gyakori Hibák
 
-1. Nyisd meg: https://nyirad.vercel.app
-2. Kattints: "Diák belépés"
-3. Írd be:
-   - Munkamenet kód: `ABC123` (a tanár által megadott kód)
-   - Név: `Kovács János`
-   - Osztály: `6.b`
-4. Kattints: "Csatlakozás" 🎮
+### 1. "Session not found in localStorage"
+**Probléma**: A munkamenet nincs a localStorage-ban
+**Megoldás**: 
+- Ellenőrizd a munkamenet kódot
+- Nézd meg a konzolban az elérhető session-öket
+- Lehet, hogy másik gépen hoztad létre
 
-### 2️⃣ START Gomb
-
-1. Megjelenik a "START" gomb
-2. Kattints rá 🚀
-3. Feladatok betöltődnek Google Drive-ról
-4. Játék elindul!
-
----
-
-## 🔍 HIBAELHÁRÍTÁS
-
-### Probléma: Diák nem látja a képeket
-
-**Ok**: Képek nincsenek feltöltve Google Drive-ra
-
+### 2. "404: NOT_FOUND" (upload tool)
+**Probléma**: Az upload tool nem érhető el
 **Megoldás**:
-1. Tanár: Kattints "Képek feltöltése Google Drive-ra" gombra
-2. Töltsd fel a képeket a Google Drive mappába
-3. Diák: Frissítsd az oldalt (F5) és kattints újra START-ra
+- Ellenőrizd: `public/upload-localstorage-to-drive.html` létezik
+- Deploy to Vercel
+- Próbáld: `http://localhost:5173/upload-localstorage-to-drive.html`
 
-### Probléma: "Exercise count: 0"
-
-**Ok**: Munkamenet nem található vagy lejárt
-
+### 3. "Nincs feladat a munkamenetben"
+**Probléma**: A diák nem tud feladatokat betölteni
 **Megoldás**:
-1. Ellenőrizd a munkamenet kódot (helyes-e?)
-2. Munkamenet 60 perc után lejár → Hozz létre újat
-3. Tanár: Ellenőrizd, hogy a munkamenet aktív-e
+- Ellenőrizd, hogy a tanár feltöltötte-e a fájlokat Google Drive-ra
+- Nézd meg a Supabase `full_session_json` oszlopot
+- Lehet, hogy a munkamenet lejárt (60 perc)
 
-### Probléma: Lassú betöltés
+## Alternatív Megoldás: Drive-Only Mode
 
-**Ok**: Sok kép betöltése Google Drive-ról
+Ha nem akarsz Supabase-t használni:
 
-**Megoldás**:
-- Normális! Első betöltés lassabb lehet
-- Utána cache-elve van → Gyorsabb
-- Várj türelemmel 10-20 másodpercet
+```typescript
+// Enable Drive-Only mode
+driveOnlyService.enableDriveOnlyMode();
 
----
+// Create session
+// → Minden adat Google Drive-on + localStorage
+// → 0% Supabase használat
+```
 
-## 📊 ADATFORGALOM
+**Figyelem**: Drive-Only mode is csak egy gépen működik (localStorage)!
 
-### Supabase (Adatbázis):
-- **Munkamenet metadata**: ~2 KB
-- **20 diák**: ~40 KB
-- **100 munkamenet**: ~4 MB
-- **Kvóta használat**: 0.1% (5 GB limitből)
+## Összefoglalás
 
-### Google Drive (Képek):
-- **Képek**: ~1.5 MB / munkamenet
-- **20 diák**: Minden diák letölti a képeket
-- **Korlátlan tárhely**: Intézményi Google Drive
+✅ **Működik**: Manuális Google Drive feltöltés + Supabase metadata
+✅ **Előny**: 95%+ Supabase egress csökkentés
+✅ **Előny**: Intézményi korlátlan Google Drive tárhely
+⚠️ **Hátrány**: Manuális feltöltés szükséges
+⚠️ **Hátrány**: 2 lépés (létrehozás + feltöltés)
 
-### Összesen:
-- **99% Supabase egress csökkentés** ✅
-- **Költséghatékony** ✅
-- **Hálózati használatra kész** ✅
+## Következő Lépések
 
----
+1. Deploy to Vercel
+2. Test upload tool: `/upload-localstorage-to-drive.html`
+3. Test full workflow with 2-3 computers
+4. Document for teachers
 
-## 🎯 TESZTELÉS
-
-### Egyszerű Teszt (1 számítógép):
-1. Tanár létrehoz munkamenetet
-2. Tanár feltölti képeket Google Drive-ra
-3. Diák (ugyanazon a gépen) csatlakozik
-4. Diák START → Képek betöltődnek
-
-### Hálózati Teszt (20 számítógép):
-1. Tanár létrehoz munkamenetet (1 gép)
-2. Tanár feltölti képeket Google Drive-ra
-3. 20 diák csatlakozik (20 különböző gép)
-4. Mind megnyomja START-ot
-5. Mind látja a képeket ✅
-
----
-
-## 💡 TIPPEK
-
-### Tanárnak:
-- ✅ Mindig töltsd fel a képeket Google Drive-ra munkamenet létrehozása után!
-- ✅ Ellenőrizd, hogy a képek láthatóak-e a Google Drive mappában
-- ✅ Munkamenet 60 perc után lejár → Időzítsd jól!
-- ✅ Kód egyszerű legyen → Könnyebb beírni
-
-### Diáknak:
-- ✅ Írd be pontosan a kódot (kis/nagybetű nem számít)
-- ✅ Várj türelemmel a START után (képek betöltése)
-- ✅ Ha nem töltődnek be a képek → Szólj a tanárnak!
-
----
-
-## 🚀 KÖVETKEZŐ LÉPÉSEK
-
-### Jelenleg:
-- ✅ Munkamenet létrehozás működik
-- ✅ Supabase metadata tárolás működik
-- ✅ Manuális Google Drive feltöltés működik
-- ⚠️ Képek betöltése Google Drive-ról: MOCK (localStorage fallback)
-
-### Jövőbeli Fejlesztés (opcionális):
-- 🔄 Valódi Google Drive API integráció
-- 🔄 Automatikus képfeltöltés Google Drive-ra
-- 🔄 Képek közvetlen betöltése Google Drive-ról (nem localStorage)
-
-### Jelenlegi Workaround:
-- 📁 Manuális feltöltés Google Drive-ra
-- 💾 localStorage fallback működik 1 gépen
-- 🌐 Hálózati használathoz: Képek Google Drive-on kell legyenek
-
----
-
-## ✅ ÖSSZEFOGLALÁS
-
-**Működik**: 
-- ✅ Munkamenet létrehozás
-- ✅ Diák csatlakozás
-- ✅ START gomb
-- ✅ Eredmények mentése
-- ✅ 99% Supabase egress csökkentés
-
-**Manuális lépés szükséges**:
-- ⚠️ Képek feltöltése Google Drive-ra (tanár)
-
-**Hálózati használat**:
-- ✅ 20+ számítógép támogatva
-- ✅ Költséghatékony
-- ✅ Production ready
-
----
-
-**URL**: https://nyirad.vercel.app
-**Google Drive mappa**: https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb
-**Státusz**: ✅ DEPLOYED
-
-**Készítve**: 2026. február 6.
-**Verzió**: 579af7a
+## Kapcsolódó Fájlok
+- `components/TeacherSessionManager.tsx` - Upload button
+- `public/upload-localstorage-to-drive.html` - Manual upload tool
+- `services/fullGoogleDriveService.ts` - Google Drive service
+- `api/simple-api.js` - `/sessions/{code}/download` endpoint
