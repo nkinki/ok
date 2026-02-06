@@ -46,7 +46,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // Drive-Only Session Download (fallback for when Google Drive is not available)
+    // Drive-Only Session Download - DEPRECATED FOR NETWORK USE!
+    // WARNING: This endpoint is for single-computer use only!
+    // For network usage with 20+ computers, use Hybrid Mode instead!
     if (method === 'GET' && path.includes('/sessions/') && path.includes('/download-drive')) {
       const codeMatch = path.match(/\/sessions\/([^\/]+)\/download-drive/);
       if (!codeMatch) {
@@ -56,12 +58,66 @@ export default async function handler(req, res) {
       const sessionCode = codeMatch[1].toUpperCase();
       
       console.log('📥 Drive-Only session download requested for:', sessionCode);
+      console.warn('⚠️ WARNING: Drive-Only mode is NOT suitable for network usage!');
+      console.warn('⚠️ For 20+ computers, use Hybrid Mode (Supabase + Google Drive)');
       
-      // In Drive-Only mode, we need to return session data from localStorage simulation
-      // This is a fallback when actual Google Drive is not configured
+      // IMPORTANT: Drive-Only mode uses localStorage which is browser-specific
+      // This means each computer has its own separate storage
+      // For network usage, you MUST use Hybrid Mode with Supabase!
       
       try {
-        // Simulate session data for Drive-Only mode
+        // Try to get real session data from Supabase first
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          const { data: session, error } = await supabase
+            .from('teacher_sessions')
+            .select('full_session_json, exercises, subject, created_at, id, class_name')
+            .eq('session_code', sessionCode)
+            .eq('is_active', true)
+            .single();
+
+          if (!error && session) {
+            console.log('✅ Real session data found in Supabase for:', sessionCode);
+            
+            let sessionJson;
+            
+            if (session.full_session_json) {
+              console.log('✅ Using full_session_json from Supabase');
+              sessionJson = session.full_session_json;
+            } else if (session.exercises) {
+              console.log('✅ Creating session JSON from exercises');
+              sessionJson = {
+                sessionCode: sessionCode,
+                subject: session.subject || 'general',
+                className: session.class_name || '',
+                createdAt: session.created_at,
+                exercises: session.exercises,
+                metadata: {
+                  version: '1.0.0',
+                  exportedBy: 'Okos Gyakorló API',
+                  totalExercises: session.exercises.length,
+                  estimatedTime: session.exercises.length * 3,
+                  sessionId: session.id
+                }
+              };
+            }
+            
+            if (sessionJson) {
+              console.log('📊 Exercise count:', sessionJson.exercises?.length || 0);
+              return res.status(200).json(sessionJson);
+            }
+          }
+        }
+        
+        // Fallback to mock data only if Supabase is not available
+        console.warn('⚠️ Supabase not available, returning mock data');
+        console.warn('⚠️ This is NOT suitable for production or network usage!');
+        
         const mockSessionData = {
           sessionCode: sessionCode,
           subject: 'info',
@@ -70,9 +126,9 @@ export default async function handler(req, res) {
           exercises: [
             {
               id: 'drive_only_ex1',
-              title: 'Drive-Only Teszt Feladat 1',
+              title: 'Drive-Only Teszt Feladat 1 (MOCK DATA)',
               type: 'QUIZ',
-              instruction: 'Ez egy teszt feladat Drive-Only módban',
+              instruction: 'Ez egy teszt feladat Drive-Only módban - MOCK DATA',
               imageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
               content: {
                 questions: [
@@ -86,9 +142,9 @@ export default async function handler(req, res) {
             },
             {
               id: 'drive_only_ex2',
-              title: 'Drive-Only Teszt Feladat 2',
+              title: 'Drive-Only Teszt Feladat 2 (MOCK DATA)',
               type: 'MATCHING',
-              instruction: 'Párosítsd a fogalmakat Drive-Only módban',
+              instruction: 'Párosítsd a fogalmakat Drive-Only módban - MOCK DATA',
               imageUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
               content: {
                 pairs: [
@@ -101,14 +157,15 @@ export default async function handler(req, res) {
           ],
           metadata: {
             version: '1.0.0',
-            exportedBy: 'Drive-Only Mód',
+            exportedBy: 'Drive-Only Mód (MOCK DATA)',
             totalExercises: 2,
             estimatedTime: 6,
-            driveOnlyMode: true
+            driveOnlyMode: true,
+            warning: 'MOCK DATA - Not suitable for production!'
           }
         };
 
-        console.log('✅ Drive-Only session data returned for:', sessionCode);
+        console.log('⚠️ MOCK session data returned for:', sessionCode);
         console.log('📊 Exercise count:', mockSessionData.exercises.length);
         
         return res.status(200).json(mockSessionData);
