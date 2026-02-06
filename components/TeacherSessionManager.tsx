@@ -403,10 +403,9 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       console.log('📊 Images will be loaded from Google Drive by students');
       console.log('✅ Result: 95%+ Supabase egress reduction!');
 
-      // Store session data in localStorage as backup
-      const localSessionKey = `session_${sessionCode}`;
-      localStorage.setItem(localSessionKey, JSON.stringify(fullSessionData));
-      console.log('💾 Session data also stored in localStorage as backup');
+      // SKIP localStorage backup to avoid quota exceeded error
+      // Session data is in Supabase full_session_json column
+      console.log('⏭️ Skipping localStorage backup (quota limit) - data in Supabase');
       
       // Create session object for UI
       const session: Session = {

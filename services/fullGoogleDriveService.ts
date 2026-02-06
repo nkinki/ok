@@ -86,15 +86,9 @@ class FullGoogleDriveService {
       console.log('🔗 Public URL:', publicUrl);
 
       // Store in localStorage with Drive-like structure
-      const driveKey = `drive_image_${exerciseId}`;
-      localStorage.setItem(driveKey, JSON.stringify({
-        imageData: imageBase64,
-        fileId: mockFileId,
-        publicUrl: publicUrl,
-        fileName: imageFileName,
-        folderId: config.imagesFolderId,
-        uploadedAt: new Date().toISOString()
-      }));
+      // SKIP localStorage storage to avoid quota exceeded error
+      // Images will be manually uploaded to Google Drive
+      console.log('⏭️ Skipping localStorage storage (quota limit) - use manual Google Drive upload');
 
       return {
         success: true,
@@ -171,15 +165,9 @@ class FullGoogleDriveService {
       console.log('🔗 Download URL:', downloadUrl);
 
       // Store in localStorage with Drive-like structure
-      const driveKey = `drive_session_${sessionCode}`;
-      localStorage.setItem(driveKey, JSON.stringify({
-        sessionData: sessionData,
-        fileId: mockFileId,
-        downloadUrl: downloadUrl,
-        fileName: fileName,
-        folderId: config.sessionsFolderId,
-        uploadedAt: new Date().toISOString()
-      }));
+      // SKIP localStorage storage to avoid quota exceeded error
+      // Session JSON will be in Supabase full_session_json column
+      console.log('⏭️ Skipping localStorage storage (quota limit) - session in Supabase');
 
       return {
         success: true,
