@@ -760,20 +760,20 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setError(null);
 
     try {
-      console.log('🚀 START button clicked - Loading exercises from Google Drive...');
+      console.log('🚀 START button clicked - Loading exercises from Supabase...');
       
-      // Load session JSON from Google Drive (via API)
-      const driveResponse = await fetch(`/api/simple-api/sessions/${currentSessionCode.toUpperCase()}/download-drive`);
+      // Load session JSON from Supabase (full_session_json column with Google Drive image URLs)
+      const response = await fetch(`/api/simple-api/sessions/${currentSessionCode.toUpperCase()}/download`);
       
-      if (!driveResponse.ok) {
+      if (!response.ok) {
         setError('Hiba a feladatok betöltésekor');
         setLoading(false);
         return;
       }
 
-      const sessionData = await driveResponse.json();
+      const sessionData = await response.json();
       
-      console.log('✅ Session JSON loaded from Google Drive');
+      console.log('✅ Session JSON loaded from Supabase (with Google Drive image URLs)');
       console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
       
       if (!sessionData.exercises || sessionData.exercises.length === 0) {

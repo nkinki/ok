@@ -25,6 +25,9 @@ interface DriveConfig {
 
 class FullGoogleDriveService {
   
+  // Default Google Drive folder ID (állandó beállítás)
+  private readonly DEFAULT_FOLDER_ID = '1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb';
+  
   /**
    * Get teacher's Google Drive configuration
    */
@@ -33,15 +36,16 @@ class FullGoogleDriveService {
     const imagesFolder = localStorage.getItem('google_drive_images_folder');
     const sessionsFolder = localStorage.getItem('google_drive_sessions_folder');
     
-    const teacherFolderId = mainFolder ? this.extractFolderId(mainFolder) : null;
-    const imagesFolderId = imagesFolder ? this.extractFolderId(imagesFolder) : null;
-    const sessionsFolderId = sessionsFolder ? this.extractFolderId(sessionsFolder) : null;
+    // Use localStorage if available, otherwise use default folder
+    const teacherFolderId = mainFolder ? this.extractFolderId(mainFolder) : this.DEFAULT_FOLDER_ID;
+    const imagesFolderId = imagesFolder ? this.extractFolderId(imagesFolder) : teacherFolderId;
+    const sessionsFolderId = sessionsFolder ? this.extractFolderId(sessionsFolder) : teacherFolderId;
     
     return {
-      teacherFolderId: teacherFolderId || '',
-      imagesFolderId: imagesFolderId || teacherFolderId || '',
-      sessionsFolderId: sessionsFolderId || teacherFolderId || '',
-      isConfigured: !!teacherFolderId
+      teacherFolderId: teacherFolderId || this.DEFAULT_FOLDER_ID,
+      imagesFolderId: imagesFolderId || teacherFolderId || this.DEFAULT_FOLDER_ID,
+      sessionsFolderId: sessionsFolderId || teacherFolderId || this.DEFAULT_FOLDER_ID,
+      isConfigured: true // Always configured with default folder
     };
   }
 

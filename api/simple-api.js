@@ -1386,7 +1386,7 @@ export default async function handler(req, res) {
 
     // Create minimal session (Google Drive mode - NO images in Supabase!)
     if (method === 'POST' && path.includes('/sessions/create-minimal')) {
-      const { code, subject = 'general', className, exerciseCount, maxScore, driveSessionUrl } = req.body;
+      const { code, subject = 'general', className, exerciseCount, maxScore, driveSessionUrl, fullSessionData } = req.body;
 
       if (!code) {
         return res.status(400).json({ error: 'Kód megadása kötelező' });
@@ -1410,10 +1410,12 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        // Create minimal session record - ONLY metadata, NO images!
+        // Create minimal session record with full_session_json for student loading
+        // Images are Google Drive URLs (NOT base64), so egress is minimal!
         const sessionData = {
           session_code: code.toUpperCase(),
-          exercises: [], // Empty - images are on Google Drive!
+          exercises: fullSessionData?.exercises || [], // Exercises with Drive URLs
+          full_session_json: fullSessionData || null, // Full JSON for student download
           subject: subject,
           class_name: className.trim(),
           max_possible_score: maxScore || (exerciseCount ? exerciseCount * 10 : 100),
@@ -1422,9 +1424,9 @@ export default async function handler(req, res) {
           session_json_url: driveSessionUrl || null // Google Drive URL for session JSON
         };
 
-        console.log('💾 Creating minimal session (Google Drive mode):', code.toUpperCase());
-        console.log('📊 Metadata only - NO images in Supabase!');
-        console.log('📊 Data size: ~200 bytes (vs 500KB+ with images)');
+        console.log('💾 Creating session with Google Drive image URLs:', code.toUpperCase());
+        console.log('📊 Images are Drive URLs (NOT base64) - minimal egress!');
+        console.log('📊 Estimated data size: ~50KB (vs 500KB+ with base64 images)');
         
         // Create session in database
         const { data, error } = await supabase
@@ -1442,8 +1444,9 @@ export default async function handler(req, res) {
           });
         }
 
-        console.log('✅ Minimal session created (Google Drive mode):', data.session_code);
-        console.log('✅ 0% Supabase egress for images!');
+        console.log('✅ Session created with Google Drive URLs:', data.session_code);
+        console.log('✅ Students will load Drive URLs from Supabase (minimal egress)');
+        console.log('✅ Images served from Google Drive (0% Supabase egress)');
 
         return res.status(200).json({
           success: true,
@@ -1458,11 +1461,11 @@ export default async function handler(req, res) {
             driveSessionUrl: data.session_json_url,
             storageType: 'GoogleDrive'
           },
-          message: 'Minimal session created (Google Drive mode)'
+          message: 'Session created with Google Drive image URLs'
         });
 
       } catch (err) {
-        console.error('Minimal session creation error:', err);
+        console.error('Session creation error:', err);
         return res.status(500).json({ 
           error: 'Server error',
           details: err.message,
