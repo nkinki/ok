@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Munkamenet Letöltése Google Drive Feltöltéshez</title>
+  <title>Munkamenet JSON Letöltése</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -60,30 +60,33 @@
 </head>
 <body>
   <div class="container">
-    <h1>📤 Munkamenet Letöltése Google Drive Feltöltéshez</h1>
+    <h1>📥 Munkamenet JSON Letöltése</h1>
     
     <div class="warning">
-      <strong>⚠️ Figyelem:</strong> Ez a tool letölti a session adatokat (Supabase vagy localStorage) és előkészíti Google Drive feltöltésre.
+      <strong>⚠️ Figyelem:</strong> Ez a tool letölti a session JSON-t (Supabase vagy localStorage).
       <br><br>
       <strong>Használat:</strong>
       <ol>
         <li>Írd be a session kódot (pl. UK1S5P)</li>
-        <li>Kattints "📤 Upload to Drive"</li>
-        <li>Letöltődik a session JSON és képek</li>
-        <li>Töltsd fel őket manuálisan a Google Drive mappába</li>
-        <li>Ezután a diákok START gombbal betölthetik (hálózaton is!)</li>
+        <li>Kattints "📥 Download JSON"</li>
+        <li>Letöltődik a session JSON (BASE64 képekkel)</li>
+        <li><strong>KÉSZ!</strong> Nincs több lépés!</li>
       </ol>
       <br>
-      <strong>📁 Google Drive mappa:</strong>
-      <a href="https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb" target="_blank">
-        Megnyitás
-      </a>
+      <strong>📁 Megosztás diákokkal:</strong>
+      <ul>
+        <li><strong>Opció 1:</strong> Töltsd fel Google Drive-ra, oszd meg a diákokkal</li>
+        <li><strong>Opció 2:</strong> Másold át USB-n vagy hálózaton</li>
+        <li><strong>Opció 3:</strong> Email-ben küldd el (ha kicsi a fájl)</li>
+      </ul>
+      <br>
+      <strong>👨‍🎓 Diák betöltés:</strong> "JSON fájl betöltése" gomb → Válaszd ki a JSON-t → Képek megjelennek!
     </div>
     
     <div>
       <label>Session Code:</label>
       <input type="text" id="sessionCode" placeholder="FP46I1" />
-      <button onclick="uploadSession()">📤 Upload to Drive</button>
+      <button onclick="uploadSession()">📥 Download JSON</button>
       <button onclick="clearLog()">🗑️ Clear Log</button>
     </div>
     
@@ -111,7 +114,7 @@
         return;
       }
 
-      log(`🚀 Starting upload for session: ${sessionCode}`);
+      log(`🚀 Starting JSON download for session: ${sessionCode}`);
       
       // Step 1: Try to get session data from Supabase first (NEW!)
       log(`📥 Fetching session from Supabase...`);
@@ -177,36 +180,26 @@
         
         log(`✅ JSON file downloaded: session_${sessionCode}.json`, 'success');
         log(`📤 Next steps:`, 'warning');
-        log(`   1. Nyisd meg: https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb`, 'warning');
-        log(`   2. Töltsd fel a letöltött JSON fájlt`, 'warning');
-        log(`   3. Diák START gombbal betöltheti`, 'warning');
+        log(`   1. Töltsd fel a JSON fájlt Google Drive-ra (opcionális)`, 'warning');
+        log(`   2. VAGY add át USB-n/hálózaton a diákoknak`, 'warning');
+        log(`   3. Diák "JSON fájl betöltése" gombbal betöltheti`, 'warning');
         
-        // Step 3: Extract images for manual upload
-        log(`🖼️ Extracting images...`);
+        // Step 3: SKIP image extraction (images are in JSON as BASE64)
+        log(`⏭️ Skipping image extraction (BASE64 in JSON)`, 'info');
+        log(`📊 Images are embedded in JSON file (BASE64 format)`, 'info');
+        log(`📊 JSON file size: ${formatBytes(jsonBlob.size)}`, 'info');
         
+        let totalImageSize = 0;
         for (let i = 0; i < sessionData.exercises.length; i++) {
           const exercise = sessionData.exercises[i];
           if (exercise.imageUrl && exercise.imageUrl.startsWith('data:')) {
-            log(`   Image ${i + 1}: ${exercise.imageUrl.length} bytes`);
-            
-            // Create download link for each image
-            const imageBlob = dataURLtoBlob(exercise.imageUrl);
-            const imageUrl = URL.createObjectURL(imageBlob);
-            
-            const imgLink = document.createElement('a');
-            imgLink.href = imageUrl;
-            imgLink.download = `${sessionCode}_exercise_${i + 1}.jpg`;
-            document.body.appendChild(imgLink);
-            imgLink.click();
-            document.body.removeChild(imgLink);
-            URL.revokeObjectURL(imageUrl);
-            
-            log(`   ✅ Image ${i + 1} downloaded`, 'success');
+            totalImageSize += exercise.imageUrl.length;
           }
         }
+        log(`📊 Total embedded images size: ${formatBytes(totalImageSize)}`, 'info');
         
-        log(`🎉 All files downloaded!`, 'success');
-        log(`📤 Upload them to: https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb`, 'success');
+        log(`🎉 JSON download complete!`, 'success');
+        log(`✅ Diákok betölthetik a JSON-t offline is!`, 'success');
         
       } catch (error) {
         log(`❌ Error: ${error.message}`, 'error');
