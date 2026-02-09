@@ -714,7 +714,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const apiUrl = isDev 
         ? 'http://localhost:3002/api/drive-download'
-        : '/api/drive-download';
+        : '/api/drive-download'; // Vercel serverless function
+      
+      console.log('🌐 API URL:', apiUrl, '(isDev:', isDev + ')');
       
       const response = await fetch(`${apiUrl}?fileName=${encodeURIComponent(fileName)}`);
       

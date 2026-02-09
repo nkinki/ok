@@ -1,6 +1,4 @@
-// Google Drive JSON Auto-Download API
-// Automatikusan letölti a JSON fájlt a Drive-ról fájlnév alapján
-
+// Vercel Serverless Function - Google Drive JSON Auto-Download
 import { google } from 'googleapis';
 
 export default async function handler(req, res) {
@@ -33,7 +31,12 @@ export default async function handler(req, res) {
 
     if (!SERVICE_ACCOUNT_EMAIL || !PRIVATE_KEY) {
       console.error('❌ Missing Google credentials');
-      return res.status(500).json({ error: 'Server configuration error' });
+      console.error('SERVICE_ACCOUNT_EMAIL:', SERVICE_ACCOUNT_EMAIL ? 'present' : 'missing');
+      console.error('PRIVATE_KEY:', PRIVATE_KEY ? 'present' : 'missing');
+      return res.status(500).json({ 
+        error: 'Server configuration error',
+        message: 'Missing Google Drive credentials. Check Vercel environment variables.'
+      });
     }
 
     // Create JWT client
