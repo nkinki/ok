@@ -711,7 +711,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       console.log('📁 Auto-downloading file:', fileName);
       
       // Call backend API to download from Google Drive
-      const apiUrl = import.meta.env.DEV 
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const apiUrl = isDev 
         ? 'http://localhost:3002/api/drive-download'
         : '/api/drive-download';
       
