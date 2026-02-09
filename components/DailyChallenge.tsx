@@ -804,11 +804,22 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       setError(error instanceof Error ? error.message : 'Hiba történt a fájl letöltésekor');
       setLoading(false);
       
-      // Fallback: show manual file picker
-      console.log('💡 Fallback: Opening manual file picker...');
+      // Fallback: Open Google Drive folder and show file picker
+      console.log('💡 Fallback: Opening Google Drive folder...');
+      
+      // Generate filename again for the alert
+      const today = new Date().toISOString().slice(0, 10);
+      const expectedFileName = `munkamenet_${currentSessionCode?.toUpperCase()}_${today}.json`;
+      
+      // Open Drive folder in new tab
+      const driveUrl = 'https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6';
+      window.open(driveUrl, '_blank');
+      
+      // Show instructions and open file picker after delay
       setTimeout(() => {
+        alert(`📁 A Google Drive mappa megnyílt egy új ablakban.\n\n1. Töltsd le a fájlt: ${expectedFileName}\n2. Kattints OK-ra és válaszd ki a letöltött fájlt`);
         fileInputRef.current?.click();
-      }, 2000);
+      }, 1000);
     }
   };
 
