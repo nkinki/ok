@@ -694,9 +694,6 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     console.log('✅ Waiting for START button click...');
     setStep('WAITING_FOR_START');
   };
-      setLoading(false);
-    }
-  };
 
   // NEW: Handle START button click - Auto-download JSON from Google Drive
   const handleStartExercises = async () => {
