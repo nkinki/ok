@@ -9,6 +9,7 @@ import StorageManager from '../utils/storageUtils'
 import SafeStorage from '../utils/safeStorage'
 import { fullGoogleDriveService } from '../services/fullGoogleDriveService'
 import { driveOnlyService } from '../services/driveOnlyService'
+import { googleDriveSessionService } from '../services/googleDriveSessionService'
 import DriveOnlyToggle from './DriveOnlyToggle'
 
 interface Props {
@@ -532,119 +533,32 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             <div className="text-left">
               <h3 className="text-2xl font-bold text-green-800">Aktív munkamenet</h3>
               <p className="text-green-700">Kód: <span className="font-mono text-xl font-bold">{activeSession.code}</span></p>
-              <p className="text-sm text-orange-600 font-medium">⏰ Automatikus leállítás: 60 perc múlva</p>
-              <p className="text-sm text-blue-600 font-medium mt-1">
-                📁 Google Drive mappa: 
-                <a 
-                  href="https://drive.google.com/drive/folders/1JlBYWIetXER_k0BSrM6A0rrRES8CCtKb" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="underline ml-1 hover:text-blue-800"
-                >
-                  Megnyitás
-                </a>
-              </p>
-            </div>
-          </div>
-          
-          <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-6 mb-6">
-            <div className="flex items-start gap-3">
-              <div className="text-3xl">📋</div>
-              <div className="flex-1">
-                <h4 className="font-bold text-blue-900 mb-2">⚠️ FONTOS: Hálózati használathoz</h4>
-                <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
-                  <li className="font-medium">Kattints a "Képek feltöltése Google Drive-ra" gombra</li>
-                  <li>Töltsd fel a képeket a Google Drive mappába</li>
-                  <li>Csak ezután tudják a diákok (más gépeken) betölteni a feladatokat!</li>
-                </ol>
-                <div className="mt-3 p-3 bg-white rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700">
-                    💡 <strong>Miért kell ez?</strong> A képek jelenleg a böngésző localStorage-ában vannak, 
-                    ami csak ezen a gépen érhető el. A Google Drive-ra feltöltve minden diák eléri őket a hálózaton.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-lg p-4 border border-green-200">
-              <div className="text-2xl font-bold text-green-800">{activeSession.exercises.length}</div>
-              <div className="text-sm text-green-600">Feladat</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-green-200">
-              <div className="text-2xl font-bold text-green-800">0</div>
-              <div className="text-sm text-green-600">Csatlakozott diák</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-green-200">
-              <div className="text-2xl font-bold text-green-800">Aktív</div>
-              <div className="text-sm text-green-600">Állapot</div>
+              <p className="text-sm text-green-600 font-medium">{activeSession.exercises.length} feladat</p>
             </div>
           </div>
 
           <div className="flex justify-center gap-4">
             <button
               onClick={() => {
-                // Open Google Drive upload helper
-                const uploadUrl = window.location.origin + '/upload-localstorage-to-drive.html';
-                window.open(uploadUrl, '_blank', 'width=800,height=600');
+                // Open Google Drive folder
+                googleDriveSessionService.openFolder();
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-bold flex items-center gap-2 text-lg"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
               </svg>
-              Képek feltöltése Google Drive-ra
-            </button>
-            
-            <button
-              onClick={() => setShowMonitor(true)}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-              </svg>
-              Munkamenet figyelése
-            </button>
-            
-            <button
-              onClick={() => {
-                // Re-download JSON file for students
-                const sessionKey = `session_${activeSession.code}`;
-                const sessionData = localStorage.getItem(sessionKey);
-                if (sessionData) {
-                  const dataStr = sessionData;
-                  const blob = new Blob([dataStr], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `munkamenet_${activeSession.code}_${new Date().toISOString().slice(0,10)}.json`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                  console.log('📁 JSON fájl újra letöltve');
-                } else {
-                  alert('Nincs elérhető munkamenet adat a letöltéshez');
-                }
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-              </svg>
-              JSON letöltése diákoknak
+              📁 Feltöltés Drive-ra
             </button>
             
             <button
               onClick={() => setActiveSession(null)}
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2"
+              className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-lg font-bold flex items-center gap-2 text-lg"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
-              Munkamenet leállítása
+              Leállítás
             </button>
           </div>
         </div>

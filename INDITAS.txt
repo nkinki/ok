@@ -1,0 +1,47 @@
+═══════════════════════════════════════════════════════════
+  OKOS GYAKORLÓ - GYORS INDÍTÁS
+═══════════════════════════════════════════════════════════
+
+✅ TELEPÍTÉS KÉSZ!
+
+📍 SZERVER CÍMEK:
+   • Helyi gép:    http://localhost:3001/
+   • Hálózaton:    http://192.168.1.232:3001/
+
+🚀 INDÍTÁS:
+   1. Nyisd meg a PowerShell-t ebben a mappában
+   2. Futtasd: powershell -ExecutionPolicy Bypass -File start-dev.ps1
+   3. Nyisd meg böngészőben: http://localhost:3001/
+
+⚡ GYORS PARANCSOK:
+   • Indítás:      npm run dev
+   • Build:        npm run build
+   • Tesztek:      npm run test
+
+📂 FONTOS FÁJLOK:
+   • .env.local              - Környezeti változók (Supabase, Google Drive)
+   • start-dev.ps1           - Gyors indító script
+   • MASIK_GEPRE_TELEPITES.md - Részletes telepítési útmutató
+
+🔧 BEÁLLÍTÁSOK:
+   ✅ Node.js v24.13.0 telepítve
+   ✅ npm 11.6.2 telepítve
+   ✅ 445 csomag telepítve
+   ✅ Supabase kapcsolat konfigurálva
+   ✅ Google Drive API konfigurálva
+   ✅ Fejlesztői szerver fut
+
+📖 HASZNÁLAT:
+   • Tanári felület: Feladatok létrehozása, munkamenetek kezelése
+   • Diák felület:   6 karakteres kóddal csatlakozás
+   • Kahoot mód:     Valós idejű verseny
+
+🆘 PROBLÉMÁK?
+   • Olvasd el: MASIK_GEPRE_TELEPITES.md
+   • Ellenőrizd: .env.local fájlt
+   • Nézd meg: http://localhost:3001/ működik-e
+
+═══════════════════════════════════════════════════════════
+Készítve: 2026-02-09
+Verzió: 1.0.0
+═══════════════════════════════════════════════════════════

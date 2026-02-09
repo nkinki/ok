@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Session BASE64 Ellenőrző</title>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .input-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #333;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      width: 100%;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 5px;
+      display: none;
+    }
+    .result.success {
+      background: #d4edda;
+      border: 2px solid #28a745;
+      color: #155724;
+      display: block;
+    }
+    .result.error {
+      background: #f8d7da;
+      border: 2px solid #dc3545;
+      color: #721c24;
+      display: block;
+    }
+    .result.warning {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      color: #856404;
+      display: block;
+    }
+    .result h3 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+    .result ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .result li {
+      margin: 5px 0;
+    }
+    .code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    .image-preview {
+      margin-top: 20px;
+      max-width: 100%;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Session BASE64 Ellenőrző</h1>
+    <p class="subtitle">Ellenőrizd, hogy a munkamenet BASE64 képeket tartalmaz-e (JSON import kompatibilis)</p>
+    
+    <div class="input-group">
+      <label for="sessionCode">Munkamenet kód:</label>
+      <input 
+        type="text" 
+        id="sessionCode" 
+        placeholder="Pl: UK1S5P, J7ZD9J, XYZ123" 
+        style="text-transform: uppercase;"
+      />
+    </div>
+    
+    <button onclick="checkSession()">🔍 Ellenőrzés</button>
+    
+    <div id="loading" class="loading" style="display: none;">
+      ⏳ Betöltés...
+    </div>
+    
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    async function checkSession() {
+      const sessionCode = document.getElementById('sessionCode').value.trim().toUpperCase();
+      const resultDiv = document.getElementById('result');
+      const loadingDiv = document.getElementById('loading');
+      
+      if (!sessionCode) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = '<h3>❌ Hiba</h3><p>Kérlek add meg a munkamenet kódot!</p>';
+        return;
+      }
+      
+      // Show loading
+      loadingDiv.style.display = 'block';
+      resultDiv.style.display = 'none';
+      
+      try {
+        // Fetch session from API
+        const response = await fetch(`/api/simple-api/sessions/${sessionCode}/download`);
+        
+        if (!response.ok) {
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `
+            <h3>❌ Munkamenet nem található</h3>
+            <p>A <span class="code">${sessionCode}</span> kódú munkamenet nem létezik a Supabase-ben.</p>
+            <ul>
+              <li>Ellenőrizd, hogy jól írtad-e be a kódot</li>
+              <li>Lehet, hogy a munkamenet túl régi és már törölve lett</li>
+              <li>Lehet, hogy a munkamenet még nem lett létrehozva</li>
+            </ul>
+          `;
+          loadingDiv.style.display = 'none';
+          return;
+        }
+        
+        const sessionData = await response.json();
+        
+        // Check if session has exercises
+        if (!sessionData.exercises || sessionData.exercises.length === 0) {
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `
+            <h3>❌ Nincs feladat</h3>
+            <p>A munkamenet nem tartalmaz feladatokat.</p>
+          `;
+          loadingDiv.style.display = 'none';
+          return;
+        }
+        
+        // Check first exercise image
+        const firstExercise = sessionData.exercises[0];
+        const imageUrl = firstExercise.imageUrl;
+        
+        if (!imageUrl) {
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `
+            <h3>❌ Nincs kép</h3>
+            <p>Az első feladat nem tartalmaz képet.</p>
+          `;
+          loadingDiv.style.display = 'none';
+          return;
+        }
+        
+        // Check image type
+        const imageLength = imageUrl.length;
+        const isBase64 = imageUrl.startsWith('data:image/');
+        const isDriveUrl = imageUrl.includes('drive.google.com');
+        const isMockUrl = imageLength < 200;
+        
+        // Calculate total size
+        let totalBase64Size = 0;
+        let base64Count = 0;
+        sessionData.exercises.forEach(ex => {
+          if (ex.imageUrl && ex.imageUrl.startsWith('data:image/')) {
+            totalBase64Size += ex.imageUrl.length;
+            base64Count++;
+          }
+        });
+        
+        if (isBase64) {
+          // SUCCESS - BASE64 images
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = `
+            <h3>✅ TÖKÉLETES! BASE64 képek</h3>
+            <p>Ez a munkamenet <strong>KÉSZEN ÁLL</strong> a JSON importra!</p>
+            <ul>
+              <li><strong>Munkamenet kód:</strong> <span class="code">${sessionData.code || sessionData.sessionCode}</span></li>
+              <li><strong>Tantárgy:</strong> ${sessionData.subject || 'N/A'}</li>
+              <li><strong>Osztály:</strong> ${sessionData.className || 'N/A'}</li>
+              <li><strong>Feladatok száma:</strong> ${sessionData.exercises.length}</li>
+              <li><strong>BASE64 képek:</strong> ${base64Count} / ${sessionData.exercises.length}</li>
+              <li><strong>Első kép mérete:</strong> ${formatBytes(imageLength)}</li>
+              <li><strong>Összes kép mérete:</strong> ${formatBytes(totalBase64Size)}</li>
+            </ul>
+            <p><strong>🎉 Következő lépések:</strong></p>
+            <ol>
+              <li>Kattints a "Képek feltöltése Google Drive-ra" gombra</li>
+              <li>Töltsd le a JSON fájlt (${formatBytes(totalBase64Size + 10000)} körül)</li>
+              <li>Oszd meg a diákokkal (Google Drive / USB / hálózat)</li>
+              <li>Diákok betölthetik a "JSON fájl betöltése" gombbal</li>
+              <li>Képek megjelennek offline is! ✅</li>
+            </ol>
+            <img src="${imageUrl}" class="image-preview" alt="Első feladat képe" />
+          `;
+        } else if (isMockUrl) {
+          // ERROR - Mock URL (old session)
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `
+            <h3>❌ RÉGI MUNKAMENET - Mock URL</h3>
+            <p>Ez a munkamenet <strong>A FIX ELŐTT</strong> lett létrehozva és <strong>NEM MŰKÖDIK</strong> a JSON importtal.</p>
+            <ul>
+              <li><strong>Munkamenet kód:</strong> <span class="code">${sessionData.code || sessionData.sessionCode}</span></li>
+              <li><strong>Kép típus:</strong> Mock Google Drive URL</li>
+              <li><strong>Kép hossz:</strong> ${imageLength} karakter (túl rövid!)</li>
+              <li><strong>URL példa:</strong> <span class="code">${imageUrl.substring(0, 50)}...</span></li>
+            </ul>
+            <p><strong>⚠️ PROBLÉMA:</strong></p>
+            <ul>
+              <li>Ez egy hamis URL, nem létező Google Drive fájlra mutat</li>
+              <li>A JSON import nem fog működni ezzel a munkamenettel</li>
+              <li>A képek nem fognak megjelenni</li>
+            </ul>
+            <p><strong>✅ MEGOLDÁS:</strong></p>
+            <ol>
+              <li><strong>Hozz létre egy TELJESEN ÚJ munkamenetet</strong></li>
+              <li>NE használd a régi kódokat (J7ZD9J, 0Z52CH, U9K5JH, stb.)</li>
+              <li>Az új munkamenet BASE64 képeket fog tartalmazni</li>
+              <li>Ellenőrizd újra ezzel a tool-lal</li>
+            </ol>
+          `;
+        } else if (isDriveUrl) {
+          // WARNING - Real Drive URL
+          resultDiv.className = 'result warning';
+          resultDiv.innerHTML = `
+            <h3>⚠️ Google Drive URL</h3>
+            <p>Ez a munkamenet Google Drive linkeket használ.</p>
+            <ul>
+              <li><strong>Munkamenet kód:</strong> <span class="code">${sessionData.code || sessionData.sessionCode}</span></li>
+              <li><strong>Kép típus:</strong> Google Drive URL</li>
+              <li><strong>Kép hossz:</strong> ${imageLength} karakter</li>
+            </ul>
+            <p><strong>💡 MEGJEGYZÉS:</strong></p>
+            <ul>
+              <li>Ez működhet, ha a Drive fájlok léteznek és publikusak</li>
+              <li>Offline használathoz BASE64 képek jobbak</li>
+              <li>Ha offline JSON importot szeretnél, hozz létre új munkamenetet</li>
+            </ul>
+          `;
+        } else {
+          // UNKNOWN
+          resultDiv.className = 'result warning';
+          resultDiv.innerHTML = `
+            <h3>❓ Ismeretlen kép formátum</h3>
+            <p>A kép formátuma nem ismerhető fel.</p>
+            <ul>
+              <li><strong>Kép hossz:</strong> ${imageLength} karakter</li>
+              <li><strong>URL kezdete:</strong> <span class="code">${imageUrl.substring(0, 100)}...</span></li>
+            </ul>
+          `;
+        }
+        
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <h3>❌ Hiba történt</h3>
+          <p>${error.message}</p>
+        `;
+      } finally {
+        loadingDiv.style.display = 'none';
+      }
+    }
+    
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+    
+    // Auto-load session code from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeParam = urlParams.get('code');
+    if (codeParam) {
+      document.getElementById('sessionCode').value = codeParam;
+      checkSession();
+    }
+  </script>
+</body>
+</html>

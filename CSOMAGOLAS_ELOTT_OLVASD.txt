@@ -1,0 +1,84 @@
+═══════════════════════════════════════════════════════════════
+  📦 PROJEKT CSOMAGOLÁSA - GYORS ÚTMUTATÓ
+═══════════════════════════════════════════════════════════════
+
+✅ KÉSZ VAGY A CSOMAGOLÁSRA!
+
+A node_modules és dist mappák törölve lettek, így a projekt
+sokkal kisebb (kb. 10-50 MB helyett 300+ MB).
+
+═══════════════════════════════════════════════════════════════
+  🎯 KÖVETKEZŐ LÉPÉSEK
+═══════════════════════════════════════════════════════════════
+
+1️⃣ CSOMAGOLD ZIP-BE A PROJEKT MAPPÁT
+   
+   Windows:
+   - Jobb klikk a "okos" mappán
+   - "Küldés" → "Tömörített (zip) mappa"
+   - Vagy: Jobb klikk → "Tömörítés" → "ZIP"
+   
+   Eredmény: okos.zip (kb. 10-50 MB)
+
+2️⃣ VIDD ÁT A MÁSIK GÉPRE
+   
+   - USB pendrive
+   - Hálózati megosztás
+   - Email (ha kicsi a fájl)
+   - Cloud storage (Google Drive, OneDrive, stb.)
+
+3️⃣ MÁSIK GÉPEN - CSOMAGOLD KI
+   
+   - Jobb klikk a okos.zip fájlon
+   - "Kibontás ide" vagy "Extract here"
+
+4️⃣ MÁSIK GÉPEN - TELEPÍTÉS
+   
+   Nyisd meg a terminált a kicsomagolt mappában:
+   
+   ```
+   npm install
+   npm run dev
+   ```
+   
+   FONTOS: Olvasd el a MASIK_GEPRE_TELEPITES.md fájlt!
+
+═══════════════════════════════════════════════════════════════
+  ⚠️ NE FELEJTSD EL!
+═══════════════════════════════════════════════════════════════
+
+✅ .env.local fájl - KRITIKUS!
+   
+   Ez a fájl tartalmazza a Supabase és API kulcsokat.
+   
+   Ellenőrizd, hogy benne van-e a ZIP-ben:
+   - Ha IGEN: Rendben, minden megvan
+   - Ha NEM: Másold át külön a másik gépre!
+
+═══════════════════════════════════════════════════════════════
+  📋 ELLENŐRZŐ LISTA
+═══════════════════════════════════════════════════════════════
+
+Jelenlegi gépen:
+□ node_modules törölve ✅
+□ dist törölve ✅
+□ .vercel törölve ✅
+□ Projekt ZIP-be csomagolva
+□ .env.local fájl ellenőrizve
+
+Másik gépen:
+□ ZIP kicsomagolva
+□ .env.local fájl megvan
+□ npm install lefutott
+□ npm run dev működik
+□ Böngészőben megnyílik
+
+═══════════════════════════════════════════════════════════════
+  🎉 KÉSZ!
+═══════════════════════════════════════════════════════════════
+
+Ha minden lépést követtél, a projekt működni fog a másik gépen!
+
+Részletes útmutató: MASIK_GEPRE_TELEPITES.md
+
+═══════════════════════════════════════════════════════════════

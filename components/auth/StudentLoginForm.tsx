@@ -150,9 +150,26 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
             </div>
           </div>
           
+          {/* Google Drive Folder Button */}
+          <button
+            onClick={() => {
+              const driveUrl = 'https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6';
+              window.open(driveUrl, '_blank');
+            }}
+            className="mt-4 w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+            </svg>
+            📁 Drive mappa megnyitása
+          </button>
+          <p className="text-xs text-gray-500 text-center mt-2">
+            Töltsd le a munkamenet JSON fájlt a Drive mappából
+          </p>
+          
           <button
             onClick={onJsonImport}
-            className="mt-4 w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+            className="mt-3 w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
@@ -160,7 +177,7 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
             JSON fájl betöltése
           </button>
           <p className="text-xs text-gray-500 text-center mt-2">
-            Tanártól kapott feladat fájl betöltése
+            Válaszd ki a letöltött JSON fájlt a gépedről
           </p>
         </div>
       )}
