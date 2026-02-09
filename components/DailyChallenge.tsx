@@ -711,7 +711,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       console.log('📁 Auto-downloading file:', fileName);
       
       // Call backend API to download from Google Drive
-      const response = await fetch(`/api/drive-download?fileName=${encodeURIComponent(fileName)}`);
+      const apiUrl = import.meta.env.DEV 
+        ? 'http://localhost:3002/api/drive-download'
+        : '/api/drive-download';
+      
+      const response = await fetch(`${apiUrl}?fileName=${encodeURIComponent(fileName)}`);
       
       if (!response.ok) {
         const errorData = await response.json();
