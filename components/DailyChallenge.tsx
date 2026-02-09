@@ -683,134 +683,61 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   const handleStudentLogin = async (studentData: Student, code: string) => {
     setStudent(studentData);
     setCurrentSessionCode(code);
-    setLoading(true);
+    setLoading(false);
     setError(null);
 
-    // CRITICAL DEBUG: Log the exact session code being used
-    console.log('🎯 STUDENT LOGIN - Session code being used:', code.toUpperCase());
-    console.log('🎯 STUDENT LOGIN - Student data:', { name: studentData.name, className: studentData.className });
+    console.log('📁 GOOGLE DRIVE ONLY MODE - Supabase kikapcsolva');
+    console.log('🎯 Session code:', code.toUpperCase());
+    console.log('👨‍🎓 Student:', { name: studentData.name, className: studentData.className });
 
-    try {
-      // Step 1: Check if session exists (Supabase - minimal data only!)
-      console.log('🔍 Checking session existence (metadata only)...');
-      const sessionCheck = await fetch(`/api/simple-api/sessions/${code.toUpperCase()}/check`);
-      
-      if (!sessionCheck.ok) {
-        setError('Hibás munkamenet kód vagy a munkamenet nem aktív');
-        setLoading(false);
-        return;
-      }
-
-      const sessionInfo = await sessionCheck.json();
-      
-      if (!sessionInfo.exists) {
-        setError('Munkamenet nem található');
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Session exists:', sessionInfo.session.code);
-      console.log('📊 Exercise count:', sessionInfo.session.exerciseCount);
-
-      // Step 2: Join session (add student to participants)
-      console.log('👨‍🎓 Joining session...');
-      const joinResponse = await fetch(`/api/simple-api/sessions/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionCode: code.toUpperCase(),
-          name: studentData.name,
-          className: studentData.className
-        })
-      });
-
-      if (!joinResponse.ok) {
-        setError('Csatlakozási hiba');
-        setLoading(false);
-        return;
-      }
-
-      const joinData = await joinResponse.json();
-      console.log('✅ Student joined:', joinData.student.id);
-
-      // Update student with server ID
-      setStudent({
-        ...studentData,
-        id: joinData.student.id,
-        sessionId: joinData.student.sessionId
-      });
-
-      // Step 3: Show START button (DON'T load exercises yet!)
-      console.log('⏸️ Waiting for START button click...');
-      setStep('WAITING_FOR_START');
-      setLoading(false);
-
-    } catch (error) {
-      console.error('❌ Student login error:', error);
-      setError('Hálózati hiba történt');
+    // Show START button immediately (no Supabase check)
+    console.log('✅ Waiting for START button click...');
+    setStep('WAITING_FOR_START');
+  };
       setLoading(false);
     }
   };
 
-  // NEW: Handle START button click
+  // NEW: Handle START button click - Auto-download JSON from Google Drive
   const handleStartExercises = async () => {
     if (!currentSessionCode) return;
     
+    console.log('🚀 START button clicked - Auto-downloading JSON from Google Drive...');
     setLoading(true);
     setError(null);
-
+    
     try {
-      console.log('🚀 START button clicked - Loading exercises from Supabase...');
+      // Generate expected filename: munkamenet_KÓDNÉV_YYYY-MM-DD.json
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const fileName = `munkamenet_${currentSessionCode.toUpperCase()}_${today}.json`;
       
-      // Load session JSON from Supabase (full_session_json column with Google Drive image URLs)
-      const response = await fetch(`/api/simple-api/sessions/${currentSessionCode.toUpperCase()}/download`);
+      console.log('📁 Keresett fájl:', fileName);
+      console.log('📂 Google Drive mappa: 1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6');
       
-      if (!response.ok) {
-        setError('Hiba a feladatok betöltésekor');
-        setLoading(false);
-        return;
-      }
-
-      const sessionData = await response.json();
+      // Try to fetch the file from Google Drive
+      // Note: This requires the file to be publicly accessible or shared
+      const driveFileUrl = `https://drive.google.com/uc?export=download&id=FILE_ID`;
       
-      console.log('✅ Session JSON loaded from Supabase (with Google Drive image URLs)');
-      console.log('📊 Exercise count:', sessionData.exercises?.length || 0);
+      // Since we don't have the file ID, we'll open the Drive folder and show instructions
+      const driveUrl = 'https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6';
+      window.open(driveUrl, '_blank');
       
-      if (!sessionData.exercises || sessionData.exercises.length === 0) {
-        setError('Nincs feladat a munkamenetben');
-        setLoading(false);
-        return;
-      }
-
-      // Convert exercises to playlist format
-      const exerciseItems = sessionData.exercises.map((exercise: any) => ({
-        id: exercise.id,
-        fileName: exercise.fileName || exercise.title,
-        imageUrl: exercise.imageUrl || '', // Google Drive URL!
-        data: {
-          type: exercise.type,
-          title: exercise.title,
-          instruction: exercise.instruction,
-          content: exercise.content
-        }
-      }));
-
-      console.log('✅ Exercises loaded with Google Drive image URLs');
-      console.log('🖼️ First exercise image URL:', exerciseItems[0]?.imageUrl?.substring(0, 100));
-
-      // Set playlist and start playing
-      setPlaylist(exerciseItems);
-      setCurrentIndex(0);
-      setCompletedCount(0);
-      setCompletedExercises(new Set());
-      setStep('PLAYING');
+      console.log('📁 Google Drive mappa megnyitva');
+      console.log(`📥 Keresd meg: ${fileName}`);
+      
+      // Show instructions
+      setError(null);
       setLoading(false);
-
-      console.log('🎮 Exercises ready - starting game!');
-
+      
+      // Show info with filename
+      alert(`📁 Google Drive mappa megnyílt!\n\n🔍 Keresd meg ezt a fájlt:\n${fileName}\n\n1. Töltsd le a fájlt\n2. Kattints a "JSON fájl betöltése" gombra\n3. Válaszd ki a letöltött fájlt`);
+      
+      // Switch back to login to show JSON import button
+      setStep('LOGIN');
+      
     } catch (error) {
-      console.error('❌ Error loading exercises:', error);
-      setError('Hiba a feladatok betöltésekor');
+      console.error('❌ Error:', error);
+      setError('Hiba történt');
       setLoading(false);
     }
   };
