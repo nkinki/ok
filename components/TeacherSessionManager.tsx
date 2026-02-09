@@ -10,7 +10,6 @@ import SafeStorage from '../utils/safeStorage'
 import { fullGoogleDriveService } from '../services/fullGoogleDriveService'
 import { driveOnlyService } from '../services/driveOnlyService'
 import { googleDriveSessionService } from '../services/googleDriveSessionService'
-import DriveOnlyToggle from './DriveOnlyToggle'
 
 interface Props {
   library: BulkResultItem[]
@@ -469,49 +468,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             Munkamenet előzmények
           </button>
           
-          {/* Drive-Only Mode Toggle */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg">
-            <button
-              onClick={async () => {
-                if (driveOnlyMode) {
-                  driveOnlyService.disableDriveOnlyMode();
-                  setDriveOnlyMode(false);
-                  setError(null);
-                } else {
-                  driveOnlyService.enableDriveOnlyMode();
-                  setDriveOnlyMode(true);
-                  setError(null);
-                }
-              }}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                driveOnlyMode 
-                  ? 'bg-purple-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {driveOnlyMode ? '📁 Drive-Only' : '☁️ Supabase'}
-            </button>
-            <span className="text-sm text-purple-700">
-              {driveOnlyMode ? 'Csak Google Drive' : 'Adatbázis aktív'}
-            </span>
-          </div>
-
-          {/* Google Drive Status */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"/>
-            </svg>
-            <span className="text-sm font-medium text-green-700">
-              {(() => {
-                const driveFolder = localStorage.getItem('google_drive_folder');
-                return driveFolder ? '📁 Drive beállítva' : '⚠️ Drive nincs beállítva';
-              })()}
-            </span>
-          </div>
-          
-
-          
           <button
             onClick={onExit}
             className="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium"
@@ -520,9 +476,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           </button>
         </div>
       </div>
-
-      {/* Drive-Only Mode Toggle */}
-      <DriveOnlyToggle onModeChange={(isDriveOnly) => setDriveOnlyMode(isDriveOnly)} />
 
       {activeSession && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center mb-8">
@@ -639,16 +592,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                 JSON Export ({selectedExercises.length})
               </button>
             </div>
-          </div>
-        </div>
-        
-        {/* Session expiration info */}
-        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-          <div className="flex items-center gap-2 text-orange-800">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span className="text-sm font-medium">A munkamenet automatikusan leáll 60 perc múlva</span>
           </div>
         </div>
 
