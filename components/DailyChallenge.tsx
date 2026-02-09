@@ -1198,8 +1198,16 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     const expectedFileName = `munkamenet_${currentSessionCode?.toUpperCase()}_${today}.json`;
     
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl p-12 text-center">
+      <>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileImport}
+          accept=".json"
+          style={{ display: 'none' }}
+        />
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+          <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl p-12 text-center">
           {/* Student Info */}
           <div className="mb-8">
             <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-5xl">
@@ -1279,6 +1287,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           </button>
         </div>
       </div>
+      </>
     );
   }
 
