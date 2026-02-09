@@ -695,48 +695,20 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     setStep('WAITING_FOR_START');
   };
 
-  // NEW: Handle START button click - Auto-download JSON from Google Drive
+  // NEW: Handle START button click - Show JSON import instructions
   const handleStartExercises = async () => {
     if (!currentSessionCode) return;
     
-    console.log('🚀 START button clicked - Auto-downloading JSON from Google Drive...');
-    setLoading(true);
-    setError(null);
+    console.log('🚀 START button clicked - Showing JSON import instructions...');
     
-    try {
-      // Generate expected filename: munkamenet_KÓDNÉV_YYYY-MM-DD.json
-      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-      const fileName = `munkamenet_${currentSessionCode.toUpperCase()}_${today}.json`;
-      
-      console.log('📁 Keresett fájl:', fileName);
-      console.log('📂 Google Drive mappa: 1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6');
-      
-      // Try to fetch the file from Google Drive
-      // Note: This requires the file to be publicly accessible or shared
-      const driveFileUrl = `https://drive.google.com/uc?export=download&id=FILE_ID`;
-      
-      // Since we don't have the file ID, we'll open the Drive folder and show instructions
-      const driveUrl = 'https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6';
-      window.open(driveUrl, '_blank');
-      
-      console.log('📁 Google Drive mappa megnyitva');
-      console.log(`📥 Keresd meg: ${fileName}`);
-      
-      // Show instructions
-      setError(null);
-      setLoading(false);
-      
-      // Show info with filename
-      alert(`📁 Google Drive mappa megnyílt!\n\n🔍 Keresd meg ezt a fájlt:\n${fileName}\n\n1. Töltsd le a fájlt\n2. Kattints a "JSON fájl betöltése" gombra\n3. Válaszd ki a letöltött fájlt`);
-      
-      // Switch back to login to show JSON import button
-      setStep('LOGIN');
-      
-    } catch (error) {
-      console.error('❌ Error:', error);
-      setError('Hiba történt');
-      setLoading(false);
-    }
+    // Generate expected filename: munkamenet_KÓDNÉV_YYYY-MM-DD.json
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const fileName = `munkamenet_${currentSessionCode.toUpperCase()}_${today}.json`;
+    
+    console.log('📁 Expected file:', fileName);
+    
+    // Trigger file import directly
+    fileInputRef.current?.click();
   };
 
   const handleFallbackToLibrary = () => {
@@ -1221,6 +1193,10 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
   // --- RENDER: WAITING FOR START ---
   if (step === 'WAITING_FOR_START') {
+    // Generate expected filename
+    const today = new Date().toISOString().slice(0, 10);
+    const expectedFileName = `munkamenet_${currentSessionCode?.toUpperCase()}_${today}.json`;
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
         <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl p-12 text-center">
@@ -1245,17 +1221,17 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             </div>
           </div>
 
-          {/* Ready Message */}
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold text-slate-800 mb-4">
-              Készen állsz?
-            </h3>
-            <p className="text-lg text-slate-600 mb-2">
-              Kattints a START gombra a feladatok betöltéséhez
-            </p>
-            <p className="text-sm text-slate-500">
-              A képek Google Drive-ról töltődnek be
-            </p>
+          {/* Instructions */}
+          <div className="mb-8 p-6 bg-yellow-50 rounded-2xl border-2 border-yellow-200">
+            <div className="text-lg font-bold text-yellow-800 mb-3">
+              📁 Fájl neve:
+            </div>
+            <div className="text-sm font-mono bg-white px-4 py-2 rounded-lg border border-yellow-300 text-slate-800 mb-4">
+              {expectedFileName}
+            </div>
+            <div className="text-sm text-yellow-700">
+              Töltsd le ezt a fájlt a Google Drive-ról, majd kattints a START gombra!
+            </div>
           </div>
 
           {/* Error Display */}
@@ -1270,11 +1246,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             </div>
           )}
 
-          {/* START Button */}
+          {/* START Button - Opens file picker */}
           <button
             onClick={handleStartExercises}
             disabled={loading}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-16 py-6 rounded-2xl text-3xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
+            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-16 py-6 rounded-2xl text-3xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed mb-4"
           >
             {loading ? (
               <div className="flex items-center gap-4">
@@ -1282,14 +1258,22 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                 <span>Betöltés...</span>
               </div>
             ) : (
-              <>🚀 START</>
+              <>🚀 START - JSON betöltése</>
             )}
+          </button>
+
+          {/* Drive Folder Button */}
+          <button
+            onClick={() => window.open('https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6', '_blank')}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all mb-6"
+          >
+            📁 Drive mappa megnyitása
           </button>
 
           {/* Back Button */}
           <button
             onClick={onExit}
-            className="mt-6 text-slate-500 hover:text-slate-700 px-6 py-3 rounded-lg font-medium transition-colors"
+            className="mt-6 text-slate-500 hover:text-slate-700 px-6 py-3 rounded-lg font-medium transition-colors block mx-auto"
           >
             ← Vissza
           </button>
