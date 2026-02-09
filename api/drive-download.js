@@ -1,7 +1,7 @@
 // Vercel Serverless Function - Google Drive JSON Auto-Download
-import { google } from 'googleapis';
+const { google } = require('googleapis');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -123,4 +123,4 @@ export default async function handler(req, res) {
       message: error.message 
     });
   }
-}
+};
