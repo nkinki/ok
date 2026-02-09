@@ -804,22 +804,18 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       setError(error instanceof Error ? error.message : 'Hiba történt a fájl letöltésekor');
       setLoading(false);
       
-      // Fallback: Open Google Drive folder and show file picker
-      console.log('💡 Fallback: Opening Google Drive folder...');
+      // Fallback: Show Drive folder embed in app
+      console.log('💡 Fallback: Showing Google Drive folder in app...');
       
-      // Generate filename again for the alert
+      // Generate filename for display
       const today = new Date().toISOString().slice(0, 10);
       const expectedFileName = `munkamenet_${currentSessionCode?.toUpperCase()}_${today}.json`;
       
-      // Open Drive folder in new tab
-      const driveUrl = 'https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6';
-      window.open(driveUrl, '_blank');
+      // Show Drive folder URL and file picker button
+      setError(`📁 Keresd meg és töltsd le: ${expectedFileName}`);
       
-      // Show instructions and open file picker after delay
-      setTimeout(() => {
-        alert(`📁 A Google Drive mappa megnyílt egy új ablakban.\n\n1. Töltsd le a fájlt: ${expectedFileName}\n2. Kattints OK-ra és válaszd ki a letöltött fájlt`);
-        fileInputRef.current?.click();
-      }, 1000);
+      // Open file picker immediately (user already clicked START, so it's allowed)
+      fileInputRef.current?.click();
     }
   };
 
@@ -1349,9 +1345,17 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             <div className="text-sm font-mono bg-white px-4 py-2 rounded-lg border border-yellow-300 text-slate-800 mb-4">
               {expectedFileName}
             </div>
-            <div className="text-sm text-yellow-700">
+            <div className="text-sm text-yellow-700 mb-4">
               Töltsd le ezt a fájlt a Google Drive-ról, majd kattints a START gombra!
             </div>
+            <a
+              href="https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all"
+            >
+              📂 Drive mappa megnyitása
+            </a>
           </div>
 
           {/* Error Display */}
