@@ -693,130 +693,21 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     // Show START button immediately (no Supabase check)
     console.log('✅ Waiting for START button click...');
     setStep('WAITING_FOR_START');
+    
+    // Automatically open Google Drive folder in new tab
+    console.log('📂 Opening Google Drive folder automatically...');
+    const driveUrl = 'https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6';
+    window.open(driveUrl, '_blank');
   };
 
-  // NEW: Handle START button click - Auto-download JSON from Google Drive
+  // NEW: Handle START button click - Direct file picker
   const handleStartExercises = async () => {
     if (!currentSessionCode) return;
     
-    console.log('🚀 START button clicked - Auto-downloading JSON from Google Drive...');
-    setLoading(true);
-    setError(null);
+    console.log('🚀 START button clicked - Opening file picker...');
     
-    try {
-      // Generate expected filename: munkamenet_KÓDNÉV_YYYY-MM-DD.json
-      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-      const fileName = `munkamenet_${currentSessionCode.toUpperCase()}_${today}.json`;
-      
-      console.log('📁 Auto-downloading file:', fileName);
-      
-      // Call backend API to download from Google Drive
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const apiUrl = isDev 
-        ? 'http://localhost:3002/api/drive-download'
-        : '/api/drive-download'; // Vercel serverless function
-      
-      console.log('🌐 API URL:', apiUrl, '(isDev:', isDev + ')');
-      
-      const response = await fetch(`${apiUrl}?fileName=${encodeURIComponent(fileName)}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || errorData.error || 'Failed to download file');
-      }
-      
-      const result = await response.json();
-      
-      if (!result.success || !result.data) {
-        throw new Error('Invalid response from server');
-      }
-      
-      console.log('✅ JSON auto-downloaded successfully:', result.fileName);
-      console.log('📊 Exercises:', result.data.exercises?.length || 0);
-      
-      // Process the downloaded JSON (same as handleFileImport)
-      const parsedData = result.data;
-      
-      if (parsedData.exercises && Array.isArray(parsedData.exercises)) {
-        const exercises = parsedData.exercises;
-        
-        console.log('✅ Session JSON formátum felismerve');
-        console.log('📊 Feladatok száma:', exercises.length);
-        
-        // Validate exercises
-        const validExercises = exercises.filter(ex => {
-          const hasRequiredFields = ex.id && ex.type && ex.title && ex.content;
-          if (!hasRequiredFields) {
-            console.warn('⚠️ Érvénytelen feladat:', ex);
-          }
-          return hasRequiredFields;
-        });
-        
-        if (validExercises.length === 0) {
-          throw new Error('A JSON fájl nem tartalmaz érvényes feladatokat.');
-        }
-        
-        console.log('✅ Érvényes feladatok:', validExercises.length);
-        
-        // Convert to playlist format
-        const exerciseItems = validExercises.map((exercise: any) => ({
-          id: exercise.id,
-          fileName: exercise.fileName || exercise.title,
-          imageUrl: exercise.imageUrl || '',
-          data: {
-            type: exercise.type,
-            title: exercise.title,
-            instruction: exercise.instruction,
-            content: exercise.content
-          }
-        }));
-        
-        console.log('📁 JSON munkamenet betöltve:', exerciseItems.length, 'feladat');
-        console.log('🖼️ Első feladat kép:', exerciseItems[0]?.imageUrl ? `${exerciseItems[0].imageUrl.length} karakter` : 'Nincs');
-        
-        // Set up session
-        const sessionCode = parsedData.code || currentSessionCode;
-        
-        setStudent({
-          id: 'auto-' + Date.now(),
-          name: student?.name || 'Auto Diák',
-          className: student?.className || 'Auto'
-        });
-        
-        setCurrentSessionCode(sessionCode);
-        setPlaylist(exerciseItems);
-        setCurrentIndex(0);
-        setCompletedCount(0);
-        setCompletedExercises(new Set());
-        setStep('PLAYING');
-        setLoading(false);
-        
-        console.log('🎮 JSON munkamenet automatikusan elindítva!');
-        console.log('👤 Diák:', student?.name, '-', student?.className);
-        console.log('📝 Session kód:', sessionCode);
-        
-      } else {
-        throw new Error('Hibás fájlformátum.');
-      }
-      
-    } catch (error) {
-      console.error('❌ Auto-download error:', error);
-      setError(error instanceof Error ? error.message : 'Hiba történt a fájl letöltésekor');
-      setLoading(false);
-      
-      // Fallback: Show Drive folder embed in app
-      console.log('💡 Fallback: Showing Google Drive folder in app...');
-      
-      // Generate filename for display
-      const today = new Date().toISOString().slice(0, 10);
-      const expectedFileName = `munkamenet_${currentSessionCode?.toUpperCase()}_${today}.json`;
-      
-      // Show Drive folder URL and file picker button
-      setError(`📁 Keresd meg és töltsd le: ${expectedFileName}`);
-      
-      // Open file picker immediately (user already clicked START, so it's allowed)
-      fileInputRef.current?.click();
-    }
+    // Open file picker directly
+    fileInputRef.current?.click();
   };
 
   const handleFallbackToLibrary = () => {
