@@ -7,8 +7,6 @@ import { useSubject } from '../contexts/SubjectContext'
 import { SessionTransferService } from '../services/sessionTransferService'
 import StorageManager from '../utils/storageUtils'
 import SafeStorage from '../utils/safeStorage'
-import { fullGoogleDriveService } from '../services/fullGoogleDriveService'
-import { driveOnlyService } from '../services/driveOnlyService'
 import { googleDriveSessionService } from '../services/googleDriveSessionService'
 
 interface Props {
@@ -33,7 +31,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [showResults, setShowResults] = useState(false)
   const [showMonitor, setShowMonitor] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const [driveOnlyMode, setDriveOnlyMode] = useState(false)
 
   const [className, setClassName] = useState<string>('')
 
@@ -43,18 +40,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     '4.a', '4.b', '5.a', '5.b', '6.a', '6.b',
     '7.a', '7.b', '8.a', '8.b'
   ]
-
-  // Check Drive-Only mode on component mount
-  useEffect(() => {
-    const isDriveOnly = driveOnlyService.isDriveOnlyMode();
-    setDriveOnlyMode(isDriveOnly);
-    
-    if (isDriveOnly) {
-      console.log('🚀 Drive-Only mód aktív - Supabase kikapcsolva');
-    } else {
-      console.log('☁️ Supabase mód aktív');
-    }
-  }, []);
 
   // Debug: Monitor activeSession changes
   useEffect(() => {
@@ -198,124 +183,25 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
 
     try {
-      console.log('🗄️ Creating session...');
+      console.log('📁 CSAK GOOGLE DRIVE MÓD - Supabase kikapcsolva');
       console.log('📊 Session data:', { 
         code: sessionCode, 
         exerciseCount: selectedExerciseData.length,
         subject: currentSubject || 'general',
-        className: className,
-        driveOnlyMode: driveOnlyMode
+        className: className
       });
 
-      // DRIVE-ONLY MODE: Skip Supabase completely
-      if (driveOnlyMode) {
-        console.log('🚀 Drive-Only mód - Supabase kihagyása');
-        
-        // Create session data for Google Drive
-        const fullSessionData = {
-          sessionCode: sessionCode,
-          subject: currentSubject || 'general',
-          className: className.trim(),
-          createdAt: new Date().toISOString(),
-          exercises: selectedExerciseData.map(item => ({
-            id: item.id,
-            fileName: item.fileName,
-            imageUrl: item.imageUrl || '',
-            title: item.data.title,
-            instruction: item.data.instruction,
-            type: item.data.type,
-            content: item.data.content
-          })),
-          metadata: {
-            version: '1.0.0',
-            exportedBy: 'Okos Gyakorló Drive-Only',
-            totalExercises: selectedExerciseData.length,
-            estimatedTime: selectedExerciseData.length * 3,
-            driveOnlyMode: true
-          }
-        }
-
-        // Create session in Drive-Only service
-        const driveOnlyResult = await driveOnlyService.createSession({
-          code: sessionCode,
-          exercises: selectedExerciseData,
-          subject: currentSubject || 'general',
-          className: className.trim(),
-          maxScore: selectedExerciseData.length * 10
-        });
-
-        if (!driveOnlyResult.success) {
-          setError(`Drive-Only munkamenet hiba: ${driveOnlyResult.error}`);
-          return;
-        }
-
-        console.log('✅ Drive-Only munkamenet létrehozva:', sessionCode);
-
-        // Store session data in localStorage for Drive-Only fallback
-        const localSessionKey = `drive_session_${sessionCode}`;
-        localStorage.setItem(localSessionKey, JSON.stringify(fullSessionData));
-        console.log('💾 Drive-Only session data stored in localStorage for fallback');
-
-        // Upload to Google Drive
-        console.log('📤 Uploading session JSON to Google Drive...');
-        
-        try {
-          const driveResult = await fullGoogleDriveService.uploadSessionJSON(sessionCode, fullSessionData);
-          
-          if (driveResult.success) {
-            console.log('✅ Session uploaded to Google Drive:', driveResult.downloadUrl);
-          } else {
-            console.warn('⚠️ Google Drive upload failed, but Drive-Only session still works');
-          }
-        } catch (driveError) {
-          console.warn('⚠️ Google Drive upload error:', driveError);
-        }
-
-        // Create session object for UI
-        const session: Session = {
-          code: sessionCode,
-          exercises: selectedExerciseData,
-          createdAt: new Date(),
-          isActive: true
-        }
-
-        setActiveSession(session);
-        console.log('🎯 Drive-Only munkamenet aktív:', sessionCode);
-
-        // Auto-download JSON file
-        const dataStr = JSON.stringify(fullSessionData, null, 2)
-        const blob = new Blob([dataStr], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `munkamenet_${sessionCode}_${new Date().toISOString().slice(0,10)}.json`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-        
-        console.log('📁 JSON fájl letöltve Drive-Only módban')
-        return;
-      }
-
-      // JSON IMPORT MODE - Store BASE64 images directly in Supabase
-      console.log('📤 JSON Import mode - BASE64 images in Supabase');
-      
-      // Step 1: SKIP Google Drive upload (use BASE64 directly)
-      console.log('⏭️ Step 1: Skipping Google Drive upload (BASE64 mode)');
-      
-      // Step 2: Create session JSON with BASE64 images for JSON import!
-      console.log('📤 Step 2: Creating session JSON with BASE64 images...');
+      // Create session JSON with BASE64 images
       const fullSessionData = {
-        code: sessionCode, // Add code field for JSON import
+        code: sessionCode,
         sessionCode: sessionCode,
         subject: currentSubject || 'general',
         className: className.trim(),
         createdAt: new Date().toISOString(),
-        exercises: selectedExerciseData.map((item, i) => ({
+        exercises: selectedExerciseData.map(item => ({
           id: item.id,
           fileName: item.fileName,
-          imageUrl: item.imageUrl, // BASE64 IMAGE for JSON import!
+          imageUrl: item.imageUrl || '',
           title: item.data.title,
           instruction: item.data.instruction,
           type: item.data.type,
@@ -323,54 +209,15 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         })),
         metadata: {
           version: '1.0.0',
-          exportedBy: 'Okos Gyakorló - JSON Import',
+          exportedBy: 'Okos Gyakorló - Google Drive Only',
           totalExercises: selectedExerciseData.length,
           estimatedTime: selectedExerciseData.length * 3,
-          jsonImportMode: true // Flag for JSON import
+          driveOnlyMode: true
         }
       };
-      
-      console.log('✅ Session JSON created with BASE64 images');
-      console.log('📊 First exercise image size:', selectedExerciseData[0]?.imageUrl?.length || 0, 'chars');
-      
-      // Step 3: SKIP Google Drive upload (base64 images in JSON)
-      console.log('⏭️ Step 3: Skipping Google Drive upload (base64 in JSON)');
-      
-      // Step 4: Save to Supabase with full_session_json (BASE64 images!)
-      console.log('📤 Step 4: Saving to Supabase with BASE64 images...');
-      const apiResponse = await fetch('/api/simple-api/sessions/create-minimal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          code: sessionCode,
-          subject: currentSubject || 'general',
-          className: className.trim(),
-          exerciseCount: selectedExerciseData.length,
-          maxScore: selectedExerciseData.length * 10,
-          driveSessionUrl: null, // No Drive URL needed
-          fullSessionData: fullSessionData // Send full JSON with BASE64 images!
-        })
-      });
 
-      if (!apiResponse.ok) {
-        const errorData = await apiResponse.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('❌ API session creation failed:', errorData);
-        setError(`Munkamenet létrehozási hiba: ${errorData.error || 'Ismeretlen hiba'}`);
-        return;
-      }
+      console.log('✅ Session JSON létrehozva BASE64 képekkel');
 
-      const apiData = await apiResponse.json();
-      console.log('✅ Session saved to Supabase with BASE64 images!');
-      console.log('📊 Supabase stores BASE64 images in full_session_json');
-      console.log('📊 Students can download JSON and load offline!');
-      console.log('✅ Result: JSON import ready!');
-
-      // SKIP localStorage backup to avoid quota exceeded error
-      // Session data is in Supabase full_session_json column
-      console.log('⏭️ Skipping localStorage backup (quota limit) - data in Supabase');
-      
       // Create session object for UI
       const session: Session = {
         code: sessionCode,
@@ -380,15 +227,26 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       }
 
       setActiveSession(session);
-      console.log('🎯 JSON import munkamenet aktív:', sessionCode);
-      console.log('✅ Képek BASE64 formátumban, JSON letölthető');
-      console.log('📥 Diákok betölthetik a JSON-t offline is!');
-      console.log('✅ 0% Supabase egress a képekre!');
+      console.log('🎯 Munkamenet aktív:', sessionCode);
+
+      // Auto-download JSON file
+      const dataStr = JSON.stringify(fullSessionData, null, 2)
+      const blob = new Blob([dataStr], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `munkamenet_${sessionCode}_${new Date().toISOString().slice(0,10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      console.log('📁 JSON fájl letöltve - Töltsd fel a Google Drive-ra!')
 
     } catch (error) {
       console.error('❌ Session creation error:', error)
       console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-      setError(`Hálózati hiba: ${error instanceof Error ? error.message : 'Ismeretlen hiba'}`)
+      setError(`Hiba: ${error instanceof Error ? error.message : 'Ismeretlen hiba'}`)
     } finally {
       console.log('🔄 Session creation finally block - setting loading to false')
       setLoading(false)
