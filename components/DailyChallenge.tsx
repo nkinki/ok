@@ -1258,7 +1258,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           <button
             onClick={handleStartExercises}
             disabled={loading}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-16 py-6 rounded-2xl text-3xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed mb-4"
+            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-16 py-6 rounded-2xl text-3xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed mb-6"
           >
             {loading ? (
               <div className="flex items-center gap-4">
@@ -1270,13 +1270,18 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             )}
           </button>
 
-          {/* Drive Folder Button */}
-          <button
-            onClick={() => window.open('https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6', '_blank')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all mb-6"
-          >
-            📁 Drive mappa megnyitása
-          </button>
+          {/* Help text */}
+          <p className="text-sm text-slate-500 mb-6">
+            Ha még nem töltötted le a JSON fájlt, nyisd meg a{' '}
+            <a 
+              href="https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-700 underline font-medium"
+            >
+              Google Drive mappát
+            </a>
+          </p>
 
           {/* Back Button */}
           <button
