@@ -1,0 +1,35 @@
+{
+  "code": "TEST01",
+  "sessionCode": "TEST01",
+  "slotNumber": 1,
+  "subject": "info",
+  "className": "8.a",
+  "createdAt": "2026-02-10T12:00:00.000Z",
+  "exercises": [
+    {
+      "id": "test-exercise-1",
+      "fileName": "Teszt Feladat 1",
+      "imageUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "title": "Teszt Feladat 1",
+      "instruction": "Ez egy teszt feladat. Válaszd ki a helyes választ!",
+      "type": "QUIZ",
+      "content": {
+        "questions": [
+          {
+            "id": "q1",
+            "question": "Mi a helyes válasz?",
+            "options": ["A", "B", "C", "D"],
+            "correctAnswer": 0
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "version": "2.0.0",
+    "exportedBy": "Okos Gyakorló - Slot System Test",
+    "totalExercises": 1,
+    "estimatedTime": 3,
+    "slotNumber": 1
+  }
+}
