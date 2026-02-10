@@ -31,6 +31,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
   const [showResults, setShowResults] = useState(false)
   const [showMonitor, setShowMonitor] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [selectedSlot, setSelectedSlot] = useState<number>(1) // NEW: Slot választó
 
   const [className, setClassName] = useState<string>('')
 
@@ -183,9 +184,10 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
     const selectedExerciseData = library.filter(item => selectedExercises.includes(item.id))
 
     try {
-      console.log('📁 CSAK GOOGLE DRIVE MÓD - Supabase kikapcsolva');
+      console.log('🎰 SLOT SYSTEM - Automatikus feltöltés Google Drive-ra');
       console.log('📊 Session data:', { 
         code: sessionCode, 
+        slotNumber: selectedSlot,
         exerciseCount: selectedExerciseData.length,
         subject: currentSubject || 'general',
         className: className
@@ -195,6 +197,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const fullSessionData = {
         code: sessionCode,
         sessionCode: sessionCode,
+        slotNumber: selectedSlot,
         subject: currentSubject || 'general',
         className: className.trim(),
         createdAt: new Date().toISOString(),
@@ -208,15 +211,37 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           content: item.data.content
         })),
         metadata: {
-          version: '1.0.0',
-          exportedBy: 'Okos Gyakorló - Google Drive Only',
+          version: '2.0.0',
+          exportedBy: 'Okos Gyakorló - Slot System',
           totalExercises: selectedExerciseData.length,
           estimatedTime: selectedExerciseData.length * 3,
-          driveOnlyMode: true
+          slotNumber: selectedSlot
         }
       };
 
       console.log('✅ Session JSON létrehozva BASE64 képekkel');
+
+      // Upload to Google Drive via API
+      console.log('📤 Feltöltés Google Drive-ra - Slot:', selectedSlot);
+      
+      const uploadResponse = await fetch('/api/drive-upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          slotNumber: selectedSlot,
+          sessionData: fullSessionData
+        })
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Drive feltöltés sikertelen');
+      }
+
+      const uploadResult = await uploadResponse.json();
+      console.log('✅ Drive feltöltés sikeres:', uploadResult);
 
       // Create session object for UI
       const session: Session = {
@@ -229,19 +254,22 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       setActiveSession(session);
       console.log('🎯 Munkamenet aktív:', sessionCode);
 
-      // Auto-download JSON file
+      // Also download JSON as backup
       const dataStr = JSON.stringify(fullSessionData, null, 2)
       const blob = new Blob([dataStr], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `munkamenet_${sessionCode}_${new Date().toISOString().slice(0,10)}.json`
+      a.download = `munkamenet_${sessionCode}_slot${selectedSlot}_${new Date().toISOString().slice(0,10)}.json`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
       
-      console.log('📁 JSON fájl letöltve - Töltsd fel a Google Drive-ra!')
+      console.log('📁 Backup JSON letöltve');
+      
+      // Show success message with slot info
+      alert(`✅ Munkamenet sikeresen feltöltve!\n\n🎰 Slot: ${selectedSlot}\n🔑 Kód: ${sessionCode}\n\nAdd meg a diákoknak:\n• Slot szám: ${selectedSlot}\n• Munkamenet kód: ${sessionCode}`);
 
     } catch (error) {
       console.error('❌ Session creation error:', error)
@@ -343,25 +371,29 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             </div>
             <div className="text-left">
               <h3 className="text-2xl font-bold text-green-800">Aktív munkamenet</h3>
-              <p className="text-green-700">Kód: <span className="font-mono text-xl font-bold">{activeSession.code}</span></p>
+              <p className="text-green-700">
+                🎰 Slot: <span className="font-mono text-xl font-bold">{selectedSlot}</span> | 
+                Kód: <span className="font-mono text-xl font-bold">{activeSession.code}</span>
+              </p>
               <p className="text-sm text-green-600 font-medium">{activeSession.exercises.length} feladat</p>
             </div>
           </div>
 
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-yellow-800 font-medium">
+              📢 Add meg a diákoknak:
+            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-yellow-900">
+                <span className="font-bold">Slot szám:</span> <span className="font-mono text-lg">{selectedSlot}</span>
+              </p>
+              <p className="text-yellow-900">
+                <span className="font-bold">Munkamenet kód:</span> <span className="font-mono text-lg">{activeSession.code}</span>
+              </p>
+            </div>
+          </div>
+
           <div className="flex justify-center gap-4">
-            <button
-              onClick={() => {
-                // Open Google Drive folder
-                googleDriveSessionService.openFolder();
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-bold flex items-center gap-2 text-lg"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-              </svg>
-              📁 Feltöltés Drive-ra
-            </button>
-            
             <button
               onClick={() => setActiveSession(null)}
               className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-lg font-bold flex items-center gap-2 text-lg"
@@ -394,6 +426,24 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             Kiválasztott feladatok ({selectedExercises.length}/{library.length})
           </h3>
           <div className="flex items-center gap-4">
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700 mb-1">
+                Slot szám <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedSlot}
+                onChange={(e) => setSelectedSlot(Number(e.target.value))}
+                required
+                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value={1}>🎰 Slot 1</option>
+                <option value={2}>🎰 Slot 2</option>
+                <option value={3}>🎰 Slot 3</option>
+                <option value={4}>🎰 Slot 4</option>
+                <option value={5}>🎰 Slot 5</option>
+              </select>
+            </div>
+            
             <div className="flex flex-col">
               <label className="text-sm font-medium text-slate-700 mb-1">
                 Osztály neve <span className="text-red-500">*</span>

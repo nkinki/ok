@@ -10,6 +10,7 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
   const [studentName, setStudentName] = useState('')
   const [studentClass, setStudentClass] = useState('')
   const [sessionCode, setSessionCode] = useState('')
+  const [slotNumber, setSlotNumber] = useState<number>(1) // NEW: Slot number
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [downloadingJson, setDownloadingJson] = useState(false)
@@ -26,15 +27,16 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
     setError(null)
     
     try {
-      // Create student object and pass to parent (simple approach)
+      // Create student object with slot number
       const student = {
         id: `student_${Date.now()}`,
         name: studentName.trim(),
         className: studentClass.trim()
       }
       
-      // Pass student data and session code to parent
-      onLoginSuccess(student, sessionCode.trim().toUpperCase())
+      // Pass student data, session code, and slot number to parent
+      // The parent will handle automatic download from Drive
+      onLoginSuccess(student, sessionCode.trim().toUpperCase(), { slotNumber })
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Ismeretlen hiba')
     } finally {
@@ -95,8 +97,30 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
           </div>
 
           <div>
+            <label htmlFor="slotNumber" className="block text-sm font-medium text-gray-700 mb-2">
+              Slot szám <span className="text-purple-600 font-bold">🎰</span>
+            </label>
+            <select
+              id="slotNumber"
+              value={slotNumber}
+              onChange={(e) => setSlotNumber(Number(e.target.value))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-center text-lg"
+              disabled={loading}
+            >
+              <option value={1}>🎰 Slot 1</option>
+              <option value={2}>🎰 Slot 2</option>
+              <option value={3}>🎰 Slot 3</option>
+              <option value={4}>🎰 Slot 4</option>
+              <option value={5}>🎰 Slot 5</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              A tanár által megadott slot számot válaszd ki
+            </p>
+          </div>
+
+          <div>
             <label htmlFor="sessionCode" className="block text-sm font-medium text-gray-700 mb-2">
-              Tanári kód
+              Munkamenet kód
             </label>
             <input
               type="text"

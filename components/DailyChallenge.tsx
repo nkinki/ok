@@ -680,24 +680,101 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
     URL.revokeObjectURL(url);
   };
 
-  const handleStudentLogin = async (studentData: Student, code: string) => {
+  const handleStudentLogin = async (studentData: Student, code: string, sessionData?: any) => {
     setStudent(studentData);
     setCurrentSessionCode(code);
-    setLoading(false);
+    setLoading(true);
     setError(null);
 
-    console.log('📁 GOOGLE DRIVE ONLY MODE - Supabase kikapcsolva');
+    console.log('🎰 SLOT SYSTEM - Automatikus letöltés Google Drive-ról');
     console.log('🎯 Session code:', code.toUpperCase());
+    console.log('🎰 Slot number:', sessionData?.slotNumber || 'Nincs megadva');
     console.log('👨‍🎓 Student:', { name: studentData.name, className: studentData.className });
 
-    // Show START button immediately (no Supabase check)
-    console.log('✅ Waiting for START button click...');
-    setStep('WAITING_FOR_START');
-    
-    // Automatically open Google Drive folder in new tab
-    console.log('📂 Opening Google Drive folder automatically...');
-    const driveUrl = 'https://drive.google.com/drive/folders/1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6';
-    window.open(driveUrl, '_blank');
+    // If slot number is provided, automatically download from Drive
+    if (sessionData?.slotNumber) {
+      const slotNumber = sessionData.slotNumber;
+      
+      try {
+        console.log('📥 Automatikus letöltés - Slot:', slotNumber);
+        
+        const apiUrl = `/api/drive-download?slotNumber=${slotNumber}`;
+        console.log('🌐 API URL:', apiUrl);
+        
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `HTTP ${response.status}: Letöltés sikertelen`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Drive letöltés sikeres:', result);
+        
+        if (!result.success || !result.data) {
+          throw new Error('Érvénytelen válasz a szervertől');
+        }
+        
+        const sessionJson = result.data;
+        
+        // Validate session data
+        if (!sessionJson.exercises || !Array.isArray(sessionJson.exercises)) {
+          throw new Error('Érvénytelen munkamenet formátum');
+        }
+        
+        if (sessionJson.exercises.length === 0) {
+          throw new Error(`Slot ${slotNumber} üres. A tanár még nem töltötte fel a munkamenetet.`);
+        }
+        
+        // Verify session code matches
+        if (sessionJson.code && sessionJson.code.toUpperCase() !== code.toUpperCase()) {
+          console.warn('⚠️ Session code mismatch:', {
+            expected: code.toUpperCase(),
+            received: sessionJson.code.toUpperCase()
+          });
+          throw new Error(`Hibás munkamenet kód! Elvárt: ${code.toUpperCase()}, Kapott: ${sessionJson.code.toUpperCase()}`);
+        }
+        
+        console.log('✅ Munkamenet validálva:', sessionJson.exercises.length, 'feladat');
+        
+        // Convert to playlist format
+        const exerciseItems = sessionJson.exercises.map((exercise: any) => ({
+          id: exercise.id,
+          fileName: exercise.fileName || exercise.title,
+          imageUrl: exercise.imageUrl || '',
+          data: {
+            type: exercise.type,
+            title: exercise.title,
+            instruction: exercise.instruction,
+            content: exercise.content
+          }
+        }));
+        
+        console.log('🎮 Munkamenet betöltve:', exerciseItems.length, 'feladat');
+        
+        setPlaylist(exerciseItems);
+        setCurrentIndex(0);
+        setCompletedCount(0);
+        setCompletedExercises(new Set());
+        setStep('PLAYING');
+        setLoading(false);
+        
+        console.log('✅ Automatikus betöltés sikeres!');
+        
+      } catch (error) {
+        console.error('❌ Automatikus letöltés hiba:', error);
+        setError(`Automatikus letöltés sikertelen: ${error instanceof Error ? error.message : 'Ismeretlen hiba'}`);
+        setLoading(false);
+        
+        // Show WAITING_FOR_START as fallback
+        setStep('WAITING_FOR_START');
+      }
+    } else {
+      // No slot number - show manual file picker (old behavior)
+      console.log('⚠️ Nincs slot szám - manuális fájl választás');
+      setStep('WAITING_FOR_START');
+      setLoading(false);
+    }
   };
 
   // NEW: Handle START button click - Direct file picker
