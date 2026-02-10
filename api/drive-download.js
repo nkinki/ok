@@ -1,4 +1,4 @@
-// Vercel Serverless Function - Google Drive JSON Auto-Download
+// Vercel Serverless Function - Google Drive JSON Auto-Download by Slot
 const { google } = require('googleapis');
 
 module.exports = async function handler(req, res) {
@@ -16,13 +16,16 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { fileName } = req.query;
+    const { slotNumber } = req.query;
 
-    if (!fileName) {
-      return res.status(400).json({ error: 'fileName parameter required' });
+    if (!slotNumber) {
+      return res.status(400).json({ error: 'slotNumber parameter required' });
     }
 
-    console.log('📥 Auto-download request for:', fileName);
+    console.log('📥 Download request for slot:', slotNumber);
+
+    // File name based on slot
+    const fileName = `session${slotNumber}.json`;
 
     // Google Drive API setup
     const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6';
@@ -31,11 +34,9 @@ module.exports = async function handler(req, res) {
 
     if (!SERVICE_ACCOUNT_EMAIL || !PRIVATE_KEY) {
       console.error('❌ Missing Google credentials');
-      console.error('SERVICE_ACCOUNT_EMAIL:', SERVICE_ACCOUNT_EMAIL ? 'present' : 'missing');
-      console.error('PRIVATE_KEY:', PRIVATE_KEY ? 'present' : 'missing');
       return res.status(500).json({ 
         error: 'Server configuration error',
-        message: 'Missing Google Drive credentials. Check Vercel environment variables.'
+        message: 'Missing Google Drive credentials'
       });
     }
 
@@ -50,7 +51,7 @@ module.exports = async function handler(req, res) {
     const drive = google.drive({ version: 'v3', auth });
 
     // Search for file by name in folder
-    console.log('🔍 Searching for file:', fileName, 'in folder:', FOLDER_ID);
+    console.log('🔍 Searching for file:', fileName);
     
     const searchResponse = await drive.files.list({
       q: `name='${fileName}' and '${FOLDER_ID}' in parents and trashed=false`,
@@ -65,12 +66,12 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ 
         error: 'File not found',
         fileName,
-        message: 'A fájl nem található a Google Drive mappában. Ellenőrizd, hogy a tanár feltöltötte-e.'
+        message: `Slot ${slotNumber} még nincs létrehozva vagy üres.`
       });
     }
 
     const file = files[0];
-    console.log('✅ File found:', file.name, 'ID:', file.id, 'Size:', file.size);
+    console.log('✅ File found:', file.name, 'ID:', file.id);
 
     // Download file content
     const downloadResponse = await drive.files.get({
@@ -81,7 +82,7 @@ module.exports = async function handler(req, res) {
     });
 
     const jsonContent = downloadResponse.data;
-    console.log('✅ File downloaded successfully, size:', JSON.stringify(jsonContent).length);
+    console.log('✅ File downloaded successfully');
 
     // Parse and validate JSON
     let parsedData;
@@ -97,11 +98,19 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid session format - missing exercises' });
     }
 
+    if (parsedData.exercises.length === 0) {
+      return res.status(400).json({ 
+        error: 'Empty session',
+        message: `Slot ${slotNumber} üres. A tanár még nem töltötte fel a munkamenetet.`
+      });
+    }
+
     console.log('✅ JSON validated:', parsedData.exercises.length, 'exercises');
 
     // Return JSON data
     return res.status(200).json({
       success: true,
+      slotNumber: slotNumber,
       fileName: file.name,
       fileId: file.id,
       data: parsedData
@@ -110,11 +119,10 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     console.error('❌ Drive download error:', error);
     
-    // Handle specific Google API errors
     if (error.code === 403) {
       return res.status(403).json({ 
         error: 'Access denied',
-        message: 'A service account-nak nincs hozzáférése a Drive mappához. Ellenőrizd a megosztási beállításokat.'
+        message: 'Service account needs access to the folder'
       });
     }
 

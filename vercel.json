@@ -19,6 +19,10 @@
       "dest": "/api/drive-download.js"
     },
     {
+      "src": "/api/drive-upload",
+      "dest": "/api/drive-upload.js"
+    },
+    {
       "src": "/api/simple-api/(.*)",
       "dest": "/api/simple-api.js"
     },
