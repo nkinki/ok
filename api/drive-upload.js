@@ -109,6 +109,12 @@ module.exports = async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Drive upload error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      response: error.response?.data
+    });
     
     if (error.code === 403) {
       return res.status(403).json({ 
@@ -119,7 +125,8 @@ module.exports = async function handler(req, res) {
 
     return res.status(500).json({ 
       error: 'Server error',
-      message: error.message 
+      message: error.message,
+      details: error.response?.data || error.toString()
     });
   }
 };
