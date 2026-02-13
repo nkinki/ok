@@ -17,7 +17,7 @@ export const SlotLinksManager: React.FC = () => {
 
   const loadSlotLinks = async () => {
     try {
-      const response = await fetch('/slot-links.json');
+      const response = await fetch('/api/get-slot-links');
       if (response.ok) {
         const data = await response.json();
         setSlotLinks(data);
@@ -54,7 +54,7 @@ export const SlotLinksManager: React.FC = () => {
       a.click();
       URL.revokeObjectURL(url);
       
-      setMessage('✅ Slot linkek mentve! Töltsd fel a slot-links.json fájlt a szerverreManually upload this file to your server.');
+      setMessage('✅ Slot linkek JSON letöltve!\n\nKövetkező lépések:\n1. Nyisd meg a Vercel Dashboard-ot\n2. Settings → Environment Variables\n3. Add hozzá: SLOT_1_LINK, SLOT_2_LINK, stb.\n4. Másold be a linkeket a JSON-ból\n5. Deploy újra az alkalmazást');
     } catch (error) {
       setMessage('❌ Mentés sikertelen: ' + (error as Error).message);
     } finally {
@@ -82,8 +82,13 @@ export const SlotLinksManager: React.FC = () => {
             <li>Állítsd be "Bárki, aki rendelkezik a linkkel" megosztást</li>
             <li>Másold be a linket az alábbi mezőbe</li>
             <li>Kattints a "Mentés" gombra</li>
-            <li>Töltsd fel a letöltött slot-links.json fájlt a szerverre</li>
+            <li>A linkek automatikusan mentődnek a Vercel környezeti változókba</li>
           </ol>
+          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+            <strong>⚠️ Fontos:</strong> A linkek mentéséhez be kell állítanod a Vercel környezeti változókat:
+            <br/>SLOT_1_LINK, SLOT_2_LINK, ... SLOT_10_LINK
+            <br/>Vercel Dashboard → Settings → Environment Variables
+          </div>
         </div>
 
         <div className="space-y-4">
