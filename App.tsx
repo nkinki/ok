@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SubjectProvider } from './contexts/SubjectContext';
 import AuthPage from './components/auth/AuthPage';
 import TeacherSessionManager from './components/TeacherSessionManager';
+import { SlotLinksManager } from './components/SlotLinksManager';
 // TeacherExerciseCreator removed - not used in current implementation
 // TeacherLibrary removed - merged into AdvancedLibraryManager
 import AdvancedLibraryManager from './components/AdvancedLibraryManager';
@@ -228,7 +229,7 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
 
 // Teacher App Component (full functionality with session manager first to show history)
 function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) {
-  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'ADVANCED_LIBRARY'>('BULK')
+  const [viewMode, setViewMode] = useState<'BULK' | 'SESSION' | 'ADVANCED_LIBRARY' | 'SLOT_LINKS'>('BULK')
   const [library, setLibrary] = useState<BulkResultItem[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<BulkResultItem | null>(null);
   const [isMemoryMode, setIsMemoryMode] = useState(false)
@@ -379,6 +380,15 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
               🎯 Munkamenet
             </button>
             
+            <button 
+              onClick={() => setViewMode('SLOT_LINKS')} 
+              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                viewMode === 'SLOT_LINKS' ? 'bg-blue-100 text-blue-800' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              🔗 Slot Linkek
+            </button>
+            
             <div className="h-8 w-px bg-slate-200 mx-1"></div>
             
             <button 
@@ -439,6 +449,9 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             onExit={onBackToRoleSelect}
             onLibraryUpdate={handleLibraryUpdate}
           />
+        )}
+        {!showPreview && viewMode === 'SLOT_LINKS' && (
+          <SlotLinksManager />
         )}
         {!showPreview && viewMode === 'ADVANCED_LIBRARY' && (
           <AdvancedLibraryManager 

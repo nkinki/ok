@@ -221,28 +221,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
 
       console.log('✅ Session JSON létrehozva BASE64 képekkel');
 
-      // Upload to Google Drive via API
-      console.log('📤 Feltöltés Google Drive-ra - Slot:', selectedSlot);
-      
-      const uploadResponse = await fetch('/api/drive-upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          slotNumber: selectedSlot,
-          sessionData: fullSessionData
-        })
-      });
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Drive feltöltés sikertelen');
-      }
-
-      const uploadResult = await uploadResponse.json();
-      console.log('✅ Drive feltöltés sikeres:', uploadResult);
-
       // Create session object for UI
       const session: Session = {
         code: sessionCode,
@@ -254,7 +232,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       setActiveSession(session);
       console.log('🎯 Munkamenet aktív:', sessionCode);
 
-      // Also download JSON as backup
+      // Download JSON for manual Drive upload
       const dataStr = JSON.stringify(fullSessionData, null, 2)
       const blob = new Blob([dataStr], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -266,10 +244,10 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
       
-      console.log('📁 Backup JSON letöltve');
+      console.log('📁 JSON letöltve - Töltsd fel manuálisan Drive-ra!');
       
-      // Show success message with slot info
-      alert(`✅ Munkamenet sikeresen feltöltve!\n\n🎰 Slot: ${selectedSlot}\n🔑 Kód: ${sessionCode}\n\nAdd meg a diákoknak:\n• Slot szám: ${selectedSlot}\n• Munkamenet kód: ${sessionCode}`);
+      // Show success message with instructions
+      alert(`✅ Munkamenet JSON letöltve!\n\n🎰 Slot: ${selectedSlot}\n🔑 Kód: ${sessionCode}\n\n📝 Következő lépések:\n1. Töltsd fel a JSON-t Google Drive-ra\n2. Állítsd be "Bárki, aki rendelkezik a linkkel" megosztást\n3. Másold ki a linket\n4. Nyisd meg a Slot Linkek Kezelőt\n5. Illeszd be a linket a Slot ${selectedSlot}-hez\n\nAdd meg a diákoknak:\n• Slot szám: ${selectedSlot}\n• Munkamenet kód: ${sessionCode}`);
 
     } catch (error) {
       console.error('❌ Session creation error:', error)
