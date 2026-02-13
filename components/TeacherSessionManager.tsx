@@ -238,16 +238,13 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `munkamenet_${sessionCode}_slot${selectedSlot}_${new Date().toISOString().slice(0,10)}.json`
+      a.download = `slot${selectedSlot}.json`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
       
       console.log('📁 JSON letöltve - Töltsd fel manuálisan Drive-ra!');
-      
-      // Show success message with instructions
-      alert(`✅ Munkamenet JSON letöltve!\n\n🎰 Slot: ${selectedSlot}\n🔑 Kód: ${sessionCode}\n\n📝 Következő lépések:\n1. Töltsd fel a JSON-t Google Drive-ra\n2. Állítsd be "Bárki, aki rendelkezik a linkkel" megosztást\n3. Másold ki a linket\n4. Nyisd meg a Slot Linkek Kezelőt\n5. Illeszd be a linket a Slot ${selectedSlot}-hez\n\nAdd meg a diákoknak:\n• Slot szám: ${selectedSlot}\n• Munkamenet kód: ${sessionCode}`);
 
     } catch (error) {
       console.error('❌ Session creation error:', error)
