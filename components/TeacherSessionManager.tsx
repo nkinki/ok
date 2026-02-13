@@ -238,13 +238,13 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `slot${selectedSlot}.json`
+      a.download = `SLOT_${selectedSlot}_MUNKAMENET.json`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
       
-      console.log('📁 JSON letöltve - Töltsd fel manuálisan Drive-ra!');
+      console.log(`📁 JSON letöltve: SLOT_${selectedSlot}_MUNKAMENET.json - Töltsd fel Drive-ra!`);
 
     } catch (error) {
       console.error('❌ Session creation error:', error)
