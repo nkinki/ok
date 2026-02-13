@@ -698,8 +698,14 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       try {
         console.log('📥 Automatikus letöltés - Slot:', slotNumber);
         
-        // Get Drive link from localStorage
-        const driveLink = localStorage.getItem(`slot_${slotNumber}_link`) || '';
+        // Get Drive link from localStorage or use default for Slot 1
+        let driveLink = localStorage.getItem(`slot_${slotNumber}_link`) || '';
+        
+        // Default link for Slot 1 if not set
+        if (!driveLink && slotNumber === 1) {
+          driveLink = 'https://drive.google.com/file/d/1ZDscpLpj_Lhd-8jlrNdTWusvMB9jaAuw/view?usp=sharing';
+          console.log('🔗 Using default Slot 1 link');
+        }
         
         if (!driveLink) {
           throw new Error(`Slot ${slotNumber} nincs beállítva. Kérd meg a tanárt, hogy állítsa be a Drive linket a Beállításokban!`);
