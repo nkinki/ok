@@ -1,6 +1,4 @@
-// Vercel Serverless Function - Google Drive JSON Auto-Download by Slot
-import { google } from 'googleapis';
-
+// Vercel Serverless Function - Download from Public Google Drive Link
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,78 +14,50 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { slotNumber } = req.query;
+    const { driveLink } = req.query;
 
-    if (!slotNumber) {
-      return res.status(400).json({ error: 'slotNumber parameter required' });
+    if (!driveLink) {
+      return res.status(400).json({ error: 'driveLink parameter required' });
     }
 
-    console.log('📥 Download request for slot:', slotNumber);
+    console.log('📥 Download request for URL:', driveLink);
 
-    // File name based on slot
-    const fileName = `session${slotNumber}.json`;
-
-    // Google Drive API setup
-    const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1tWt9sAMIQT7FdXlFFOTMCCT175nMAti6';
-    const SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    const PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-    if (!SERVICE_ACCOUNT_EMAIL || !PRIVATE_KEY) {
-      console.error('❌ Missing Google credentials');
-      return res.status(500).json({ 
-        error: 'Server configuration error',
-        message: 'Missing Google Drive credentials'
-      });
-    }
-
-    // Create JWT client
-    const auth = new google.auth.JWT(
-      SERVICE_ACCOUNT_EMAIL,
-      null,
-      PRIVATE_KEY,
-      ['https://www.googleapis.com/auth/drive.readonly']
-    );
-
-    const drive = google.drive({ version: 'v3', auth });
-
-    // Search for file by name in folder
-    console.log('🔍 Searching for file:', fileName);
+    // Extract file ID from Google Drive URL
+    let fileId;
     
-    const searchResponse = await drive.files.list({
-      q: `name='${fileName}' and '${FOLDER_ID}' in parents and trashed=false`,
-      fields: 'files(id, name, mimeType, size)',
-      pageSize: 1
-    });
+    // Handle different Google Drive URL formats
+    if (driveLink.includes('/file/d/')) {
+      fileId = driveLink.split('/file/d/')[1].split('/')[0];
+    } else if (driveLink.includes('id=')) {
+      fileId = driveLink.split('id=')[1].split('&')[0];
+    } else if (driveLink.includes('/open?id=')) {
+      fileId = driveLink.split('/open?id=')[1].split('&')[0];
+    } else {
+      return res.status(400).json({ error: 'Invalid Google Drive URL format' });
+    }
 
-    const files = searchResponse.data.files;
+    console.log('📄 Extracted file ID:', fileId);
 
-    if (!files || files.length === 0) {
-      console.log('❌ File not found:', fileName);
+    // Download from public Google Drive link (no auth needed!)
+    const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    
+    const response = await fetch(downloadUrl);
+    
+    if (!response.ok) {
+      console.error('❌ Download failed:', response.status);
       return res.status(404).json({ 
-        error: 'File not found',
-        fileName,
-        message: `Slot ${slotNumber} még nincs létrehozva vagy üres.`
+        error: 'File not found or not public',
+        message: 'Ellenőrizd, hogy a fájl publikus-e és a link helyes-e.'
       });
     }
 
-    const file = files[0];
-    console.log('✅ File found:', file.name, 'ID:', file.id);
-
-    // Download file content
-    const downloadResponse = await drive.files.get({
-      fileId: file.id,
-      alt: 'media'
-    }, {
-      responseType: 'text'
-    });
-
-    const jsonContent = downloadResponse.data;
+    const jsonContent = await response.text();
     console.log('✅ File downloaded successfully');
 
     // Parse and validate JSON
     let parsedData;
     try {
-      parsedData = typeof jsonContent === 'string' ? JSON.parse(jsonContent) : jsonContent;
+      parsedData = JSON.parse(jsonContent);
     } catch (parseError) {
       console.error('❌ JSON parse error:', parseError);
       return res.status(500).json({ error: 'Invalid JSON file' });
@@ -101,7 +71,7 @@ export default async function handler(req, res) {
     if (parsedData.exercises.length === 0) {
       return res.status(400).json({ 
         error: 'Empty session',
-        message: `Slot ${slotNumber} üres. A tanár még nem töltötte fel a munkamenetet.`
+        message: 'A munkamenet üres.'
       });
     }
 
@@ -110,22 +80,12 @@ export default async function handler(req, res) {
     // Return JSON data
     return res.status(200).json({
       success: true,
-      slotNumber: slotNumber,
-      fileName: file.name,
-      fileId: file.id,
       data: parsedData
     });
 
   } catch (error) {
-    console.error('❌ Drive download error:', error);
+    console.error('❌ Download error:', error);
     
-    if (error.code === 403) {
-      return res.status(403).json({ 
-        error: 'Access denied',
-        message: 'Service account needs access to the folder'
-      });
-    }
-
     return res.status(500).json({ 
       error: 'Server error',
       message: error.message 
