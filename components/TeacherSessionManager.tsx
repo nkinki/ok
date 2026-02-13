@@ -221,6 +221,40 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
 
       console.log('✅ Session JSON létrehozva BASE64 képekkel');
 
+      // Create session in Supabase for statistics (minimal data, NO images, NO full JSON)
+      try {
+        console.log('📊 Creating session in Supabase (minimal data)...');
+        
+        // Only send minimal metadata - NO images, NO full JSON
+        const minimalExercises = fullSessionData.exercises.map(ex => ({
+          id: ex.id,
+          type: ex.type,
+          title: ex.title,
+          // NO imageUrl, NO content with images
+        }));
+        
+        const supabaseResponse = await fetch('/api/simple-api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionCode: sessionCode,
+            slotNumber: selectedSlot,
+            subject: currentSubject || 'general',
+            className: className.trim(),
+            exercises: minimalExercises, // Minimal data only
+            // NO fullSessionJson - images stay on Drive only!
+          })
+        });
+
+        if (supabaseResponse.ok) {
+          console.log('✅ Session created in Supabase (minimal data, no images)');
+        } else {
+          console.warn('⚠️ Supabase session creation failed, but continuing...');
+        }
+      } catch (supabaseError) {
+        console.warn('⚠️ Supabase error, but continuing...', supabaseError);
+      }
+
       // Create session object for UI
       const session: Session = {
         code: sessionCode,
