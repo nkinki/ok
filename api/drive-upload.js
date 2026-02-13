@@ -1,7 +1,7 @@
 // Vercel Serverless Function - Upload/Update session JSON to Google Drive
-const { google } = require('googleapis');
+import { google } from 'googleapis';
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
