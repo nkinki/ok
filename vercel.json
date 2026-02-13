@@ -23,6 +23,10 @@
       "dest": "/api/drive-upload.js"
     },
     {
+      "src": "/api/debug-env",
+      "dest": "/api/debug-env.js"
+    },
+    {
       "src": "/api/simple-api/(.*)",
       "dest": "/api/simple-api.js"
     },
