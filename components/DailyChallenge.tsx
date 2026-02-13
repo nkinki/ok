@@ -698,17 +698,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
       try {
         console.log('📥 Automatikus letöltés - Slot:', slotNumber);
         
-        // First, load the slot links from API
-        const slotLinksResponse = await fetch('/api/get-slot-links');
-        if (!slotLinksResponse.ok) {
-          throw new Error('Slot linkek betöltése sikertelen');
-        }
-        
-        const slotLinks = await slotLinksResponse.json();
-        const driveLink = slotLinks[`slot${slotNumber}`];
+        // Get Drive link from localStorage
+        const driveLink = localStorage.getItem(`slot_${slotNumber}_link`) || '';
         
         if (!driveLink) {
-          throw new Error(`Slot ${slotNumber} nincs beállítva. Kérd meg a tanárt, hogy állítsa be a Drive linket!`);
+          throw new Error(`Slot ${slotNumber} nincs beállítva. Kérd meg a tanárt, hogy állítsa be a Drive linket a Beállításokban!`);
         }
         
         console.log('🔗 Drive link:', driveLink);

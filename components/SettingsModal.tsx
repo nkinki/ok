@@ -18,6 +18,13 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [envText, setEnvText] = useState('');
   const [foundKeys, setFoundKeys] = useState<FoundApiKey[]>([]);
   const [parseResult, setParseResult] = useState('');
+  
+  // Slot links
+  const [slot1Link, setSlot1Link] = useState('');
+  const [slot2Link, setSlot2Link] = useState('');
+  const [slot3Link, setSlot3Link] = useState('');
+  const [slot4Link, setSlot4Link] = useState('');
+  const [slot5Link, setSlot5Link] = useState('');
 
   useEffect(() => {
     const storedGeminiKey = localStorage.getItem('gemini_api_key');
@@ -34,6 +41,13 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     
     const debugStored = localStorage.getItem('app_debug_mode');
     setIsDebug(debugStored === 'true');
+    
+    // Load slot links
+    setSlot1Link(localStorage.getItem('slot_1_link') || 'https://drive.google.com/file/d/1ZDscpLpj_Lhd-8jlrNdTWusvMB9jaAuw/view?usp=sharing');
+    setSlot2Link(localStorage.getItem('slot_2_link') || '');
+    setSlot3Link(localStorage.getItem('slot_3_link') || '');
+    setSlot4Link(localStorage.getItem('slot_4_link') || '');
+    setSlot5Link(localStorage.getItem('slot_5_link') || '');
   }, [isOpen]);
 
   const handleSave = () => {
@@ -76,6 +90,13 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     } else {
         localStorage.removeItem('google_drive_folder');
     }
+
+    // Save slot links
+    localStorage.setItem('slot_1_link', slot1Link.trim());
+    localStorage.setItem('slot_2_link', slot2Link.trim());
+    localStorage.setItem('slot_3_link', slot3Link.trim());
+    localStorage.setItem('slot_4_link', slot4Link.trim());
+    localStorage.setItem('slot_5_link', slot5Link.trim());
 
     localStorage.setItem('app_debug_mode', isDebug ? 'true' : 'false');
 
@@ -440,6 +461,74 @@ AIzaSy...kulcs3`}
             >
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${isDebug ? 'left-7' : 'left-1'}`}></div>
             </button>
+          </div>
+
+          {/* Slot Links Section */}
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="text-2xl">🔗</div>
+              <h3 className="font-bold text-blue-700 text-lg">Slot Linkek (Google Drive)</h3>
+            </div>
+            <p className="text-xs text-blue-600 mb-3">
+              Állítsd be a Google Drive publikus linkeket minden slothoz. A diákok a slot számmal töltik be a munkameneteket.
+            </p>
+            
+            <div className="space-y-2">
+              <div className="bg-white p-2 rounded border border-blue-200">
+                <label className="block text-xs font-bold text-blue-700 mb-1">Slot 1:</label>
+                <input 
+                  type="url" 
+                  value={slot1Link}
+                  onChange={(e) => setSlot1Link(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                />
+              </div>
+              <div className="bg-white p-2 rounded border border-blue-200">
+                <label className="block text-xs font-bold text-blue-700 mb-1">Slot 2:</label>
+                <input 
+                  type="url" 
+                  value={slot2Link}
+                  onChange={(e) => setSlot2Link(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                />
+              </div>
+              <div className="bg-white p-2 rounded border border-blue-200">
+                <label className="block text-xs font-bold text-blue-700 mb-1">Slot 3:</label>
+                <input 
+                  type="url" 
+                  value={slot3Link}
+                  onChange={(e) => setSlot3Link(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                />
+              </div>
+              <div className="bg-white p-2 rounded border border-blue-200">
+                <label className="block text-xs font-bold text-blue-700 mb-1">Slot 4:</label>
+                <input 
+                  type="url" 
+                  value={slot4Link}
+                  onChange={(e) => setSlot4Link(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                />
+              </div>
+              <div className="bg-white p-2 rounded border border-blue-200">
+                <label className="block text-xs font-bold text-blue-700 mb-1">Slot 5:</label>
+                <input 
+                  type="url" 
+                  value={slot5Link}
+                  onChange={(e) => setSlot5Link(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+              <strong>💡 Tipp:</strong> Hozz létre 5 fix fájlt a Drive-on (Slot_1.json, Slot_2.json, stb.), állítsd be publikusra, és csak a tartalmát frissítsd!
+            </div>
           </div>
 
           {/* Save Button */}
