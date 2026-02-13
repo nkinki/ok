@@ -43,7 +43,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     setIsDebug(debugStored === 'true');
     
     // Load slot links
-    setSlot1Link(localStorage.getItem('slot_1_link') || 'https://drive.google.com/file/d/1ZDscpLpj_Lhd-8jlrNdTWusvMB9jaAuw/view?usp=sharing');
+    setSlot1Link(localStorage.getItem('slot_1_link') || 'https://drive.google.com/file/d/1bqV8V5O-gbpAftZ9TfaMNse7baeXtt3Z/view?usp=sharing');
     setSlot2Link(localStorage.getItem('slot_2_link') || '');
     setSlot3Link(localStorage.getItem('slot_3_link') || '');
     setSlot4Link(localStorage.getItem('slot_4_link') || '');

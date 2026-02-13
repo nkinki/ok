@@ -703,7 +703,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         
         // Default link for Slot 1 if not set
         if (!driveLink && slotNumber === 1) {
-          driveLink = 'https://drive.google.com/file/d/1ZDscpLpj_Lhd-8jlrNdTWusvMB9jaAuw/view?usp=sharing';
+          driveLink = 'https://drive.google.com/file/d/1bqV8V5O-gbpAftZ9TfaMNse7baeXtt3Z/view?usp=sharing';
           console.log('🔗 Using default Slot 1 link');
         }
         
