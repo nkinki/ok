@@ -228,12 +228,12 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         // Calculate max possible score based on exercise content
         let maxPossibleScore = 0;
         fullSessionData.exercises.forEach(ex => {
-          if (ex.type === 'QUIZ') {
-            maxPossibleScore += (ex.content?.questions?.length || 0) * 10;
-          } else if (ex.type === 'MATCHING') {
-            maxPossibleScore += (ex.content?.pairs?.length || 0) * 10;
-          } else if (ex.type === 'CATEGORIZATION') {
-            maxPossibleScore += (ex.content?.items?.length || 0) * 10;
+          if (ex.type === 'QUIZ' && 'questions' in ex.content) {
+            maxPossibleScore += (ex.content.questions?.length || 0) * 10;
+          } else if (ex.type === 'MATCHING' && 'pairs' in ex.content) {
+            maxPossibleScore += (ex.content.pairs?.length || 0) * 10;
+          } else if (ex.type === 'CATEGORIZATION' && 'items' in ex.content) {
+            maxPossibleScore += (ex.content.items?.length || 0) * 10;
           }
         });
         
