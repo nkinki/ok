@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SubjectProvider } from './contexts/SubjectContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import AuthPage from './components/auth/AuthPage';
 import TeacherSessionManager from './components/TeacherSessionManager';
 // TeacherExerciseCreator removed - not used in current implementation
@@ -10,6 +11,7 @@ import AdvancedLibraryManager from './components/AdvancedLibraryManager';
 import DailyChallenge from './components/DailyChallenge';
 import BulkProcessor, { BulkResultItem } from './components/BulkProcessor';
 import SettingsModal from './components/SettingsModal';
+import ThemeToggle from './components/ThemeToggle';
 
 type AppMode = 'ROLE_SELECT' | 'TEACHER' | 'STUDENT';
 
@@ -36,13 +38,18 @@ function AppContent() {
 
   // Role selection component
   const RoleSelectPage = () => (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      {/* Theme Toggle - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
       <div className="max-w-4xl w-full">
         <div className="text-center mb-12">
-          <div className="bg-purple-100 text-purple-900 w-20 h-20 flex items-center justify-center rounded-2xl shadow-lg font-bold text-3xl mx-auto mb-6 border border-purple-200">
+          <div className="bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100 w-20 h-20 flex items-center justify-center rounded-2xl shadow-lg font-bold text-3xl mx-auto mb-6 border border-purple-200 dark:border-purple-700">
             OK
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
           </h1>
         </div>
@@ -51,31 +58,31 @@ function AppContent() {
           {/* Tanár gomb */}
           <div 
             onClick={() => setAppMode('TEACHER')}
-            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 hover:shadow-xl transition-all cursor-pointer group hover:scale-105"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-slate-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer group hover:scale-105"
           >
             <div className="text-center">
-              <div className="bg-purple-100 text-purple-600 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
+              <div className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-purple-200 dark:group-hover:bg-purple-800 transition-colors">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800">Tanár</h3>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Tanár</h3>
             </div>
           </div>
 
           {/* Diák gomb */}
           <div 
             onClick={() => setAppMode('STUDENT')}
-            className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 hover:shadow-xl transition-all cursor-pointer group hover:scale-105"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-slate-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer group hover:scale-105"
           >
             <div className="text-center">
-              <div className="bg-yellow-100 text-yellow-600 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-yellow-200 transition-colors">
+              <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition-colors">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800">Diák</h3>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Diák</h3>
             </div>
           </div>
         </div>
@@ -459,14 +466,16 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
   );
 }
 
-// Main App wrapper with AuthProvider and SubjectProvider
+// Main App wrapper with AuthProvider, SubjectProvider, and ThemeProvider
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <SubjectProvider>
-        <AppContent />
-      </SubjectProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <SubjectProvider>
+          <AppContent />
+        </SubjectProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 
