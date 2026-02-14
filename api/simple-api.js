@@ -2260,16 +2260,19 @@ export default async function handler(req, res) {
           process.env.SUPABASE_ANON_KEY
         );
 
-        // First get the session ID
+        // First get the session ID and max_possible_score
         const { data: session, error: sessionError } = await supabase
           .from('teacher_sessions')
-          .select('id')
+          .select('id, max_possible_score')
           .eq('session_code', sessionCode)
           .single();
 
         if (sessionError || !session) {
           return res.status(404).json({ error: 'Session nem található' });
         }
+
+        const maxPossibleScore = session.max_possible_score || 0;
+        console.log('📊 Session max_possible_score:', maxPossibleScore);
 
         // Get session participants with their scores, ordered by total_score DESC
         // Only include participants who have actually submitted results
@@ -2302,24 +2305,21 @@ export default async function handler(req, res) {
           // Debug logging for percentage calculation
           console.log(`🔍 Participant ${participant.student_name}:`, {
             total_score: participant.total_score,
+            maxPossibleScore,
             totalQuestions,
             correctAnswers,
             results: results.length
           });
           
-          // Use total_score for percentage calculation if available, otherwise use results
+          // Use max_possible_score from session for accurate percentage calculation
           let percentage = 0;
-          if (participant.total_score > 0) {
-            // Calculate percentage based on total_score and completed exercises
-            // Assume each exercise has multiple questions, use completed_exercises * 10 as max score per exercise
-            const completedExercises = participant.completed_exercises || 1;
-            const maxPossibleScore = completedExercises * 30; // Assume 3 questions per exercise, 10 points each
+          if (maxPossibleScore > 0 && participant.total_score >= 0) {
             percentage = Math.round((participant.total_score / maxPossibleScore) * 100);
-            console.log(`📊 Using total_score calculation: ${participant.total_score}/${maxPossibleScore} = ${percentage}% (${completedExercises} exercises)`);
+            console.log(`📊 Using session max_possible_score: ${participant.total_score}/${maxPossibleScore} = ${percentage}%`);
           } else if (totalQuestions > 0) {
-            // Fallback to correct answers calculation
+            // Fallback to correct answers calculation if max_possible_score not available
             percentage = Math.round((correctAnswers / totalQuestions) * 100);
-            console.log(`📊 Using correct answers calculation: ${correctAnswers}/${totalQuestions} = ${percentage}%`);
+            console.log(`📊 Fallback to correct answers: ${correctAnswers}/${totalQuestions} = ${percentage}%`);
           }
 
           return {
