@@ -2023,23 +2023,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       {finalPercentage < 80 && (
                           <button 
                               onClick={async () => {
-                                  // Reset and restart the session
-                                  setCurrentIndex(0);
-                                  setCompletedCount(0);
-                                  setCompletedExercises(new Set());
-                                  setShowPercentage(false);
-                                  setFinalPercentage(null);
-                                  setShowLeaderboard(false);
-                                  setCalculatingPercentage(false);
-                                  
-                                  // CRITICAL: Clear localStorage results to prevent accumulation
-                                  if (currentSessionCode) {
-                                      const sessionKey = `session_${currentSessionCode}_results`;
-                                      localStorage.removeItem(sessionKey);
-                                      console.log('🧹 Cleared localStorage results for retry:', currentSessionCode);
-                                  }
-                                  
-                                  // CRITICAL: Create new participant for retry (new attempt)
+                                  // CRITICAL: Create new participant for retry FIRST (new attempt)
                                   if (student && currentSessionCode) {
                                       try {
                                           console.log('🔄 Creating new participant for retry...');
@@ -2056,20 +2040,36 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                           if (response.ok) {
                                               const data = await response.json();
                                               console.log('✅ New participant created for retry:', data.student.id);
+                                              
                                               // Update student with new ID
                                               setStudent({
                                                   ...student,
                                                   id: data.student.id
                                               });
+                                              
+                                              // CRITICAL: Clear localStorage results to prevent accumulation
+                                              const sessionKey = `session_${currentSessionCode}_results`;
+                                              localStorage.removeItem(sessionKey);
+                                              console.log('🧹 Cleared localStorage results for retry:', currentSessionCode);
+                                              
+                                              // Reset and restart the session AFTER new participant is created
+                                              setCurrentIndex(0);
+                                              setCompletedCount(0);
+                                              setCompletedExercises(new Set());
+                                              setShowPercentage(false);
+                                              setFinalPercentage(null);
+                                              setShowLeaderboard(false);
+                                              setCalculatingPercentage(false);
+                                              setStep('PLAYING');
                                           } else {
                                               console.error('❌ Failed to create new participant for retry');
+                                              alert('Hiba történt az újrapróbálkozás során. Kérlek próbáld újra!');
                                           }
                                       } catch (error) {
                                           console.error('❌ Error creating new participant:', error);
+                                          alert('Hiba történt az újrapróbálkozás során. Kérlek próbáld újra!');
                                       }
                                   }
-                                  
-                                  setStep('PLAYING');
                               }}
                               className="w-full bg-orange-600 dark:bg-orange-700 hover:bg-orange-700 dark:hover:bg-orange-600 text-white py-2.5 rounded-lg font-bold shadow-lg dark:shadow-orange-500/50 transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
                           >
