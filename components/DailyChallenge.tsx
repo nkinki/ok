@@ -1857,11 +1857,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500 rounded-full blur-3xl opacity-20 animate-pulse"></div>
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500 rounded-full blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
             
-            {/* Floating Particles */}
-            {[...Array(20)].map((_, i) => (
+            {/* Floating Particles - Larger and more visible */}
+            {[...Array(30)].map((_, i) => (
               <div
                 key={i}
-                className="absolute w-1 h-1 bg-emerald-400 rounded-full animate-float"
+                className="absolute w-2 h-2 bg-emerald-400 rounded-full animate-float opacity-60"
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `${Math.random() * 100}%`,
@@ -1879,21 +1879,21 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                   <div className="text-center py-6 border-b border-slate-200 dark:border-emerald-500/30">
                       <div className={`w-40 h-40 rounded-full flex items-center justify-center mx-auto mb-4 text-6xl font-bold animate-pulse ${
                           finalPercentage >= 80 
-                              ? 'bg-green-100 dark:bg-emerald-900/30 text-green-600 dark:text-emerald-400 dark:shadow-neon-green dark:border-2 dark:border-emerald-500' 
-                              : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 dark:shadow-neon-purple dark:border-2 dark:border-purple-500'
+                              ? 'bg-green-100 dark:bg-emerald-900/30 text-green-600 dark:text-emerald-300 dark:shadow-neon-green dark:border-2 dark:border-emerald-500' 
+                              : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300 dark:shadow-neon-purple dark:border-2 dark:border-purple-500'
                       }`}>
                           {finalPercentage}%
                       </div>
                       
                       <h2 className={`text-xl font-bold mb-2 ${
                           finalPercentage >= 80 
-                              ? 'text-green-600 dark:text-emerald-400' 
-                              : 'text-red-600 dark:text-red-400'
+                              ? 'text-green-600 dark:text-emerald-300' 
+                              : 'text-red-600 dark:text-red-300'
                       }`}>
                           {finalPercentage >= 80 ? '🎉 Megfelelt!' : '📚 Próbáld újra!'}
                       </h2>
                       
-                      <p className="text-slate-600 dark:text-slate-300 text-sm">
+                      <p className="text-slate-600 dark:text-slate-200 text-sm">
                           {finalPercentage >= 80 
                               ? 'Szuper teljesítmény! Gratulálunk!' 
                               : 'Ne add fel! Gyakorolj még egy kicsit!'}
@@ -1919,13 +1919,13 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
                           {showLeaderboard && (
                               <div className="mt-3 bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-emerald-500/30 rounded-lg p-3 max-h-48 overflow-y-auto">
-                                  <h3 className="text-sm font-bold text-slate-800 dark:text-emerald-400 mb-3 text-center flex items-center justify-center gap-2">
+                                  <h3 className="text-sm font-bold text-slate-800 dark:text-emerald-300 mb-3 text-center flex items-center justify-center gap-2">
                                       <span className="text-base">🏆</span>
                                       Ranglista
                                   </h3>
                                   
                                   {leaderboard.length === 0 ? (
-                                      <p className="text-slate-500 dark:text-slate-400 text-center py-3 text-sm">
+                                      <p className="text-slate-500 dark:text-slate-300 text-center py-3 text-sm">
                                           {loadingLeaderboard ? 'Ranglista betöltése...' : 'Még nincsenek eredmények.'}
                                       </p>
                                   ) : (
@@ -1958,22 +1958,22 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                                                participant.rank}
                                                           </div>
                                                           <div>
-                                                              <div className={`font-medium ${isCurrentStudent ? 'text-blue-800 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                                                              <div className={`font-medium ${isCurrentStudent ? 'text-blue-800 dark:text-blue-300' : 'text-slate-800 dark:text-slate-100'}`}>
                                                                   {participant.name}
-                                                                  {isCurrentStudent && <span className="ml-1 text-xs bg-blue-200 dark:bg-blue-900/50 text-blue-800 dark:text-blue-400 px-1 py-0.5 rounded-full border dark:border-blue-500">Te</span>}
+                                                                  {isCurrentStudent && <span className="ml-1 text-xs bg-blue-200 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 px-1 py-0.5 rounded-full border dark:border-blue-500">Te</span>}
                                                               </div>
-                                                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                                              <div className="text-xs text-slate-500 dark:text-slate-300">
                                                                   {participant.class}
                                                               </div>
                                                           </div>
                                                       </div>
                                                       <div className="text-right">
                                                           <div className={`font-bold text-base ${
-                                                              participant.percentage >= 80 ? 'text-green-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                                                              participant.percentage >= 80 ? 'text-green-600 dark:text-emerald-300' : 'text-red-600 dark:text-red-300'
                                                           }`}>
                                                               {participant.percentage}%
                                                           </div>
-                                                          <div className="text-xs text-slate-500 dark:text-slate-400">
+                                                          <div className="text-xs text-slate-500 dark:text-slate-300">
                                                               {participant.score} pont
                                                           </div>
                                                       </div>
@@ -1984,12 +1984,12 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                   )}
                                   
                                   {leaderboard.length > 0 && (
-                                      <div className="mt-3 pt-2 border-t border-slate-200 text-center">
-                                          <p className="text-xs text-slate-500">
+                                      <div className="mt-3 pt-2 border-t border-slate-200 dark:border-emerald-500/30 text-center">
+                                          <p className="text-xs text-slate-500 dark:text-slate-300">
                                               {leaderboard.length} résztvevő • {new Date().toLocaleTimeString()}
                                           </p>
                                           {finalPercentage !== null && finalPercentage < 80 && (
-                                              <p className="text-xs text-orange-600 mt-1 font-medium">
+                                              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 font-medium">
                                                   💪 Próbáld újra és kerülj feljebb a ranglistán!
                                               </p>
                                           )}
@@ -2110,8 +2110,8 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           {calculatingPercentage && (
               <div className="flex flex-col items-center justify-center py-12 relative z-10">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 dark:border-emerald-500 mb-4 dark:shadow-neon-green"></div>
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-emerald-400 mb-2">Eredmények feldolgozása...</h3>
-                  <p className="text-slate-500 dark:text-slate-300 text-sm">Kérlek várj, amíg kiszámoljuk a végeredményt.</p>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-emerald-300 mb-2">Eredmények feldolgozása...</h3>
+                  <p className="text-slate-500 dark:text-slate-200 text-sm">Kérlek várj, amíg kiszámoljuk a végeredményt.</p>
               </div>
           )}
           
