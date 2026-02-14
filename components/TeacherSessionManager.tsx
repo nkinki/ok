@@ -388,45 +388,42 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       </div>
 
       {activeSession && (
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <div className="bg-green-100 text-green-800 w-16 h-16 flex items-center justify-center rounded-xl shadow-sm font-bold text-2xl border border-green-200">
-              🎯
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-green-100 text-green-800 w-12 h-12 flex items-center justify-center rounded-lg font-bold text-xl border border-green-200">
+                🎯
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-green-800">Aktív munkamenet</h3>
+                <p className="text-sm text-green-700">
+                  🎰 Slot: <span className="font-mono font-bold">{selectedSlot}</span> | 
+                  Kód: <span className="font-mono font-bold">{activeSession.code}</span> | 
+                  {activeSession.exercises.length} feladat
+                </p>
+              </div>
             </div>
-            <div className="text-left">
-              <h3 className="text-2xl font-bold text-green-800">Aktív munkamenet</h3>
-              <p className="text-green-700">
-                🎰 Slot: <span className="font-mono text-xl font-bold">{selectedSlot}</span> | 
-                Kód: <span className="font-mono text-xl font-bold">{activeSession.code}</span>
-              </p>
-              <p className="text-sm text-green-600 font-medium">{activeSession.exercises.length} feladat</p>
-            </div>
-          </div>
-
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-yellow-800 font-medium">
-              📢 Add meg a diákoknak:
-            </p>
-            <div className="mt-2 space-y-1">
-              <p className="text-yellow-900">
-                <span className="font-bold">Slot szám:</span> <span className="font-mono text-lg">{selectedSlot}</span>
-              </p>
-              <p className="text-yellow-900">
-                <span className="font-bold">Munkamenet kód:</span> <span className="font-mono text-lg">{activeSession.code}</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="flex justify-center gap-4">
             <button
               onClick={() => setActiveSession(null)}
-              className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-lg font-bold flex items-center gap-2 text-lg"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
               Leállítás
             </button>
+          </div>
+
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+            <p className="text-xs text-yellow-800 font-medium mb-1">📢 Add meg a diákoknak:</p>
+            <div className="flex gap-4 text-sm">
+              <span className="text-yellow-900">
+                <span className="font-bold">Slot:</span> <span className="font-mono">{selectedSlot}</span>
+              </span>
+              <span className="text-yellow-900">
+                <span className="font-bold">Kód:</span> <span className="font-mono">{activeSession.code}</span>
+              </span>
+            </div>
           </div>
         </div>
       )}
@@ -444,21 +441,21 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       )}
 
       {/* Exercise Selection */}
-      <div className="bg-white rounded-xl p-6 mb-6 border border-slate-200">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-slate-800">
+      <div className="bg-white rounded-lg p-4 mb-4 border border-slate-200">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-base font-bold text-slate-800">
             Kiválasztott feladatok ({selectedExercises.length}/{library.length})
           </h3>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-slate-700 mb-1">
-                Slot szám <span className="text-red-500">*</span>
+              <label className="text-xs font-medium text-slate-700 mb-0.5">
+                Slot <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedSlot}
                 onChange={(e) => setSelectedSlot(Number(e.target.value))}
                 required
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value={1}>🎰 Slot 1</option>
                 <option value={2}>🎰 Slot 2</option>
@@ -469,72 +466,70 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             </div>
             
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-slate-700 mb-1">
+              <label className="text-xs font-medium text-slate-700 mb-0.5">
                 Osztály neve <span className="text-red-500">*</span>
               </label>
               <select
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
                 required
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Válassz osztályt...</option>
+                <option value="">Válassz...</option>
                 {classOptions.map(cls => (
                   <option key={cls} value={cls}>{cls}</option>
                 ))}
               </select>
             </div>
             
-            {/* Action Buttons - Organized and Symmetrical */}
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={handleStartSession}
-                disabled={selectedExercises.length === 0 || !className.trim() || loading}
-                className={`px-6 py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-white transition-colors ${
-                  subjectTheme === 'blue' ? 'bg-blue-600 hover:bg-blue-700' :
-                  subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :
-                  subjectTheme === 'red' ? 'bg-red-600 hover:bg-red-700' :
-                  subjectTheme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
-                  'bg-orange-600 hover:bg-orange-700'
-                }`}
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Indítás...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-9-4V8a3 3 0 016 0v2M5 12a7 7 0 1114 0v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5z"/>
-                    </svg>
-                    Munkamenet indítása
-                  </>
-                )}
-              </button>
+            {/* Compact Action Buttons */}
+            <button
+              onClick={handleStartSession}
+              disabled={selectedExercises.length === 0 || !className.trim() || loading}
+              className={`px-4 py-1.5 rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-white text-sm ${
+                subjectTheme === 'blue' ? 'bg-blue-600 hover:bg-blue-700' :
+                subjectTheme === 'green' ? 'bg-green-600 hover:bg-green-700' :
+                subjectTheme === 'red' ? 'bg-red-600 hover:bg-red-700' :
+                subjectTheme === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
+                'bg-orange-600 hover:bg-orange-700'
+              }`}
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                  Indítás...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-9-4V8a3 3 0 016 0v2M5 12a7 7 0 1114 0v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5z"/>
+                  </svg>
+                  Munkamenet indítása
+                </>
+              )}
+            </button>
 
-              <button
-                onClick={() => exportSelectedAsJson()}
-                disabled={selectedExercises.length === 0}
-                className="px-6 py-3 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-white bg-green-600 hover:bg-green-700 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                JSON Export ({selectedExercises.length})
-              </button>
-            </div>
+            <button
+              onClick={() => exportSelectedAsJson()}
+              disabled={selectedExercises.length === 0}
+              className="px-4 py-1.5 rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-white bg-green-600 hover:bg-green-700 text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              JSON Export ({selectedExercises.length})
+            </button>
           </div>
         </div>
 
         {selectedExercises.length > 0 && (
-          <div className="mb-4 p-4 bg-slate-50 rounded-lg">
-            <div className="text-sm text-slate-600 mb-2">Kiválasztott feladatok:</div>
-            <div className="flex flex-wrap gap-2">
+          <div className="p-3 bg-slate-50 rounded">
+            <div className="text-xs text-slate-600 mb-1.5">Kiválasztott feladatok:</div>
+            <div className="flex flex-wrap gap-1.5">
               {selectedExercises.map(id => {
                 const exercise = library.find(item => item.id === id)
                 return exercise ? (
-                  <span key={id} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
+                  <span key={id} className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-medium">
                     {exercise.data.title}
                   </span>
                 ) : null
