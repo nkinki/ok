@@ -38,18 +38,48 @@ function AppContent() {
 
   // Role selection component
   const RoleSelectPage = () => (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-black flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Background - Dark Mode Only */}
+      <div className="hidden dark:block absolute inset-0 overflow-hidden">
+        {/* Animated Grid */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)',
+            backgroundSize: '50px 50px',
+            animation: 'grid-move 20s linear infinite'
+          }}></div>
+        </div>
+        
+        {/* Glowing Orbs */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500 rounded-full blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500 rounded-full blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        
+        {/* Floating Particles */}
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-emerald-400 rounded-full animate-float"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${5 + Math.random() * 10}s`
+            }}
+          ></div>
+        ))}
+      </div>
+
       {/* Theme Toggle - Top Right */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
       </div>
       
-      <div className="max-w-4xl w-full">
+      <div className="max-w-4xl w-full relative z-10">
         <div className="text-center mb-12">
-          <div className="bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100 w-20 h-20 flex items-center justify-center rounded-2xl shadow-lg font-bold text-3xl mx-auto mb-6 border border-purple-200 dark:border-purple-700">
+          <div className="bg-purple-100 dark:bg-black text-purple-900 dark:text-emerald-400 w-20 h-20 flex items-center justify-center rounded-2xl shadow-lg dark:shadow-emerald-500/50 font-bold text-3xl mx-auto mb-6 border border-purple-200 dark:border-emerald-500 dark:animate-glow">
             OK
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white mb-4 dark:drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]">
             Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
           </h1>
         </div>
@@ -58,35 +88,54 @@ function AppContent() {
           {/* Tanár gomb */}
           <div 
             onClick={() => setAppMode('TEACHER')}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-slate-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer group hover:scale-105"
+            className="bg-white dark:bg-black rounded-2xl p-8 shadow-lg border border-slate-200 dark:border-emerald-500 hover:shadow-xl dark:hover:shadow-emerald-500/50 transition-all cursor-pointer group hover:scale-105 dark:hover:border-emerald-400"
           >
             <div className="text-center">
-              <div className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-purple-200 dark:group-hover:bg-purple-800 transition-colors">
+              <div className="bg-purple-100 dark:bg-gray-900 text-purple-600 dark:text-emerald-400 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-purple-200 dark:group-hover:bg-black dark:group-hover:shadow-emerald-500/50 transition-colors border dark:border-emerald-500">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Tanár</h3>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-emerald-400">Tanár</h3>
             </div>
           </div>
 
           {/* Diák gomb */}
           <div 
             onClick={() => setAppMode('STUDENT')}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-slate-200 dark:border-gray-700 hover:shadow-xl transition-all cursor-pointer group hover:scale-105"
+            className="bg-white dark:bg-black rounded-2xl p-8 shadow-lg border border-slate-200 dark:border-cyan-500 hover:shadow-xl dark:hover:shadow-cyan-500/50 transition-all cursor-pointer group hover:scale-105 dark:hover:border-cyan-400"
           >
             <div className="text-center">
-              <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition-colors">
+              <div className="bg-yellow-100 dark:bg-gray-900 text-yellow-600 dark:text-cyan-400 w-16 h-16 flex items-center justify-center rounded-xl mx-auto mb-4 group-hover:bg-yellow-200 dark:group-hover:bg-black dark:group-hover:shadow-cyan-500/50 transition-colors border dark:border-cyan-500">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Diák</h3>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-cyan-400">Diák</h3>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes grid-move {
+          0% { transform: translate(0, 0); }
+          100% { transform: translate(50px, 50px); }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+          50% { opacity: 1; }
+          100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+        }
+        
+        @keyframes glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+          50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.8), 0 0 60px rgba(16, 185, 129, 0.4); }
+        }
+      `}</style>
     </div>
   )
 
@@ -180,32 +229,32 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-black font-sans">
       {/* Theme Toggle - Top Right */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
       </div>
       
       <nav className={`
-        bg-white dark:bg-gray-800 border-b border-purple-200 dark:border-gray-700 sticky top-0 z-40 shadow-md transition-all duration-300
+        bg-white dark:bg-black border-b border-purple-200 dark:border-emerald-500 sticky top-0 z-40 shadow-md dark:shadow-emerald-500/20 transition-all duration-300
         ${showHeader ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}
       `}>
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div 
               onClick={onBackToRoleSelect}
-              className="bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200 dark:border-purple-700 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+              className="bg-purple-100 dark:bg-black text-purple-900 dark:text-emerald-400 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm dark:shadow-emerald-500/50 font-bold text-lg shrink-0 border border-purple-200 dark:border-emerald-500 cursor-pointer hover:bg-purple-200 dark:hover:bg-gray-900 transition-colors"
               title="Vissza a főoldalra"
             >
               OK
             </div>
-            <div className="font-bold text-purple-900 dark:text-purple-100 text-xs md:text-sm leading-tight">
+            <div className="font-bold text-purple-900 dark:text-emerald-400 text-xs md:text-sm leading-tight">
               Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-300 dark:border-yellow-700 flex items-center gap-2">
+            <div className="bg-yellow-100 dark:bg-black text-yellow-800 dark:text-cyan-400 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-300 dark:border-cyan-500 dark:shadow-cyan-500/30 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
@@ -214,7 +263,7 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
             </div>
             <button 
               onClick={onBackToRoleSelect}
-              className="text-slate-500 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 p-2"
+              className="text-slate-500 dark:text-emerald-400 hover:text-purple-700 dark:hover:text-emerald-300 p-2"
               title="Vissza a szerepkör választáshoz"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,40 +397,40 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-black font-sans">
       {/* Theme Toggle - Top Right */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
       </div>
       
-      <nav className="bg-white dark:bg-gray-800 border-b border-purple-200 dark:border-gray-700 sticky top-0 z-40 shadow-md">
+      <nav className="bg-white dark:bg-black border-b border-purple-200 dark:border-emerald-500 sticky top-0 z-40 shadow-md dark:shadow-emerald-500/20">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div 
               onClick={() => setViewMode('BULK')}
-              className="bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200 dark:border-purple-700 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+              className="bg-purple-100 dark:bg-black text-purple-900 dark:text-emerald-400 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm dark:shadow-emerald-500/50 font-bold text-lg shrink-0 border border-purple-200 dark:border-emerald-500 cursor-pointer hover:bg-purple-200 dark:hover:bg-gray-900 transition-colors"
               title="Vissza a főoldalra"
             >
               OK
             </div>
-            <div className="font-bold text-purple-900 dark:text-purple-100 text-sm md:text-base leading-tight">
+            <div className="font-bold text-purple-900 dark:text-emerald-400 text-sm md:text-base leading-tight">
               Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
             </div>
           </div>
 
           <div className="flex items-center gap-1 sm:gap-4">
-            <div className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-4 py-2 rounded-lg text-sm font-bold border border-purple-300 dark:border-purple-700 flex items-center gap-2">
+            <div className="bg-purple-100 dark:bg-black text-purple-800 dark:text-emerald-400 px-4 py-2 rounded-lg text-sm font-bold border border-purple-300 dark:border-emerald-500 dark:shadow-emerald-500/30 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
               Tanár Mód
             </div>
-            <div className="h-8 w-px bg-slate-200 dark:bg-gray-700 mx-1"></div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-emerald-500/30 mx-1"></div>
             
             <button 
               onClick={() => setViewMode('BULK')} 
               className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border transition-all ${
-                viewMode === 'BULK' ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700' : 'text-slate-600 dark:text-gray-400 border-transparent hover:bg-slate-50 dark:hover:bg-gray-700'
+                viewMode === 'BULK' ? 'bg-purple-100 dark:bg-black text-purple-800 dark:text-emerald-400 border-purple-300 dark:border-emerald-500 dark:shadow-emerald-500/30' : 'text-slate-600 dark:text-gray-400 border-transparent hover:bg-slate-50 dark:hover:bg-gray-900 dark:hover:text-emerald-400'
               }`}
             >
               🔄 Kezdés
@@ -390,28 +439,28 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             <button 
               onClick={() => setViewMode('SESSION')} 
               className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                viewMode === 'SESSION' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700'
+                viewMode === 'SESSION' ? 'bg-green-100 dark:bg-black text-green-800 dark:text-cyan-400 dark:border dark:border-cyan-500 dark:shadow-cyan-500/30' : 'text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-900 dark:hover:text-cyan-400'
               }`}
             >
               🎯 Munkamenet
             </button>
             
-            <div className="h-8 w-px bg-slate-200 dark:bg-gray-700 mx-1"></div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-emerald-500/30 mx-1"></div>
             
             <button 
               onClick={() => setViewMode('ADVANCED_LIBRARY')} 
               className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                viewMode === 'ADVANCED_LIBRARY' ? 'bg-green-50 dark:bg-green-900 text-green-800 dark:text-green-200' : 'text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700'
+                viewMode === 'ADVANCED_LIBRARY' ? 'bg-green-50 dark:bg-black text-green-800 dark:text-purple-400 dark:border dark:border-purple-500 dark:shadow-purple-500/30' : 'text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-900 dark:hover:text-purple-400'
               }`}
             >
-              📚 Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 text-xs rounded-full font-bold">{library.length}</span>}
+              📚 Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-300 text-xs rounded-full font-bold dark:border dark:border-purple-500">{library.length}</span>}
             </button>
             
-            <div className="h-8 w-px bg-slate-200 dark:bg-gray-700 mx-1"></div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-emerald-500/30 mx-1"></div>
             
             <button 
               onClick={() => setIsSettingsOpen(true)}
-              className="text-slate-500 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 p-2"
+              className="text-slate-500 dark:text-emerald-400 hover:text-purple-700 dark:hover:text-emerald-300 p-2"
               title="Beállítások"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -422,7 +471,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             
             <button 
               onClick={onBackToRoleSelect}
-              className="text-slate-500 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 p-2"
+              className="text-slate-500 dark:text-emerald-400 hover:text-purple-700 dark:hover:text-emerald-300 p-2"
               title="Vissza a szerepkör választáshoz"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

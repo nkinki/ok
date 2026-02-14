@@ -21,10 +21,26 @@ export default {
           700: '#6d28d9',
           800: '#5b21b6',
           900: '#4c1d95',
+        },
+        neon: {
+          green: '#10b981',
+          cyan: '#06b6d4',
+          purple: '#a855f7',
+          pink: '#ec4899',
         }
       },
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
+      },
+      animation: {
+        'glow': 'glow 2s ease-in-out infinite',
+        'float': 'float 15s ease-in-out infinite',
+        'grid-move': 'grid-move 20s linear infinite',
+      },
+      boxShadow: {
+        'neon-green': '0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.3)',
+        'neon-cyan': '0 0 20px rgba(6, 182, 212, 0.5), 0 0 40px rgba(6, 182, 212, 0.3)',
+        'neon-purple': '0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.3)',
       },
     },
   },
