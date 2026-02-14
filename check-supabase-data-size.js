@@ -21,13 +21,13 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkDataSize() {
-  console.log('🔍 Checking data size for session GIBR6C...\n');
+  console.log('🔍 Checking data size for session LBVNOC...\n');
 
   // Get session data
   const { data: session, error: sessionError } = await supabase
     .from('teacher_sessions')
     .select('*')
-    .eq('session_code', 'GIBR6C')
+    .eq('session_code', 'LBVNOC')
     .single();
 
   if (sessionError) {
