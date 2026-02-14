@@ -1841,29 +1841,59 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
   // --- RENDER: RESULT ---
   return (
-      <div className="max-w-2xl mx-auto mt-4 bg-white p-6 rounded-2xl shadow-xl border border-slate-200 text-center relative min-h-[80vh]">
+      <div className="max-w-2xl mx-auto mt-4 bg-white dark:bg-black p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-emerald-500 text-center relative min-h-[80vh] overflow-hidden">
+          {/* Animated Background - Dark Mode Only */}
+          <div className="hidden dark:block absolute inset-0 overflow-hidden pointer-events-none">
+            {/* Animated Grid */}
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute inset-0" style={{
+                backgroundImage: 'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)',
+                backgroundSize: '50px 50px',
+                animation: 'grid-move 20s linear infinite'
+              }}></div>
+            </div>
+            
+            {/* Glowing Orbs */}
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500 rounded-full blur-3xl opacity-20 animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500 rounded-full blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
+            
+            {/* Floating Particles */}
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-emerald-400 rounded-full animate-float"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 5}s`,
+                  animationDuration: `${5 + Math.random() * 10}s`
+                }}
+              ></div>
+            ))}
+          </div>
+
           {/* Complete results overlay with percentage, leaderboard and retry */}
           {showPercentage && finalPercentage !== null && (
-              <div className="absolute inset-0 bg-white rounded-2xl flex flex-col z-10 overflow-y-auto">
+              <div className="absolute inset-0 bg-white dark:bg-black rounded-2xl flex flex-col z-10 overflow-y-auto">
                   {/* Header with percentage */}
-                  <div className="text-center py-6 border-b border-slate-200">
-                      <div className={`w-40 h-40 rounded-full flex items-center justify-center mx-auto mb-4 text-6xl font-bold ${
+                  <div className="text-center py-6 border-b border-slate-200 dark:border-emerald-500/30">
+                      <div className={`w-40 h-40 rounded-full flex items-center justify-center mx-auto mb-4 text-6xl font-bold animate-pulse ${
                           finalPercentage >= 80 
-                              ? 'bg-green-100 text-green-600' 
-                              : 'bg-red-100 text-red-600'
+                              ? 'bg-green-100 dark:bg-emerald-900/30 text-green-600 dark:text-emerald-400 dark:shadow-neon-green dark:border-2 dark:border-emerald-500' 
+                              : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 dark:shadow-neon-purple dark:border-2 dark:border-purple-500'
                       }`}>
                           {finalPercentage}%
                       </div>
                       
                       <h2 className={`text-xl font-bold mb-2 ${
                           finalPercentage >= 80 
-                              ? 'text-green-600' 
-                              : 'text-red-600'
+                              ? 'text-green-600 dark:text-emerald-400' 
+                              : 'text-red-600 dark:text-red-400'
                       }`}>
                           {finalPercentage >= 80 ? '🎉 Megfelelt!' : '📚 Próbáld újra!'}
                       </h2>
                       
-                      <p className="text-slate-600 text-sm">
+                      <p className="text-slate-600 dark:text-slate-300 text-sm">
                           {finalPercentage >= 80 
                               ? 'Szuper teljesítmény! Gratulálunk!' 
                               : 'Ne add fel! Gyakorolj még egy kicsit!'}
@@ -1880,22 +1910,22 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                   }
                                   setShowLeaderboard(!showLeaderboard);
                               }}
-                              className="w-full bg-yellow-100 hover:bg-yellow-200 text-yellow-800 py-2 px-3 rounded-lg font-bold border border-yellow-300 transition-colors flex items-center justify-center gap-2 text-sm"
+                              className="w-full bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400 py-2 px-3 rounded-lg font-bold border border-yellow-300 dark:border-yellow-500 transition-colors flex items-center justify-center gap-2 text-sm dark:shadow-lg"
                           >
                               <span className="text-lg">🏆</span>
                               {showLeaderboard ? 'Ranglista elrejtése' : 'Ranglista megtekintése'}
-                              {loadingLeaderboard && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600"></div>}
+                              {loadingLeaderboard && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-600 dark:border-yellow-400"></div>}
                           </button>
 
                           {showLeaderboard && (
-                              <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto">
-                                  <h3 className="text-sm font-bold text-slate-800 mb-3 text-center flex items-center justify-center gap-2">
+                              <div className="mt-3 bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-emerald-500/30 rounded-lg p-3 max-h-48 overflow-y-auto">
+                                  <h3 className="text-sm font-bold text-slate-800 dark:text-emerald-400 mb-3 text-center flex items-center justify-center gap-2">
                                       <span className="text-base">🏆</span>
                                       Ranglista
                                   </h3>
                                   
                                   {leaderboard.length === 0 ? (
-                                      <p className="text-slate-500 text-center py-3 text-sm">
+                                      <p className="text-slate-500 dark:text-slate-400 text-center py-3 text-sm">
                                           {loadingLeaderboard ? 'Ranglista betöltése...' : 'Még nincsenek eredmények.'}
                                       </p>
                                   ) : (
@@ -1907,16 +1937,20 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                                       key={index}
                                                       className={`flex items-center justify-between p-2 rounded-lg border text-xs ${
                                                           isCurrentStudent 
-                                                              ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-300' 
-                                                              : 'bg-white border-slate-200'
+                                                              ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-500 ring-1 ring-blue-300 dark:ring-blue-500' 
+                                                              : 'bg-white dark:bg-gray-800/50 border-slate-200 dark:border-gray-700'
+                                                      } ${
+                                                          participant.rank === 1 ? 'dark:shadow-neon-green' :
+                                                          participant.rank === 2 ? 'dark:shadow-neon-cyan' :
+                                                          participant.rank === 3 ? 'dark:shadow-neon-purple' : ''
                                                       }`}
                                                   >
                                                       <div className="flex items-center gap-2">
                                                           <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
-                                                              participant.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
-                                                              participant.rank === 2 ? 'bg-gray-100 text-gray-800' :
-                                                              participant.rank === 3 ? 'bg-orange-100 text-orange-800' :
-                                                              'bg-slate-100 text-slate-600'
+                                                              participant.rank === 1 ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400 dark:border dark:border-yellow-500' :
+                                                              participant.rank === 2 ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 dark:border dark:border-gray-500' :
+                                                              participant.rank === 3 ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-400 dark:border dark:border-orange-500' :
+                                                              'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                                                           }`}>
                                                               {participant.rank === 1 ? '🥇' :
                                                                participant.rank === 2 ? '🥈' :
@@ -1924,22 +1958,22 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                                                participant.rank}
                                                           </div>
                                                           <div>
-                                                              <div className={`font-medium ${isCurrentStudent ? 'text-blue-800' : 'text-slate-800'}`}>
+                                                              <div className={`font-medium ${isCurrentStudent ? 'text-blue-800 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}`}>
                                                                   {participant.name}
-                                                                  {isCurrentStudent && <span className="ml-1 text-xs bg-blue-200 text-blue-800 px-1 py-0.5 rounded-full">Te</span>}
+                                                                  {isCurrentStudent && <span className="ml-1 text-xs bg-blue-200 dark:bg-blue-900/50 text-blue-800 dark:text-blue-400 px-1 py-0.5 rounded-full border dark:border-blue-500">Te</span>}
                                                               </div>
-                                                              <div className="text-xs text-slate-500">
+                                                              <div className="text-xs text-slate-500 dark:text-slate-400">
                                                                   {participant.class}
                                                               </div>
                                                           </div>
                                                       </div>
                                                       <div className="text-right">
                                                           <div className={`font-bold text-base ${
-                                                              participant.percentage >= 80 ? 'text-green-600' : 'text-red-600'
+                                                              participant.percentage >= 80 ? 'text-green-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
                                                           }`}>
                                                               {participant.percentage}%
                                                           </div>
-                                                          <div className="text-xs text-slate-500">
+                                                          <div className="text-xs text-slate-500 dark:text-slate-400">
                                                               {participant.score} pont
                                                           </div>
                                                       </div>
@@ -1964,14 +1998,14 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                           <div className="mt-3 flex gap-2 justify-center">
                                               <button
                                                   onClick={() => downloadLeaderboard('txt')}
-                                                  className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded text-xs font-medium border border-blue-300 transition-colors flex items-center gap-1"
+                                                  className="bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-800 dark:text-blue-400 px-3 py-1 rounded text-xs font-medium border border-blue-300 dark:border-blue-500 transition-colors flex items-center gap-1"
                                                   title="Ranglista letöltése TXT formátumban"
                                               >
                                                   📄 TXT
                                               </button>
                                               <button
                                                   onClick={() => downloadLeaderboard('csv')}
-                                                  className="bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1 rounded text-xs font-medium border border-green-300 transition-colors flex items-center gap-1"
+                                                  className="bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-800 dark:text-green-400 px-3 py-1 rounded text-xs font-medium border border-green-300 dark:border-green-500 transition-colors flex items-center gap-1"
                                                   title="Ranglista letöltése CSV formátumban (Excel)"
                                               >
                                                   📊 CSV
@@ -2037,7 +2071,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                   
                                   setStep('PLAYING');
                               }}
-                              className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2.5 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                              className="w-full bg-orange-600 dark:bg-orange-700 hover:bg-orange-700 dark:hover:bg-orange-600 text-white py-2.5 rounded-lg font-bold shadow-lg dark:shadow-orange-500/50 transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
                           >
                               <span className="text-lg">🔄</span>
                               Újrapróbálkozás
@@ -2063,7 +2097,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                   onExit();
                               }
                           }}
-                          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg font-bold shadow-lg transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                          className="w-full bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-600 text-white py-2.5 rounded-lg font-bold shadow-lg dark:shadow-purple-500/50 transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
                       >
                           <span className="text-lg">🏠</span>
                           {isPreviewMode ? 'Vissza a könyvtárba' : (isStudentMode ? 'Vissza a bejelentkezéshez' : 'Vissza a főoldalra')}
@@ -2074,10 +2108,10 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           
           {/* Loading screen during percentage calculation */}
           {calculatingPercentage && (
-              <div className="flex flex-col items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
-                  <h3 className="text-lg font-bold text-slate-800 mb-2">Eredmények feldolgozása...</h3>
-                  <p className="text-slate-500 text-sm">Kérlek várj, amíg kiszámoljuk a végeredményt.</p>
+              <div className="flex flex-col items-center justify-center py-12 relative z-10">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 dark:border-emerald-500 mb-4 dark:shadow-neon-green"></div>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-emerald-400 mb-2">Eredmények feldolgozása...</h3>
+                  <p className="text-slate-500 dark:text-slate-300 text-sm">Kérlek várj, amíg kiszámoljuk a végeredményt.</p>
               </div>
           )}
           
@@ -2270,13 +2304,26 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                       onExit();
                   }
               }}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold shadow-lg transition-transform hover:scale-[1.02]"
+              className="w-full bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-600 text-white py-3 rounded-xl font-bold shadow-lg dark:shadow-purple-500/50 transition-transform hover:scale-[1.02] relative z-10"
           >
               {isPreviewMode ? 'Vissza a könyvtárba' : (isStudentMode ? 'Vissza a bejelentkezéshez' : 'Vissza a főoldalra')}
           </button>
           </>
           )}
-
+          
+          {/* CSS Animations for Dark Mode */}
+          <style>{`
+            @keyframes grid-move {
+              0% { transform: translate(0, 0); }
+              100% { transform: translate(50px, 50px); }
+            }
+            
+            @keyframes float {
+              0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+              50% { opacity: 1; }
+              100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+            }
+          `}</style>
       </div>
   );
 };
