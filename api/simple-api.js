@@ -1006,12 +1006,10 @@ export default async function handler(req, res) {
           debug: {
             ...debugInfo,
             step: 'completed',
-            totalQuestions: totalQuestions,
             maxPossibleScore: maxPossibleScore,
             totalScoreFromResults: totalScoreFromResults,
             calculatedPercentage: percentage,
-            performanceCategory: performanceCategory,
-            dataSource: sessionData?.full_session_json ? 'full_session_json' : 'exercises'
+            performanceCategory: performanceCategory
           }
         });
 
