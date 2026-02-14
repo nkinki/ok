@@ -1841,9 +1841,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
   // --- RENDER: RESULT ---
   return (
-      <div className="max-w-2xl mx-auto mt-4 bg-white dark:bg-black p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-emerald-500 text-center relative min-h-[80vh] overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-black flex items-center justify-center p-4 relative overflow-hidden">
           {/* Animated Background - Dark Mode Only */}
-          <div className="hidden dark:block absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="hidden dark:block absolute inset-0 overflow-hidden">
             {/* Animated Grid */}
             <div className="absolute inset-0 opacity-20">
               <div className="absolute inset-0" style={{
@@ -1857,7 +1857,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500 rounded-full blur-3xl opacity-20 animate-pulse"></div>
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500 rounded-full blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
             
-            {/* Floating Particles - Larger and more visible */}
+            {/* Floating Particles */}
             {[...Array(30)].map((_, i) => (
               <div
                 key={i}
@@ -1871,7 +1871,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               ></div>
             ))}
           </div>
-
+          
+          <div className="max-w-2xl w-full bg-white dark:bg-black p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-emerald-500 text-center relative min-h-[80vh] overflow-hidden z-10">
+          
           {/* Complete results overlay with percentage, leaderboard and retry */}
           {showPercentage && finalPercentage !== null && (
               <div className="absolute inset-0 bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col z-10 overflow-y-auto">
@@ -2324,6 +2326,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
               100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
             }
           `}</style>
+      </div>
       </div>
   );
 };
