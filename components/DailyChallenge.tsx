@@ -1874,7 +1874,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
           {/* Complete results overlay with percentage, leaderboard and retry */}
           {showPercentage && finalPercentage !== null && (
-              <div className="absolute inset-0 bg-white/95 dark:bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col z-10 overflow-y-auto">
+              <div className="absolute inset-0 bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col z-10 overflow-y-auto">
                   {/* Header with percentage */}
                   <div className="text-center py-6 border-b border-slate-200 dark:border-emerald-500/30">
                       <div className={`w-40 h-40 rounded-full flex items-center justify-center mx-auto mb-4 text-6xl font-bold animate-pulse ${
