@@ -233,23 +233,23 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           // NO imageUrl, NO content with images
         }));
         
-        const supabaseResponse = await fetch('/api/simple-api/sessions', {
+        const supabaseResponse = await fetch('/api/simple-api/sessions/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            sessionCode: sessionCode,
-            slotNumber: selectedSlot,
+            code: sessionCode,
+            exercises: minimalExercises, // Minimal data only
             subject: currentSubject || 'general',
             className: className.trim(),
-            exercises: minimalExercises, // Minimal data only
-            // NO fullSessionJson - images stay on Drive only!
+            // NO fullExercises - images stay on Drive only!
           })
         });
 
         if (supabaseResponse.ok) {
           console.log('✅ Session created in Supabase (minimal data, no images)');
         } else {
-          console.warn('⚠️ Supabase session creation failed, but continuing...');
+          const errorData = await supabaseResponse.json().catch(() => ({}));
+          console.warn('⚠️ Supabase session creation failed:', errorData);
         }
       } catch (supabaseError) {
         console.warn('⚠️ Supabase error, but continuing...', supabaseError);
