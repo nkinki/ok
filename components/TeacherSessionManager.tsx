@@ -259,12 +259,6 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             // NO fullExercises - images stay on Drive only!
           })
         });
-            exercises: minimalExercises, // Minimal data only
-            subject: currentSubject || 'general',
-            className: className.trim(),
-            // NO fullExercises - images stay on Drive only!
-          })
-        });
 
         if (supabaseResponse.ok) {
           console.log('✅ Session created in Supabase (minimal data, no images)');
