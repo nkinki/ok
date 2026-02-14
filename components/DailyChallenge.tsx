@@ -1988,7 +1988,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                   <div className="px-3 pb-3 pt-1 space-y-2">
                       {finalPercentage < 80 && (
                           <button 
-                              onClick={() => {
+                              onClick={async () => {
                                   // Reset and restart the session
                                   setCurrentIndex(0);
                                   setCompletedCount(0);
@@ -2003,6 +2003,36 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                                       const sessionKey = `session_${currentSessionCode}_results`;
                                       localStorage.removeItem(sessionKey);
                                       console.log('🧹 Cleared localStorage results for retry:', currentSessionCode);
+                                  }
+                                  
+                                  // CRITICAL: Create new participant for retry (new attempt)
+                                  if (student && currentSessionCode) {
+                                      try {
+                                          console.log('🔄 Creating new participant for retry...');
+                                          const response = await fetch('/api/simple-api/sessions/join', {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                  sessionCode: currentSessionCode,
+                                                  name: student.name,
+                                                  className: student.className
+                                              })
+                                          });
+                                          
+                                          if (response.ok) {
+                                              const data = await response.json();
+                                              console.log('✅ New participant created for retry:', data.student.id);
+                                              // Update student with new ID
+                                              setStudent({
+                                                  ...student,
+                                                  id: data.student.id
+                                              });
+                                          } else {
+                                              console.error('❌ Failed to create new participant for retry');
+                                          }
+                                      } catch (error) {
+                                          console.error('❌ Error creating new participant:', error);
+                                      }
                                   }
                                   
                                   setStep('PLAYING');
