@@ -1874,39 +1874,9 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
 
           {/* Complete results overlay with percentage, leaderboard and retry */}
           {showPercentage && finalPercentage !== null && (
-              <div className="absolute inset-0 bg-white/95 dark:bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col z-10 overflow-y-auto relative">
-                  {/* Animated Background - Dark Mode Only (inside popup) */}
-                  <div className="hidden dark:block absolute inset-0 overflow-hidden pointer-events-none">
-                    {/* Animated Grid */}
-                    <div className="absolute inset-0 opacity-20">
-                      <div className="absolute inset-0" style={{
-                        backgroundImage: 'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)',
-                        backgroundSize: '50px 50px',
-                        animation: 'grid-move 20s linear infinite'
-                      }}></div>
-                    </div>
-                    
-                    {/* Glowing Orbs */}
-                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500 rounded-full blur-3xl opacity-20 animate-pulse"></div>
-                    <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500 rounded-full blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
-                    
-                    {/* Floating Particles */}
-                    {[...Array(30)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="absolute w-2 h-2 bg-emerald-400 rounded-full animate-float opacity-60"
-                        style={{
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                          animationDelay: `${Math.random() * 5}s`,
-                          animationDuration: `${5 + Math.random() * 10}s`
-                        }}
-                      ></div>
-                    ))}
-                  </div>
-                  
+              <div className="absolute inset-0 bg-white/95 dark:bg-black/95 backdrop-blur-sm rounded-2xl flex flex-col z-10 overflow-y-auto">
                   {/* Header with percentage */}
-                  <div className="text-center py-6 border-b border-slate-200 dark:border-emerald-500/30 relative z-10">
+                  <div className="text-center py-6 border-b border-slate-200 dark:border-emerald-500/30">
                       <div className={`w-40 h-40 rounded-full flex items-center justify-center mx-auto mb-4 text-6xl font-bold animate-pulse ${
                           finalPercentage >= 80 
                               ? 'bg-green-100 dark:bg-emerald-900/30 text-green-600 dark:text-emerald-300 dark:shadow-neon-green dark:border-2 dark:border-emerald-500' 
@@ -1931,7 +1901,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                   </div>
 
                   {/* Leaderboard Section */}
-                  <div className="flex-1 p-4 relative z-10">
+                  <div className="flex-1 p-4">
                       <div className="mb-4">
                           <button 
                               onClick={() => {
@@ -2049,7 +2019,7 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
                   </div>
 
                   {/* Action buttons - moved closer with uniform spacing */}
-                  <div className="px-3 pb-3 pt-1 space-y-2 relative z-10">
+                  <div className="px-3 pb-3 pt-1 space-y-2">
                       {finalPercentage < 80 && (
                           <button 
                               onClick={async () => {

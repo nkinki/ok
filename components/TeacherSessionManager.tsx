@@ -63,14 +63,14 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
-            <div className="bg-purple-100 text-purple-900 w-16 h-16 flex items-center justify-center rounded-2xl shadow-lg font-bold text-2xl mx-auto mb-4 border border-purple-200">
+            <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-900 dark:text-purple-300 w-16 h-16 flex items-center justify-center rounded-2xl shadow-lg font-bold text-2xl mx-auto mb-4 border border-purple-200 dark:border-purple-500">
               🎯
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Tantárgyi Bejelentkezés</h2>
-            <p className="text-slate-600">Válaszd ki a tantárgyad a munkamenet kezeléshez</p>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Tantárgyi Bejelentkezés</h2>
+            <p className="text-slate-600 dark:text-slate-200">Válaszd ki a tantárgyad a munkamenet kezeléshez</p>
           </div>
           
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-lg border border-slate-200 dark:border-emerald-500">
             <div className="space-y-3">
               {[
                 { subject: 'info', name: 'Informatika', password: 'infoxxx', color: 'blue' },
@@ -94,18 +94,18 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                       alert('Hálózati hiba történt. Próbáld újra!');
                     }
                   }}
-                  className={`w-full p-4 rounded-xl border-2 hover:shadow-md transition-all text-left bg-${subj.color}-50 border-${subj.color}-200 hover:border-${subj.color}-300`}
+                  className={`w-full p-4 rounded-xl border-2 hover:shadow-md transition-all text-left bg-${subj.color}-50 dark:bg-${subj.color}-900/30 border-${subj.color}-200 dark:border-${subj.color}-500 hover:border-${subj.color}-300 dark:hover:border-${subj.color}-400`}
                 >
-                  <div className="font-bold text-slate-800">{subj.name}</div>
-                  <div className="text-sm text-slate-600">Kattints a bejelentkezéshez</div>
+                  <div className="font-bold text-slate-800 dark:text-slate-100">{subj.name}</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300">Kattints a bejelentkezéshez</div>
                 </button>
               ))}
             </div>
             
-            <div className="mt-6 pt-4 border-t border-slate-200">
+            <div className="mt-6 pt-4 border-t border-slate-200 dark:border-gray-700">
               <button
                 onClick={onExit}
-                className="w-full px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+                className="w-full px-4 py-2 text-slate-600 dark:text-slate-200 hover:text-slate-800 dark:hover:text-emerald-300 transition-colors"
               >
                 ← Vissza a főoldalra
               </button>
@@ -323,15 +323,15 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-slate-800">Munkamenet előzmények</h2>
-            <p className="text-slate-600">
+            <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Munkamenet előzmények</h2>
+            <p className="text-slate-600 dark:text-slate-200">
               {currentSubject ? `${subjectDisplayName} tantárgy munkamenetei` : 'Korábbi munkamenetek és eredmények kezelése'}
             </p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => setShowHistory(false)}
-              className="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium"
+              className="text-slate-500 dark:text-slate-200 hover:text-slate-700 dark:hover:text-emerald-300 px-4 py-2 rounded-lg font-medium"
             >
               Vissza
             </button>
@@ -349,14 +349,14 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       <div className="flex justify-between items-center mb-8">
         <div>
           <div className="flex items-center gap-4 mb-2">
-            <h2 className="text-3xl font-bold text-slate-800">Tanári munkamenet</h2>
+            <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Tanári munkamenet</h2>
             {currentSubject && (
               <div className={`px-4 py-2 rounded-lg border-2 font-bold text-sm ${
-                subjectTheme === 'blue' ? 'bg-blue-50 text-blue-800 border-blue-200' :
-                subjectTheme === 'green' ? 'bg-green-50 text-green-800 border-green-200' :
-                subjectTheme === 'red' ? 'bg-red-50 text-red-800 border-red-200' :
-                subjectTheme === 'purple' ? 'bg-purple-50 text-purple-800 border-purple-200' :
-                'bg-orange-50 text-orange-800 border-orange-200'
+                subjectTheme === 'blue' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-500' :
+                subjectTheme === 'green' ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-500' :
+                subjectTheme === 'red' ? 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-500' :
+                subjectTheme === 'purple' ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-500' :
+                'bg-orange-50 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-500'
               }`}>
                 {subjectTheme === 'blue' ? '💻' :
                  subjectTheme === 'green' ? '🔢' :
@@ -365,12 +365,12 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
               </div>
             )}
           </div>
-          <p className="text-slate-600">Válassz ki feladatokat a könyvtárból és indíts munkamenetet a diákoknak</p>
+          <p className="text-slate-600 dark:text-slate-200">Válassz ki feladatokat a könyvtárból és indíts munkamenetet a diákoknak</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => setShowHistory(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
+            className="bg-indigo-600 dark:bg-indigo-700 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 dark:shadow-indigo-500/50"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -380,7 +380,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           
           <button
             onClick={onExit}
-            className="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium"
+            className="text-slate-500 dark:text-slate-200 hover:text-slate-700 dark:hover:text-emerald-300 px-4 py-2 rounded-lg font-medium"
           >
             Vissza
           </button>
@@ -441,21 +441,21 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       )}
 
       {/* Exercise Selection */}
-      <div className="bg-white rounded-lg p-4 mb-4 border border-slate-200">
+      <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-slate-200 dark:border-emerald-500">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-base font-bold text-slate-800">
+          <h3 className="text-base font-bold text-slate-800 dark:text-white">
             Kiválasztott feladatok ({selectedExercises.length}/{library.length})
           </h3>
           <div className="flex items-center gap-2">
             <div className="flex flex-col">
-              <label className="text-xs font-medium text-slate-700 mb-0.5">
-                Slot <span className="text-red-500">*</span>
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">
+                Slot <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
                 value={selectedSlot}
                 onChange={(e) => setSelectedSlot(Number(e.target.value))}
                 required
-                className="px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="px-2 py-1.5 border border-slate-300 dark:border-purple-500 dark:bg-gray-800 dark:text-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value={1}>🎰 Slot 1</option>
                 <option value={2}>🎰 Slot 2</option>
@@ -466,14 +466,14 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             </div>
             
             <div className="flex flex-col">
-              <label className="text-xs font-medium text-slate-700 mb-0.5">
-                Osztály neve <span className="text-red-500">*</span>
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-200 mb-0.5">
+                Osztály neve <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
                 required
-                className="px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-2 py-1.5 border border-slate-300 dark:border-emerald-500 dark:bg-gray-800 dark:text-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-emerald-500"
               >
                 <option value="">Válassz...</option>
                 {classOptions.map(cls => (
@@ -540,10 +540,10 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       </div>
 
       {/* Library Display */}
-      <div className="bg-white rounded-xl border border-slate-200">
-        <div className="p-6 border-b border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800">Feladat könyvtár</h3>
-          <p className="text-slate-600">Válassz ki feladatokat a munkamenethez</p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-slate-200 dark:border-emerald-500">
+        <div className="p-6 border-b border-slate-200 dark:border-gray-700">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white">Feladat könyvtár</h3>
+          <p className="text-slate-600 dark:text-slate-200">Válassz ki feladatokat a munkamenethez</p>
         </div>
 
         {library.length === 0 ? (
