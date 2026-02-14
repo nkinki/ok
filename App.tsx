@@ -180,27 +180,32 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 font-sans">
+      {/* Theme Toggle - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
       <nav className={`
-        bg-white border-b border-purple-200 sticky top-0 z-50 shadow-md transition-all duration-300
+        bg-white dark:bg-gray-800 border-b border-purple-200 dark:border-gray-700 sticky top-0 z-40 shadow-md transition-all duration-300
         ${showHeader ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'}
       `}>
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div 
               onClick={onBackToRoleSelect}
-              className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200 cursor-pointer hover:bg-purple-200 transition-colors"
+              className="bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200 dark:border-purple-700 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
               title="Vissza a főoldalra"
             >
               OK
             </div>
-            <div className="font-bold text-purple-900 text-xs md:text-sm leading-tight">
+            <div className="font-bold text-purple-900 dark:text-purple-100 text-xs md:text-sm leading-tight">
               Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-300 flex items-center gap-2">
+            <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-4 py-2 rounded-lg text-sm font-bold border border-yellow-300 dark:border-yellow-700 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
@@ -209,7 +214,7 @@ function StudentApp({ onBackToRoleSelect, sessionCode }: { onBackToRoleSelect: (
             </div>
             <button 
               onClick={onBackToRoleSelect}
-              className="text-slate-500 hover:text-purple-700 p-2"
+              className="text-slate-500 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 p-2"
               title="Vissza a szerepkör választáshoz"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -343,35 +348,40 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      <nav className="bg-white border-b border-purple-200 sticky top-0 z-50 shadow-md">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 font-sans">
+      {/* Theme Toggle - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
+      <nav className="bg-white dark:bg-gray-800 border-b border-purple-200 dark:border-gray-700 sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div 
               onClick={() => setViewMode('BULK')}
-              className="bg-purple-100 text-purple-900 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200 cursor-pointer hover:bg-purple-200 transition-colors"
+              className="bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100 w-10 h-10 flex items-center justify-center rounded-lg shadow-sm font-bold text-lg shrink-0 border border-purple-200 dark:border-purple-700 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
               title="Vissza a főoldalra"
             >
               OK
             </div>
-            <div className="font-bold text-purple-900 text-sm md:text-base leading-tight">
+            <div className="font-bold text-purple-900 dark:text-purple-100 text-sm md:text-base leading-tight">
               Szent Mihály Görögkatolikus Óvoda, Általános Iskola és AMI
             </div>
           </div>
 
           <div className="flex items-center gap-1 sm:gap-4">
-            <div className="bg-purple-100 text-purple-800 px-4 py-2 rounded-lg text-sm font-bold border border-purple-300 flex items-center gap-2">
+            <div className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-4 py-2 rounded-lg text-sm font-bold border border-purple-300 dark:border-purple-700 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
               Tanár Mód
             </div>
-            <div className="h-8 w-px bg-slate-200 mx-1"></div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-gray-700 mx-1"></div>
             
             <button 
               onClick={() => setViewMode('BULK')} 
               className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 border transition-all ${
-                viewMode === 'BULK' ? 'bg-purple-100 text-purple-800 border-purple-300' : 'text-slate-600 border-transparent hover:bg-slate-50'
+                viewMode === 'BULK' ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-700' : 'text-slate-600 dark:text-gray-400 border-transparent hover:bg-slate-50 dark:hover:bg-gray-700'
               }`}
             >
               🔄 Kezdés
@@ -380,28 +390,28 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             <button 
               onClick={() => setViewMode('SESSION')} 
               className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                viewMode === 'SESSION' ? 'bg-green-100 text-green-800' : 'text-slate-600 hover:bg-slate-50'
+                viewMode === 'SESSION' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700'
               }`}
             >
               🎯 Munkamenet
             </button>
             
-            <div className="h-8 w-px bg-slate-200 mx-1"></div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-gray-700 mx-1"></div>
             
             <button 
               onClick={() => setViewMode('ADVANCED_LIBRARY')} 
               className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                viewMode === 'ADVANCED_LIBRARY' ? 'bg-green-50 text-green-800' : 'text-slate-600 hover:bg-slate-50'
+                viewMode === 'ADVANCED_LIBRARY' ? 'bg-green-50 dark:bg-green-900 text-green-800 dark:text-green-200' : 'text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700'
               }`}
             >
-              📚 Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 text-purple-800 text-xs rounded-full font-bold">{library.length}</span>}
+              📚 Könyvtár {library.length > 0 && <span className="px-2 py-0.5 bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 text-xs rounded-full font-bold">{library.length}</span>}
             </button>
             
-            <div className="h-8 w-px bg-slate-200 mx-1"></div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-gray-700 mx-1"></div>
             
             <button 
               onClick={() => setIsSettingsOpen(true)}
-              className="text-slate-500 hover:text-purple-700 p-2"
+              className="text-slate-500 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 p-2"
               title="Beállítások"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -412,7 +422,7 @@ function TeacherApp({ onBackToRoleSelect }: { onBackToRoleSelect: () => void }) 
             
             <button 
               onClick={onBackToRoleSelect}
-              className="text-slate-500 hover:text-purple-700 p-2"
+              className="text-slate-500 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 p-2"
               title="Vissza a szerepkör választáshoz"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
