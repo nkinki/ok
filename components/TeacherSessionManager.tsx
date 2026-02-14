@@ -424,10 +424,10 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
                 <span className="font-bold">Kód:</span> <span className="font-mono text-lg">{activeSession.code}</span>
               </span>
               <button
-                onClick={() => {
+                onClick={(e) => {
                   navigator.clipboard.writeText(activeSession.code);
                   // Show a temporary success message
-                  const btn = event.target as HTMLButtonElement;
+                  const btn = e.currentTarget;
                   const originalText = btn.innerHTML;
                   btn.innerHTML = '✅ Másolva!';
                   setTimeout(() => {
