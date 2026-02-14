@@ -388,15 +388,15 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       </div>
 
       {activeSession && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-500 rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-green-100 text-green-800 w-12 h-12 flex items-center justify-center rounded-lg font-bold text-xl border border-green-200">
+              <div className="bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 w-12 h-12 flex items-center justify-center rounded-lg font-bold text-xl border border-green-200 dark:border-green-500">
                 🎯
               </div>
               <div>
-                <h3 className="text-lg font-bold text-green-800">Aktív munkamenet</h3>
-                <p className="text-sm text-green-700">
+                <h3 className="text-lg font-bold text-green-800 dark:text-green-300">Aktív munkamenet</h3>
+                <p className="text-sm text-green-700 dark:text-green-300">
                   🎰 Slot: <span className="font-mono font-bold">{selectedSlot}</span> | 
                   Kód: <span className="font-mono font-bold">{activeSession.code}</span> | 
                   {activeSession.exercises.length} feladat
@@ -405,7 +405,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             </div>
             <button
               onClick={() => setActiveSession(null)}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"
+              className="bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 dark:shadow-red-500/50"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
@@ -414,15 +414,31 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
             </button>
           </div>
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
-            <p className="text-xs text-yellow-800 font-medium mb-1">📢 Add meg a diákoknak:</p>
-            <div className="flex gap-4 text-sm">
-              <span className="text-yellow-900">
+          <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-500 rounded-lg p-3 mt-3">
+            <p className="text-xs text-yellow-800 dark:text-yellow-300 font-medium mb-2">📢 Add meg a diákoknak:</p>
+            <div className="flex gap-4 text-sm items-center">
+              <span className="text-yellow-900 dark:text-yellow-200">
                 <span className="font-bold">Slot:</span> <span className="font-mono">{selectedSlot}</span>
               </span>
-              <span className="text-yellow-900">
-                <span className="font-bold">Kód:</span> <span className="font-mono">{activeSession.code}</span>
+              <span className="text-yellow-900 dark:text-yellow-200">
+                <span className="font-bold">Kód:</span> <span className="font-mono text-lg">{activeSession.code}</span>
               </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(activeSession.code);
+                  // Show a temporary success message
+                  const btn = event.target as HTMLButtonElement;
+                  const originalText = btn.innerHTML;
+                  btn.innerHTML = '✅ Másolva!';
+                  setTimeout(() => {
+                    btn.innerHTML = originalText;
+                  }, 2000);
+                }}
+                className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium flex items-center gap-1 dark:shadow-blue-500/50"
+                title="Kód másolása vágólapra"
+              >
+                📋 Másolás
+              </button>
             </div>
           </div>
         </div>
