@@ -225,6 +225,20 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       try {
         console.log('📊 Creating session in Supabase (minimal data)...');
         
+        // Calculate max possible score based on exercise content
+        let maxPossibleScore = 0;
+        fullSessionData.exercises.forEach(ex => {
+          if (ex.type === 'QUIZ') {
+            maxPossibleScore += (ex.content?.questions?.length || 0) * 10;
+          } else if (ex.type === 'MATCHING') {
+            maxPossibleScore += (ex.content?.pairs?.length || 0) * 10;
+          } else if (ex.type === 'CATEGORIZATION') {
+            maxPossibleScore += (ex.content?.items?.length || 0) * 10;
+          }
+        });
+        
+        console.log('📊 Calculated max possible score:', maxPossibleScore);
+        
         // Only send minimal metadata - NO images, NO full JSON
         const minimalExercises = fullSessionData.exercises.map(ex => ({
           id: ex.id,
@@ -238,6 +252,13 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code: sessionCode,
+            exercises: minimalExercises, // Minimal data only
+            maxScore: maxPossibleScore, // Send calculated max score
+            subject: currentSubject || 'general',
+            className: className.trim(),
+            // NO fullExercises - images stay on Drive only!
+          })
+        });
             exercises: minimalExercises, // Minimal data only
             subject: currentSubject || 'general',
             className: className.trim(),

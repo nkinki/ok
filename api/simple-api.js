@@ -927,55 +927,24 @@ export default async function handler(req, res) {
         });
 
         // Get session data to calculate total questions for percentage
-        // IMPORTANT: Use the same logic as participants endpoint for consistency
+        // IMPORTANT: Use exercises field only (no full_session_json stored anymore)
         const { data: sessionData, error: sessionDataError } = await supabase
           .from('teacher_sessions')
-          .select('exercises, full_session_json')
+          .select('exercises, max_possible_score')
           .eq('session_code', sessionCode)
           .single();
 
         console.log('📊 Session data for percentage calculation:', {
           found: !!sessionData,
           error: sessionDataError?.message || null,
-          hasFullJson: !!sessionData?.full_session_json,
-          exerciseCount: sessionData?.exercises?.length || 0
+          exerciseCount: sessionData?.exercises?.length || 0,
+          maxPossibleScore: sessionData?.max_possible_score || 0
         });
 
-        let totalQuestions = 0;
-        let exercisesToAnalyze = null;
-
-        // CONSISTENCY FIX: Always use exercises field first (same as participants endpoint)
-        // Only use full_session_json as fallback if exercises field is empty
-        if (sessionData?.exercises && sessionData.exercises.length > 0) {
-          console.log('📊 Using exercises field for question counting (consistent with participants endpoint)');
-          exercisesToAnalyze = sessionData.exercises;
-        } else if (sessionData?.full_session_json?.exercises) {
-          console.log('📊 Using full_session_json as fallback for question counting');
-          exercisesToAnalyze = sessionData.full_session_json.exercises;
-        } else {
-          console.error('❌ No exercise data found for percentage calculation');
-        }
-
-        if (exercisesToAnalyze) {
-          console.log('📊 Analyzing exercises for question count...');
-          exercisesToAnalyze.forEach((exercise, index) => {
-            let exerciseQuestions = 0;
-            if (exercise.type === 'QUIZ') {
-              exerciseQuestions = exercise.content?.questions?.length || 0;
-            } else if (exercise.type === 'MATCHING') {
-              exerciseQuestions = exercise.content?.pairs?.length || 0;
-            } else if (exercise.type === 'CATEGORIZATION') {
-              exerciseQuestions = exercise.content?.items?.length || 0;
-            }
-            console.log(`📊 Exercise ${index + 1} (${exercise.type}): ${exerciseQuestions} questions`);
-            totalQuestions += exerciseQuestions;
-          });
-        }
-
-        console.log('📊 Total questions in session:', totalQuestions);
-
-        // Calculate percentage based on total questions (10 points per question)
-        const maxPossibleScore = totalQuestions * 10;
+        // Use max_possible_score from session (calculated during session creation)
+        const maxPossibleScore = sessionData?.max_possible_score || 0;
+        
+        console.log('📊 Using max_possible_score from session:', maxPossibleScore);
         let percentage = maxPossibleScore > 0 ? Math.round((totalScoreFromResults / maxPossibleScore) * 100) : 0;
         
         // SAFETY FIX: Cap percentage at 100% maximum
@@ -1476,7 +1445,7 @@ export default async function handler(req, res) {
     
     // Create session
     if (method === 'POST' && path.includes('/sessions/create')) {
-      const { code, exercises, subject = 'general', maxScore, className, fullExercises } = req.body;
+      const { code, exercises, subject = 'general', maxScore, className } = req.body;
 
       if (!code || !exercises) {
         return res.status(400).json({ error: 'Kód és feladatok megadása kötelező' });
@@ -1503,32 +1472,23 @@ export default async function handler(req, res) {
         // Számítsuk ki a maximális pontszámot ha nincs megadva
         const calculatedMaxScore = maxScore || exercises.length * 10; // Alapértelmezett: 10 pont/feladat
         
-        // Create session with full exercise data for student access
+        // CRITICAL: Store ONLY minimal metadata - NO images, NO full JSON
+        // Images stay on Google Drive, students load from there
         const sessionData = {
           session_code: code.toUpperCase(),
-          exercises: fullExercises || exercises, // Store full exercises if available
+          exercises: exercises, // Minimal data only (id, type, title)
           subject: subject,
           class_name: className.trim(),
           max_possible_score: calculatedMaxScore,
           is_active: true,
           expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 60 minutes
-          full_session_json: fullExercises ? {
-            sessionCode: code.toUpperCase(),
-            subject: subject,
-            createdAt: new Date().toISOString(),
-            exercises: fullExercises,
-            metadata: {
-              version: '1.0.0',
-              exportedBy: 'Okos Gyakorló API',
-              totalExercises: fullExercises.length,
-              estimatedTime: fullExercises.length * 3
-            }
-          } : null, // Store full session JSON if available
-          json_uploaded_at: fullExercises ? new Date().toISOString() : null
+          // NO full_session_json - images stay on Drive!
+          // NO json_uploaded_at - not storing full JSON
         };
 
-        console.log('💾 Inserting session with', exercises.length, 'exercises, subject:', subject, 'class:', className.trim());
-        console.log('📊 Using', fullExercises ? 'full' : 'minimal', 'exercise data');
+        console.log('💾 Inserting session with', exercises.length, 'exercises (minimal data only)');
+        console.log('📊 Subject:', subject, 'Class:', className.trim(), 'Max score:', calculatedMaxScore);
+        console.log('🚫 NO images stored - images stay on Google Drive');
         
         // Create session in database
         const { data, error } = await supabase
