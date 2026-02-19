@@ -227,17 +227,41 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
         
         // Calculate max possible score based on exercise content
         let maxPossibleScore = 0;
-        fullSessionData.exercises.forEach(ex => {
+        fullSessionData.exercises.forEach((ex, index) => {
+          console.log(`📊 Exercise ${index + 1}:`, {
+            type: ex.type,
+            hasContent: !!ex.content,
+            contentKeys: ex.content ? Object.keys(ex.content) : []
+          });
+          
           if (ex.type === 'QUIZ' && 'questions' in ex.content) {
-            maxPossibleScore += (ex.content.questions?.length || 0) * 10;
+            const questionCount = ex.content.questions?.length || 0;
+            maxPossibleScore += questionCount * 10;
+            console.log(`  ✅ QUIZ: ${questionCount} questions = ${questionCount * 10} points`);
           } else if (ex.type === 'MATCHING' && 'pairs' in ex.content) {
-            maxPossibleScore += (ex.content.pairs?.length || 0) * 10;
+            const pairCount = ex.content.pairs?.length || 0;
+            maxPossibleScore += pairCount * 10;
+            console.log(`  ✅ MATCHING: ${pairCount} pairs = ${pairCount * 10} points`);
           } else if (ex.type === 'CATEGORIZATION' && 'items' in ex.content) {
-            maxPossibleScore += (ex.content.items?.length || 0) * 10;
+            const itemCount = ex.content.items?.length || 0;
+            maxPossibleScore += itemCount * 10;
+            console.log(`  ✅ CATEGORIZATION: ${itemCount} items = ${itemCount * 10} points`);
+          } else {
+            console.warn(`  ⚠️ Unknown exercise type or missing content:`, ex.type);
           }
         });
         
         console.log('📊 Calculated max possible score:', maxPossibleScore);
+        
+        // CRITICAL: If maxPossibleScore is 0, something is wrong
+        if (maxPossibleScore === 0) {
+          console.error('❌ CRITICAL: maxPossibleScore is 0! Check exercise content structure.');
+          console.error('❌ Exercises:', fullSessionData.exercises.map(ex => ({
+            type: ex.type,
+            hasContent: !!ex.content,
+            contentKeys: ex.content ? Object.keys(ex.content) : []
+          })));
+        }
         
         // Only send minimal metadata - NO images, NO full JSON
         const minimalExercises = fullSessionData.exercises.map(ex => ({

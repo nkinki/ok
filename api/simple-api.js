@@ -858,44 +858,16 @@ export default async function handler(req, res) {
           console.error('Failed to fetch current participant data:', fetchError);
           debugInfo.step = 'participant_lookup_failed';
           
-          // If participant not found, try to find by name and session
+          // If participant not found by ID, return error
+          // DO NOT fallback to name lookup to prevent accumulation on retry
           if (fetchError.code === 'PGRST116') { // No rows returned
-            console.log('🔍 Participant not found by ID, trying to find by name and session...');
-            debugInfo.step = 'trying_fallback_lookup';
-            
-            // Get session first
-            const { data: session } = await supabase
-              .from('teacher_sessions')
-              .select('id')
-              .eq('session_code', sessionCode)
-              .single();
-              
-            if (session) {
-              const { data: participantByName } = await supabase
-                .from('session_participants')
-                .select('*')
-                .eq('session_id', session.id)
-                .eq('student_name', summary.studentName)
-                .eq('student_class', summary.studentClass)
-                .single();
-                
-              if (participantByName) {
-                console.log('✅ Found participant by name:', participantByName.id);
-                // Use the found participant
-                currentParticipant = participantByName;
-                studentId = participantByName.id; // Update studentId for the update query
-                debugInfo.step = 'fallback_lookup_success';
-                debugInfo.fallbackStudentId = participantByName.id;
-              } else {
-                console.error('❌ Participant not found by name either');
-                debugInfo.step = 'fallback_lookup_failed';
-                return res.status(404).json({ 
-                  error: 'Résztvevő nem található',
-                  details: 'A diák nincs regisztrálva ehhez a munkamenethez',
-                  debug: debugInfo
-                });
-              }
-            }
+            console.error('❌ Participant not found by ID:', studentId);
+            debugInfo.step = 'participant_not_found';
+            return res.status(404).json({ 
+              error: 'Résztvevő nem található',
+              details: 'A diák nincs regisztrálva ehhez a munkamenethez. Kérlek jelentkezz be újra!',
+              debug: debugInfo
+            });
           } else {
             debugInfo.step = 'participant_error';
             return res.status(500).json({ 
@@ -943,6 +915,13 @@ export default async function handler(req, res) {
 
         // Use max_possible_score from session (calculated during session creation)
         const maxPossibleScore = sessionData?.max_possible_score || 0;
+        
+        // CRITICAL: If max_possible_score is 0, we cannot calculate percentage correctly
+        if (maxPossibleScore === 0) {
+          console.error('❌ CRITICAL: max_possible_score is 0! Cannot calculate percentage correctly.');
+          console.error('❌ This session was created without calculating max_possible_score.');
+          console.error('❌ Session code:', sessionCode);
+        }
         
         console.log('📊 Using max_possible_score from session:', maxPossibleScore);
         let percentage = maxPossibleScore > 0 ? Math.round((totalScoreFromResults / maxPossibleScore) * 100) : 0;
@@ -2272,7 +2251,13 @@ export default async function handler(req, res) {
         }
 
         const maxPossibleScore = session.max_possible_score || 0;
-        console.log('📊 Session max_possible_score:', maxPossibleScore);
+        console.log('📊 Leaderboard - Session max_possible_score:', maxPossibleScore);
+        
+        // CRITICAL: If max_possible_score is 0, we cannot calculate percentages correctly
+        if (maxPossibleScore === 0) {
+          console.error('❌ CRITICAL: max_possible_score is 0! Cannot calculate percentages correctly.');
+          console.error('❌ This session was created without calculating max_possible_score.');
+        }
 
         // Get session participants with their scores, ordered by total_score DESC
         // Only include participants who have actually submitted results
@@ -2315,11 +2300,18 @@ export default async function handler(req, res) {
           let percentage = 0;
           if (maxPossibleScore > 0 && participant.total_score >= 0) {
             percentage = Math.round((participant.total_score / maxPossibleScore) * 100);
+            // SAFETY: Cap percentage at 100% maximum
+            if (percentage > 100) {
+              console.warn(`⚠️ Percentage over 100% detected for ${participant.student_name}: ${percentage}% - capping at 100%`);
+              percentage = 100;
+            }
             console.log(`📊 Using session max_possible_score: ${participant.total_score}/${maxPossibleScore} = ${percentage}%`);
           } else if (totalQuestions > 0) {
             // Fallback to correct answers calculation if max_possible_score not available
             percentage = Math.round((correctAnswers / totalQuestions) * 100);
             console.log(`📊 Fallback to correct answers: ${correctAnswers}/${totalQuestions} = ${percentage}%`);
+          } else {
+            console.warn(`⚠️ Cannot calculate percentage for ${participant.student_name}: maxPossibleScore=${maxPossibleScore}, totalQuestions=${totalQuestions}`);
           }
 
           return {
