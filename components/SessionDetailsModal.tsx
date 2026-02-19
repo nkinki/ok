@@ -71,7 +71,17 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
       // Calculate performance stats with new scoring system
       const totalParticipants = participants.length;
       
-      // Calculate total possible questions across all exercises
+      // CRITICAL FIX: Use max_possible_score from session instead of recalculating
+      // This ensures consistency with the API percentage calculation
+      const maxPossibleScore = sessionData.session.maxPossibleScore || 0;
+      
+      console.log('📊 SessionDetailsModal - Using max_possible_score:', maxPossibleScore);
+      
+      if (maxPossibleScore === 0) {
+        console.error('❌ CRITICAL: max_possible_score is 0 in SessionDetailsModal!');
+      }
+      
+      // Calculate total possible questions across all exercises (for display only)
       const totalPossibleQuestions = sessionData.session.exercises.reduce((total, exercise) => {
         if (exercise.type === 'QUIZ') {
           return total + (exercise.content?.questions?.length || 0);
@@ -85,18 +95,18 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
       
       const averagePercentage = totalParticipants > 0 
         ? Math.round(participants.reduce((sum, p) => {
-            // Calculate percentage based on total questions, not exercises
-            const percentage = totalPossibleQuestions > 0 
-              ? Math.round((p.total_score / (totalPossibleQuestions * 10)) * 100)
+            // FIXED: Use max_possible_score from session, not recalculated value
+            const percentage = maxPossibleScore > 0 
+              ? Math.round((p.total_score / maxPossibleScore) * 100)
               : 0;
             return sum + percentage;
           }, 0) / totalParticipants)
         : 0;
         
-      // Calculate percentage for each participant based on total questions
+      // FIXED: Calculate percentage for each participant using session's max_possible_score
       const participantsWithPercentage = participants.map(p => {
-        let percentage = totalPossibleQuestions > 0 
-          ? Math.round((p.total_score / (totalPossibleQuestions * 10)) * 100) 
+        let percentage = maxPossibleScore > 0 
+          ? Math.round((p.total_score / maxPossibleScore) * 100) 
           : 0;
         
         // SAFETY FIX: Cap percentage at 100% maximum
@@ -124,7 +134,7 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
         subject: 'general', // Default, could be enhanced
         className: 'N/A', // Could be enhanced
         exerciseCount: sessionData.session.exerciseCount,
-        maxPossibleScore: totalPossibleQuestions * 10, // 10 points per question
+        maxPossibleScore: maxPossibleScore, // Use session's max_possible_score
         participantCount: totalParticipants,
         averagePercentage,
         totalPossibleQuestions, // Add this for display

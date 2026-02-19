@@ -555,6 +555,7 @@ export default async function handler(req, res) {
             code: data.session_code,
             exerciseCount: data.exercises.length,
             totalQuestions: totalQuestions, // Add total questions for question-based scoring
+            maxPossibleScore: data.max_possible_score || 0, // CRITICAL FIX: Include max_possible_score
             participantCount: participantCount,
             createdAt: data.created_at,
             expiresAt: data.expires_at,
