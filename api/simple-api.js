@@ -511,19 +511,19 @@ export default async function handler(req, res) {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
         
+        // FIXED: Don't filter by is_active and expires_at for status endpoint
+        // This allows viewing historical sessions in the session history
         const { data, error } = await supabase
           .from('teacher_sessions')
           .select('*')
           .eq('session_code', sessionCode)
-          .eq('is_active', true)
-          .gt('expires_at', new Date().toISOString())
           .single();
 
         if (error || !data) {
           return res.status(404).json({ 
             exists: false, 
             error: 'Munkamenet nem található',
-            hint: 'A munkamenet lehet, hogy lejárt vagy nem aktív'
+            hint: 'A munkamenet nem létezik az adatbázisban'
           });
         }
 

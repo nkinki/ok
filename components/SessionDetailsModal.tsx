@@ -81,18 +81,6 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
         console.error('❌ CRITICAL: max_possible_score is 0 in SessionDetailsModal!');
       }
       
-      // Calculate total possible questions across all exercises (for display only)
-      const totalPossibleQuestions = sessionData.session.exercises.reduce((total, exercise) => {
-        if (exercise.type === 'QUIZ') {
-          return total + (exercise.content?.questions?.length || 0);
-        } else if (exercise.type === 'MATCHING') {
-          return total + (exercise.content?.pairs?.length || 0);
-        } else if (exercise.type === 'CATEGORIZATION') {
-          return total + (exercise.content?.items?.length || 0);
-        }
-        return total;
-      }, 0);
-      
       const averagePercentage = totalParticipants > 0 
         ? Math.round(participants.reduce((sum, p) => {
             // FIXED: Use max_possible_score from session, not recalculated value
@@ -137,7 +125,7 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
         maxPossibleScore: maxPossibleScore, // Use session's max_possible_score
         participantCount: totalParticipants,
         averagePercentage,
-        totalPossibleQuestions, // Add this for display
+        totalPossibleQuestions: Math.round(maxPossibleScore / 10), // Calculate from max score (10 points per question)
         performanceDistribution,
         isActive: sessionData.session.isActive,
         createdAt: sessionData.session.createdAt,
