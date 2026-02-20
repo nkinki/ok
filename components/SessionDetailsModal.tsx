@@ -83,19 +83,17 @@ const SessionDetailsModal: React.FC<Props> = ({ sessionCode, onClose }) => {
       
       const averagePercentage = totalParticipants > 0 
         ? Math.round(participants.reduce((sum, p) => {
-            // FIXED: Use max_possible_score from session, not recalculated value
-            const percentage = maxPossibleScore > 0 
-              ? Math.round((p.total_score / maxPossibleScore) * 100)
-              : 0;
+            // Use the percentage already stored in the database (calculated by API)
+            const percentage = p.percentage || 0;
             return sum + percentage;
           }, 0) / totalParticipants)
         : 0;
         
-      // FIXED: Calculate percentage for each participant using session's max_possible_score
+      // Use the percentage already calculated and stored in the database
+      // DO NOT recalculate - this ensures consistency with student view
       const participantsWithPercentage = participants.map(p => {
-        let percentage = maxPossibleScore > 0 
-          ? Math.round((p.total_score / maxPossibleScore) * 100) 
-          : 0;
+        // Use the percentage from the database (already calculated correctly by API)
+        let percentage = p.percentage || 0;
         
         // SAFETY FIX: Cap percentage at 100% maximum
         if (percentage > 100) {
