@@ -336,13 +336,13 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-800">Fejlett Könyvtár Kezelő</h2>
-          <p className="text-slate-600">Szerkeszd, válaszd ki és mentsd a feladatokat gyűjteményekbe</p>
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Fejlett Könyvtár Kezelő</h2>
+          <p className="text-slate-600 dark:text-slate-200">Szerkeszd, válaszd ki és mentsd a feladatokat gyűjteményekbe</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={onExit}
-            className="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium"
+            className="text-slate-500 dark:text-slate-200 hover:text-slate-700 dark:hover:text-emerald-300 px-4 py-2 rounded-lg font-medium"
           >
             Vissza
           </button>
@@ -512,7 +512,7 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
             {collections.map((collection) => (
               <div key={collection.id} className="border border-slate-200 rounded-lg p-4">
                 <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-bold text-slate-800">{collection.name}</h4>
+                  <h4 className="font-bold text-slate-800 dark:text-white">{collection.name}</h4>
                   <div className="flex gap-1">
                     <button
                       onClick={() => loadCollection(collection)}
@@ -557,7 +557,7 @@ export default function AdvancedLibraryManager({ library, setLibrary, onExit, on
       {/* Exercise Library */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="p-6 border-b border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white">
             Feladat Könyvtár ({filteredExercises.length} / {library.length})
           </h3>
           <p className="text-slate-600">Kattints a feladatokra a kiválasztáshoz</p>
