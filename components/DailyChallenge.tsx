@@ -681,6 +681,18 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
   };
 
   const handleStudentLogin = async (studentData: Student, code: string, sessionData?: any) => {
+    // CRITICAL FIX: Clear old session data when joining new session
+    // This prevents accumulation of scores from previous sessions
+    const oldSessionCode = currentSessionCode;
+    if (oldSessionCode && oldSessionCode !== code.toUpperCase()) {
+      console.log('🧹 Clearing old session data:', oldSessionCode);
+      const oldSessionKey = `session_${oldSessionCode}_results`;
+      const oldSummaryKey = `session_${oldSessionCode}_summary`;
+      localStorage.removeItem(oldSessionKey);
+      localStorage.removeItem(oldSummaryKey);
+      console.log('✅ Old session data cleared');
+    }
+    
     setStudent(studentData);
     setCurrentSessionCode(code);
     setLoading(true);
