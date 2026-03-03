@@ -9,17 +9,14 @@ interface StudentLoginFormProps {
 export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport }: StudentLoginFormProps) {
   const [studentName, setStudentName] = useState('')
   const [studentClass, setStudentClass] = useState('')
-  const [sessionCode, setSessionCode] = useState('')
-  const [slotNumber, setSlotNumber] = useState<number>(1) // NEW: Slot number
+  const [slotNumber, setSlotNumber] = useState<number>(1) // Slot selection (1 or 2)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [downloadingJson, setDownloadingJson] = useState(false)
-  const [sessionFound, setSessionFound] = useState<any>(null) // Store session info for download
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!studentName.trim() || !studentClass.trim() || !sessionCode.trim()) {
-      setError('Név, osztály és tanári kód megadása kötelező')
+    if (!studentName.trim() || !studentClass.trim()) {
+      setError('Név és osztály megadása kötelező')
       return
     }
     
@@ -27,16 +24,19 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
     setError(null)
     
     try {
-      // Create student object with slot number
+      // Create student object
       const student = {
         id: `student_${Date.now()}`,
         name: studentName.trim(),
         className: studentClass.trim()
       }
       
-      // Pass student data, session code, and slot number to parent
-      // The parent will handle automatic download from Drive
-      onLoginSuccess(student, sessionCode.trim().toUpperCase(), { slotNumber })
+      // Generate a session code based on slot and timestamp (for Supabase tracking)
+      const sessionCode = `SLOT${slotNumber}_${Date.now().toString(36).toUpperCase().slice(-6)}`
+      
+      // Pass student data, generated session code, and slot number to parent
+      // The parent will handle automatic download from Drive based on slot
+      onLoginSuccess(student, sessionCode, { slotNumber })
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Ismeretlen hiba')
     } finally {
@@ -88,7 +88,7 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
           👨‍🎓
         </div>
         <h2 className="text-2xl font-bold text-slate-800 dark:text-emerald-300">Diák bejelentkezés</h2>
-        <p className="text-slate-500 dark:text-slate-200">Add meg a neved, osztályodat és a tanári kódot</p>
+        <p className="text-slate-500 dark:text-slate-200">Add meg a neved, osztályodat és válaszd ki a munkamenetet</p>
       </div>
       
       {/* CSS Animations */}
@@ -143,7 +143,7 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
 
           <div>
             <label htmlFor="slotNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Slot szám <span className="text-purple-600 dark:text-purple-400 font-bold">🎰</span>
+              Munkamenet <span className="text-purple-600 dark:text-purple-400 font-bold">🎰</span>
             </label>
             <select
               id="slotNumber"
@@ -154,43 +154,24 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
             >
               <option value={1}>🎰 Slot 1</option>
               <option value={2}>🎰 Slot 2</option>
-              <option value={3}>🎰 Slot 3</option>
-              <option value={4}>🎰 Slot 4</option>
-              <option value={5}>🎰 Slot 5</option>
             </select>
             <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
-              A tanár által megadott slot számot válaszd ki
+              A tanár által megadott munkamenetet válaszd ki
             </p>
-          </div>
-
-          <div>
-            <label htmlFor="sessionCode" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Munkamenet kód
-            </label>
-            <input
-              type="text"
-              id="sessionCode"
-              value={sessionCode}
-              onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-              placeholder="Pl: ABC123"
-              className="w-full px-4 py-3 border border-gray-300 dark:border-emerald-500 dark:bg-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-emerald-500 focus:border-blue-500 dark:focus:border-emerald-500 font-mono text-center text-lg"
-              disabled={loading}
-              maxLength={6}
-            />
           </div>
 
           <button
             type="submit"
-            disabled={loading || !studentName.trim() || !studentClass.trim() || !sessionCode.trim()}
+            disabled={loading || !studentName.trim() || !studentClass.trim()}
             className="w-full bg-blue-600 dark:bg-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:shadow-emerald-500/50"
           >
             {loading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Bejelentkezés...
+                Betöltés...
               </div>
             ) : (
-              'Bejelentkezés'
+              '🚀 START'
             )}
           </button>
         </form>
