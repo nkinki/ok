@@ -754,16 +754,11 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
           throw new Error(`Slot ${slotNumber} üres. A tanár még nem töltötte fel a munkamenetet.`);
         }
         
-        // Verify session code matches
-        if (sessionJson.code && sessionJson.code.toUpperCase() !== code.toUpperCase()) {
-          console.warn('⚠️ Session code mismatch:', {
-            expected: code.toUpperCase(),
-            received: sessionJson.code.toUpperCase()
-          });
-          throw new Error(`Hibás munkamenet kód! Elvárt: ${code.toUpperCase()}, Kapott: ${sessionJson.code.toUpperCase()}`);
-        }
-        
+        // Note: Session code validation removed for slot-based system
+        // The slot number determines which session to load, not the code
+        // The code is only used for Supabase tracking
         console.log('✅ Munkamenet validálva:', sessionJson.exercises.length, 'feladat');
+        console.log('📋 Drive JSON code:', sessionJson.code, '| Tracking code:', code);
         
         // Convert to playlist format
         const exerciseItems = sessionJson.exercises.map((exercise: any) => ({
