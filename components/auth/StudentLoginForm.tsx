@@ -105,19 +105,18 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
         }
       `}</style>
 
-      {!sessionFound ? (
-        // Login form
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label htmlFor="studentName" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-              Teljes név
-            </label>
-            <input
-              type="text"
-              id="studentName"
-              value={studentName}
-              onChange={(e) => setStudentName(e.target.value)}
-              placeholder="Pl: Kiss Péter"
+      {/* Login form */}
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div>
+          <label htmlFor="studentName" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+            Teljes név
+          </label>
+          <input
+            type="text"
+            id="studentName"
+            value={studentName}
+            onChange={(e) => setStudentName(e.target.value)}
+            placeholder="Pl: Kiss Péter"
               className="w-full px-4 py-3 border border-gray-300 dark:border-emerald-500 dark:bg-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-emerald-500 focus:border-blue-500 dark:focus:border-emerald-500"
               disabled={loading}
             />
@@ -175,12 +174,6 @@ export default function StudentLoginForm({ onLoginSuccess, onBack, onJsonImport 
             )}
           </button>
         </form>
-      ) : (
-        // This section is not used in simple mode
-        <div className="text-center text-slate-500">
-          Átirányítás...
-        </div>
-      )}
 
       {error && (
         <div className="mt-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-500 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm">
