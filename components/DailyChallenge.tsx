@@ -756,9 +756,14 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         
         // Note: Session code validation removed for slot-based system
         // The slot number determines which session to load, not the code
-        // The code is only used for Supabase tracking
+        // IMPORTANT: Use the session code from Drive JSON for Supabase tracking
+        // This ensures teacher can see student results in the correct session
+        const actualSessionCode = sessionJson.code || code;
         console.log('✅ Munkamenet validálva:', sessionJson.exercises.length, 'feladat');
-        console.log('📋 Drive JSON code:', sessionJson.code, '| Tracking code:', code);
+        console.log('📋 Drive JSON code:', sessionJson.code, '| Using for tracking:', actualSessionCode);
+        
+        // Update the session code to match the one from Drive
+        setCurrentSessionCode(actualSessionCode.toUpperCase());
         
         // Convert to playlist format
         const exerciseItems = sessionJson.exercises.map((exercise: any) => ({
