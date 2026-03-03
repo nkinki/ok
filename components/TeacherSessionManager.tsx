@@ -311,6 +311,7 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
+      // Use standard name so teacher doesn't need to rename
       a.download = `SLOT_${selectedSlot}_MUNKAMENET.json`
       document.body.appendChild(a)
       a.click()
@@ -318,6 +319,9 @@ export default function TeacherSessionManager({ library, onExit, onLibraryUpdate
       URL.revokeObjectURL(url)
       
       console.log(`📁 JSON letöltve: SLOT_${selectedSlot}_MUNKAMENET.json - Töltsd fel Drive-ra!`);
+      
+      // Show alert to remind teacher to upload to Drive
+      alert(`✅ Munkamenet létrehozva: ${sessionCode}\n\n⚠️ FONTOS LÉPÉSEK:\n\n1️⃣ Nyisd meg a Google Drive mappát\n2️⃣ TÖRÖLD a régi SLOT_${selectedSlot}_MUNKAMENET.json fájlt\n3️⃣ Töltsd fel az ÚJ letöltött fájlt (SLOT_${selectedSlot}_MUNKAMENET.json)\n\n📌 A fájlnév PONTOSAN így kell legyen:\nSLOT_${selectedSlot}_MUNKAMENET.json\n\n⚠️ Ha nem töltöd fel, a diákok a RÉGI munkamenetet (${sessionCode !== 'M4KFKP' ? 'M4KFKP' : 'régi kód'}) fogják látni az ÚJ (${sessionCode}) helyett!`);
 
     } catch (error) {
       console.error('❌ Session creation error:', error)
