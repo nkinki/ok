@@ -765,6 +765,42 @@ const DailyChallenge: React.FC<Props> = ({ library, onExit, isStudentMode = fals
         // Update the session code to match the one from Drive
         setCurrentSessionCode(actualSessionCode.toUpperCase());
         
+        // CRITICAL: Join the session immediately after loading JSON
+        // This ensures the student is registered before the session expires
+        try {
+          console.log('🔗 Joining session immediately:', actualSessionCode.toUpperCase());
+          const joinResponse = await fetch('/api/simple-api/sessions/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionCode: actualSessionCode.toUpperCase(),
+              name: studentData.name,
+              className: studentData.className
+            })
+          });
+          
+          if (joinResponse.ok) {
+            const joinData = await joinResponse.json();
+            console.log('✅ Session joined successfully:', joinData);
+            
+            // Update student with server-assigned ID
+            if (joinData.student?.id) {
+              setStudent({
+                ...studentData,
+                id: joinData.student.id,
+                sessionId: joinData.student.sessionId
+              });
+            }
+          } else {
+            const errorData = await joinResponse.json().catch(() => ({}));
+            console.warn('⚠️ Failed to join session:', errorData);
+            // Continue anyway - student can still play offline
+          }
+        } catch (joinError) {
+          console.error('❌ Error joining session:', joinError);
+          // Continue anyway - student can still play offline
+        }
+        
         // Convert to playlist format
         const exerciseItems = sessionJson.exercises.map((exercise: any) => ({
           id: exercise.id,
